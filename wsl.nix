@@ -80,6 +80,7 @@
       { src = "${coreutils}/bin/cat"; }
       { src = "${coreutils}/bin/whoami"; }
       { src = "${coreutils}/bin/ls"; }
+      { src = "${coreutils}/bin/uname"; }
       { src = "${busybox}/bin/addgroup"; }
       { src = "${su}/bin/groupadd"; }
       { src = "${su}/bin/usermod"; }
@@ -117,7 +118,7 @@
       for i in ~/.vscode-server/bin/*; do
         if [ -e $i/node ]; then
           echo "Fixing vscode-server in $i..."
-          ln -sf ${pkgs.nodejs_18}/bin/node $i/node
+          ln -sf ${pkgs.nodejs-18_x}/bin/node $i/node
         fi
       done
     '';

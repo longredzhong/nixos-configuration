@@ -31,23 +31,22 @@
     vim
     wget
     zip
-    micromamba
     ruff
     ruff-lsp
-    nvitop
-    ffmpeg-full
   ];
 
   stable-packages = with pkgs; [
     # FIXME: customize these stable packages to your liking for the languages that you use
-
+    micromamba
+    nvitop
+    ffmpeg-full
+    kubectl
+    juicefs
+    atuin
     # FIXME: you can add plugins, change keymaps etc using (jeezyvim.nixvimExtend {})
     # https://github.com/LGUG2Z/JeezyVim#extending
     jeezyvim
     
-    libgcc
-    stdenv.cc
-    stdenv.cc.libc stdenv.cc.libc_dev
     # key tools
     gh # for bootstrapping
     just
@@ -78,7 +77,7 @@
     shellcheck
     shfmt
     statix # nixvimExtend
-    
+    nixpkgs-fmt # nix
   ];
 
 in {
@@ -125,7 +124,7 @@ in {
       directory.style = "blue";
       directory.truncate_to_repo = false;
       directory.truncation_length = 8;
-      python.disabled = true;
+      python.disabled = false;
       ruby.disabled = true;
       hostname.ssh_only = false;
       hostname.style = "bold green";
@@ -185,6 +184,7 @@ in {
       # FIXME: run 'scoop install win32yank' on Windows, then add this line with your Windows username to the bottom of interactiveShellInit
       # fish_add_path --append /mnt/c/Users/<Your Windows Username>/scoop/apps/win32yank/0.1.1
       interactiveShellInit = ''
+        atuin init fish | source
         fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1
         eval "$(micromamba shell hook --shell fish)"
         set -gx LD_LIBRARY_PATH "/usr/lib/wsl/lib:$LD_LIBRARY_PATH"
