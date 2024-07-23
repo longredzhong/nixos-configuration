@@ -18,6 +18,7 @@
   inputs.jeezyvim.url = "github:LGUG2Z/JeezyVim";
 
 
+
   outputs = inputs:
     with inputs; let
       secrets = builtins.fromJSON (builtins.readFile "${self}/secrets.json");
@@ -80,9 +81,17 @@
         };
     in {
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.alejandra;
-
-      nixosConfigurations.nixos = mkNixosConfiguration {
-        hostname = "nixos";
+      nix.settings.substituters = [ "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store" ];
+      nixosConfigurations.thinkbook-wsl = mkNixosConfiguration {
+        hostname = "thinkbook-wsl";
+        username = "longred"; # FIXME: replace with your own username!
+        modules = [
+          nixos-wsl.nixosModules.wsl
+          ./wsl.nix
+        ];
+      };
+      nixosConfigurations.nuc-wsl = mkNixosConfiguration {
+        hostname = "nuc-wsl";
         username = "longred"; # FIXME: replace with your own username!
         modules = [
           nixos-wsl.nixosModules.wsl
