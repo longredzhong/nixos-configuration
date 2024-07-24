@@ -81,7 +81,6 @@
         };
     in {
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.alejandra;
-      nix.settings.substituters = [ "https://mirrors.tuna.tsinghua.edu.cn/nix-channels/store" ];
       nixosConfigurations.thinkbook-wsl = mkNixosConfiguration {
         hostname = "thinkbook-wsl";
         username = "longred"; # FIXME: replace with your own username!
