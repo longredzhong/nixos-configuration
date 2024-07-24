@@ -119,7 +119,7 @@ in {
     starship.settings = {
       aws.disabled = true;
       gcloud.disabled = true;
-      kubernetes.disabled = false;
+      kubernetes.disabled = true;
       git_branch.style = "242";
       directory.style = "blue";
       directory.truncate_to_repo = false;
@@ -153,8 +153,8 @@ in {
         side-by-side = true;
         navigate = true;
       };
-      userEmail = ""; # FIXME: set your git email
-      userName = ""; #FIXME: set your git username
+      userEmail = "zch774931894@gmail.com"; # FIXME: set your git email
+      userName = "longred"; #FIXME: set your git username
       extraConfig = {
         # FIXME: uncomment the next lines if you want to be able to clone private https repos
         # url = {
@@ -195,7 +195,8 @@ in {
       interactiveShellInit = ''
         atuin init fish | source
         fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1
-        eval "$(micromamba shell hook --shell fish)"
+        set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"
+        eval "$(micromamba shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX)"
         set -gx LD_LIBRARY_PATH "/usr/lib/wsl/lib:$LD_LIBRARY_PATH"
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
         ${pkgs.lib.strings.fileContents (pkgs.fetchFromGitHub {
