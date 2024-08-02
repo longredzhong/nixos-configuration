@@ -43,6 +43,12 @@
     kubectl
     juicefs
     atuin
+    gcc
+    kubernetes-helm
+    gedit
+    envsubst
+    cachix
+    devenv
     # FIXME: you can add plugins, change keymaps etc using (jeezyvim.nixvimExtend {})
     # https://github.com/LGUG2Z/JeezyVim#extending
     jeezyvim
@@ -85,7 +91,6 @@ in {
     nix-index-database.hmModules.nix-index
   ];
 
-  
 
   home.stateVersion = "22.11";
 

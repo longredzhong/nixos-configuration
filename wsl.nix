@@ -61,6 +61,10 @@
 
   system.stateVersion = "22.05";
 
+  environment.variables = {
+    NIXPKGS_ALLOW_UNFREE=1;
+  };
+
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";
@@ -90,9 +94,14 @@
   hardware.opengl = {
     enable = true;
     driSupport = true;
+    driSupport32Bit = true;
     extraPackages = with pkgs; [
-       libGL
-       mesa
+        intel-compute-runtime
+        intel-media-driver
+        mesa.drivers
+        libGL
+        mesa
+        mesa-demos
      ];
     setLdLibraryPath = true;
   };
