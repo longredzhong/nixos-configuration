@@ -59,7 +59,7 @@
     ];
   };
 
-  system.stateVersion = "22.05";
+  system.stateVersion = "24.05";
 
   environment.variables = {
     NIXPKGS_ALLOW_UNFREE=1;
