@@ -102,6 +102,7 @@
         libGL
         mesa
         mesa-demos
+        libglvnd
      ];
     setLdLibraryPath = true;
   };
