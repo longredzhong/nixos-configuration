@@ -7,6 +7,7 @@
   inputs,
   config,
   options,
+  networking,
   ...
 }: {
   # FIXME: change to your tz! look it up with "timedatectl list-timezones"
@@ -46,6 +47,12 @@
     ];
   };
 
+  virtualisation.docker = {
+    enable = true;
+    enableOnBoot = true;
+    autoPrune.enable = true;
+  };
+  
   home-manager.users.${username} = {
     imports = [
       ./home.nix
@@ -128,17 +135,6 @@
   # Install firefox.
   programs.firefox.enable = true;
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment.systemPackages = with pkgs; [
-    vim
-    wget
-    vscode
-    git
-    curl
-    clash-verge-rev
-  ];
-
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
   # programs.mtr.enable = true;
@@ -163,7 +159,20 @@
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
-  networking.firewall.enable = false;
+
+  networking.firewall = {
+  # enable the firewall
+  enable = true;
+
+  # always allow traffic from your Tailscale network
+  trustedInterfaces = [ "tailscale0" ];
+
+  # allow the Tailscale UDP port through the firewall
+  allowedUDPPorts = [ config.services.tailscale.port ];
+
+  # let you SSH in over the public internet
+  allowedTCPPorts = [ 22 ];
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

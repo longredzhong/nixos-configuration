@@ -33,6 +33,8 @@
     zip
     ruff
     ruff-lsp
+    vscode
+    tailscale
   ];
 
   stable-packages = with pkgs; [
