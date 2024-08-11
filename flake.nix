@@ -105,5 +105,13 @@
           ./wsl.nix
         ];
       };
+      nixosConfigurations.nuc = mkNixosConfiguration {
+        hostname = "nuc";
+        username = "longred"; # FIXME: replace with your own username!
+        modules = [
+          ./nuc/hardware-configuration.nix
+          ./nuc/nuc.nix
+        ];
+      };
     };
 }
