@@ -86,7 +86,7 @@
         username = "longred"; # FIXME: replace with your own username!
         modules = [
           nixos-wsl.nixosModules.wsl
-          ./wsl.nix
+          ./wsl/wsl.nix
         ];
       };
       nixosConfigurations.nuc-wsl = mkNixosConfiguration {
@@ -94,7 +94,7 @@
         username = "longred"; # FIXME: replace with your own username!
         modules = [
           nixos-wsl.nixosModules.wsl
-          ./wsl.nix
+          ./wsl/wsl.nix
         ];
       };
       nixosConfigurations.metacube-wsl = mkNixosConfiguration {
@@ -102,7 +102,7 @@
         username = "longred"; # FIXME: replace with your own username!
         modules = [
           nixos-wsl.nixosModules.wsl
-          ./wsl.nix
+          ./wsl/wsl.nix
         ];
       };
       nixosConfigurations.nuc = mkNixosConfiguration {
