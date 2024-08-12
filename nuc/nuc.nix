@@ -118,32 +118,8 @@
     #media-session.enable = true;
   };
 
-  # Enable touchpad support (enabled default in most desktopManager).
-  # services.xserver.libinput.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  # users.users.longred = {
-  #  isNormalUser = true;
-  #  description = "longred";
-  #  extraGroups = [ "networkmanager" "wheel" ];
-  #  packages = with pkgs; [
-  #    kdePackages.kate
-    #  thunderbird
-  #  ];
-  #};
-
   # Install firefox.
   programs.firefox.enable = true;
-
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  # programs.mtr.enable = true;
-  # programs.gnupg.agent = {
-  #   enable = true;
-  #   enableSSHSupport = true;
-  # };
-
-  # List services that you want to enable:
 
   # Enable the OpenSSH daemon.
   services.openssh = {
@@ -155,24 +131,25 @@
     };
     openFirewall = true;
   };
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
 
   networking.firewall = {
-  # enable the firewall
-  enable = true;
-
-  # always allow traffic from your Tailscale network
-  trustedInterfaces = [ "tailscale0" ];
-
-  # allow the Tailscale UDP port through the firewall
-  allowedUDPPorts = [ config.services.tailscale.port ];
-
-  # let you SSH in over the public internet
-  allowedTCPPorts = [ 22 ];
+    # enable the firewall
+    enable = true;
+    # always allow traffic from your Tailscale network
+    trustedInterfaces = [ "tailscale0" ];
+    # allow the Tailscale UDP port through the firewall
+    allowedUDPPorts = [ config.services.tailscale.port ];
+    # let you SSH in over the public internet
+    allowedTCPPorts = [ 22 ];    
   };
+  
+  programs.nix-ld = {
+    enable = true;
+    package = pkgs.nix-ld-rs;
+    libraries = options.programs.nix-ld.libraries.default ++ (with pkgs; [
+      glib
+    ]);
+  }; 
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
