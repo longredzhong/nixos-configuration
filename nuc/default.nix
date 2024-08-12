@@ -54,12 +54,6 @@
     ];
   };
 
-  virtualisation.docker = {
-    enable = true;
-    enableOnBoot = true;
-    autoPrune.enable = true;
-  };
-
   home-manager.users.${username} = {
     imports = [
       ./home.nix
@@ -125,11 +119,23 @@
     #media-session.enable = true;
   };
 
-  services.k3s.enable = true;
-  services.k3s.role = "server";
-  services.k3s.extraFlags = toString [
+  virtualisation.docker = {
+    enable = true;
+    enableOnBoot = true;
+    autoPrune.enable = true;
+
+    daemon.settings = {
+      "registry-mirrors"=["https://docker.longred.work"];
+    };
+  };
+
+  services.k3s = {
+    enable = true;
+    role = "server";
+    extraFlags = toString [
     # "--kubelet-arg=v=4" # Optionally add additional args to k3s
-  ];
+    ];
+  };
 
   services.minio = {
     enable = true;
@@ -160,6 +166,7 @@
     allowedTCPPorts = [
       22
       6443
+      2380
     ];
   };
 
