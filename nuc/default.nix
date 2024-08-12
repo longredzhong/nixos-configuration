@@ -1,7 +1,5 @@
-{
-  # FIXME: uncomment the next line if you want to reference your GitHub/GitLab access tokens and other secrets
-  # secrets,
-  username
+{ secrets
+, username
 , hostname
 , pkgs
 , inputs
@@ -15,6 +13,7 @@
     [
       # Include the results of the hardware scan.
       ./hardware-configuration.nix
+      ./k3s.nix
     ];
 
   # FIXME: change to your tz! look it up with "timedatectl list-timezones"
@@ -88,7 +87,24 @@
   services.xserver.enable = true;
 
   # set tailscale
-  services.tailscale.enable = true;
+  services.tailscale = {
+    enable = true;
+    package = pkgs.unstable.tailscale;
+    extraUpFlags = "--ssh";
+  };
+
+  networking.firewall = {
+    # enable the firewall
+    enable = true;
+    # always allow traffic from your Tailscale network
+    trustedInterfaces = [ "tailscale0" ];
+    # allow the Tailscale UDP port through the firewall
+    allowedUDPPorts = [ config.services.tailscale.port ];
+    # let you SSH in over the public internet
+    allowedTCPPorts = [
+      22
+    ];
+  };
 
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
@@ -111,30 +127,15 @@
     alsa.enable = true;
     alsa.support32Bit = true;
     pulse.enable = true;
-    # If you want to use JACK applications, uncomment this
-    #jack.enable = true;
-
-    # use the example session manager (no others are packaged yet so this is enabled by default,
-    # no need to redefine it in your config for now)
-    #media-session.enable = true;
   };
 
   virtualisation.docker = {
     enable = true;
     enableOnBoot = true;
     autoPrune.enable = true;
-
     daemon.settings = {
-      "registry-mirrors"=["https://docker.longred.work"];
+      "registry-mirrors" = [ "https://docker.longred.work" ];
     };
-  };
-
-  services.k3s = {
-    enable = true;
-    role = "server";
-    extraFlags = toString [
-    # "--kubelet-arg=v=4" # Optionally add additional args to k3s
-    ];
   };
 
   services.minio = {
@@ -155,20 +156,7 @@
     openFirewall = true;
   };
 
-  networking.firewall = {
-    # enable the firewall
-    enable = true;
-    # always allow traffic from your Tailscale network
-    trustedInterfaces = [ "tailscale0" ];
-    # allow the Tailscale UDP port through the firewall
-    allowedUDPPorts = [ config.services.tailscale.port ];
-    # let you SSH in over the public internet
-    allowedTCPPorts = [
-      22
-      6443
-      2380
-    ];
-  };
+
 
   programs.nix-ld = {
     enable = true;
@@ -177,12 +165,5 @@
       glib
     ]);
   };
-
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leave
-  # this value at the release version of the first install of this system.
-  # Before changing this value read the documentation for this option
-  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "24.05"; # Did you read the comment?
+  system.stateVersion = "24.05";
 }
