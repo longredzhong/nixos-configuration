@@ -44,14 +44,14 @@
           })
         ];
       });
-      
+
       configurationDefaults = args: {
         home-manager.useGlobalPkgs = true;
         home-manager.useUserPackages = true;
         home-manager.backupFileExtension = "hm-backup";
         home-manager.extraSpecialArgs = args;
       };
-      
+
 
       argDefaults = {
         inherit secrets inputs self nix-index-database;
@@ -60,15 +60,17 @@
         };
       };
 
-      mkNixosConfiguration = {
-        system ? "x86_64-linux",
-        hostname,
-        username,
-        args ? {},
-        modules,
-      }: let
-        specialArgs = argDefaults // {inherit hostname username;} // args;
-      in
+      mkNixosConfiguration =
+        { system ? "x86_64-linux"
+        , hostname
+        , username
+        , args ? { }
+        , modules
+        ,
+        }:
+        let
+          specialArgs = argDefaults // { inherit hostname username; } // args;
+        in
         nixpkgs.lib.nixosSystem {
           inherit system specialArgs;
           pkgs = nixpkgsWithOverlays system;
@@ -79,14 +81,15 @@
             ]
             ++ modules;
         };
-    in {
+    in
+    {
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.alejandra;
       nixosConfigurations.thinkbook-wsl = mkNixosConfiguration {
         hostname = "thinkbook-wsl";
         username = "longred"; # FIXME: replace with your own username!
         modules = [
           nixos-wsl.nixosModules.wsl
-          ./wsl/wsl.nix
+          ./wsl
         ];
       };
       nixosConfigurations.nuc-wsl = mkNixosConfiguration {
@@ -94,7 +97,7 @@
         username = "longred"; # FIXME: replace with your own username!
         modules = [
           nixos-wsl.nixosModules.wsl
-          ./wsl/wsl.nix
+          ./wsl
         ];
       };
       nixosConfigurations.metacube-wsl = mkNixosConfiguration {
@@ -102,15 +105,14 @@
         username = "longred"; # FIXME: replace with your own username!
         modules = [
           nixos-wsl.nixosModules.wsl
-          ./wsl/wsl.nix
+          ./wsl
         ];
       };
       nixosConfigurations.nuc = mkNixosConfiguration {
         hostname = "nuc";
         username = "longred"; # FIXME: replace with your own username!
         modules = [
-          ./nuc/hardware-configuration.nix
-          ./nuc/nuc.nix
+          ./nuc
         ];
       };
     };

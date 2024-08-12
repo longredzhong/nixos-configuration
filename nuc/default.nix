@@ -1,22 +1,29 @@
 {
   # FIXME: uncomment the next line if you want to reference your GitHub/GitLab access tokens and other secrets
   # secrets,
-  username,
-  hostname,
-  pkgs,
-  inputs,
-  config,
-  options,
-  networking,
-  ...
+  username
+, hostname
+, pkgs
+, inputs
+, config
+, options
+, networking
+, ...
 }: {
+
+  imports =
+    [
+      # Include the results of the hardware scan.
+      ./hardware-configuration.nix
+    ];
+
   # FIXME: change to your tz! look it up with "timedatectl list-timezones"
   time.timeZone = "Asia/Shanghai";
   networking.hostName = "${hostname}";
   # FIXME: change your shell here if you don't want fish
   programs.fish.enable = true;
-  environment.pathsToLink = ["/share/fish"];
-  environment.shells = [pkgs.fish];
+  environment.pathsToLink = [ "/share/fish" ];
+  environment.shells = [ pkgs.fish ];
 
   environment.enableAllTerminfo = true;
 
@@ -52,7 +59,7 @@
     enableOnBoot = true;
     autoPrune.enable = true;
   };
-  
+
   home-manager.users.${username} = {
     imports = [
       ./home.nix
@@ -60,9 +67,9 @@
   };
 
   environment.variables = {
-    NIXPKGS_ALLOW_UNFREE=1;
+    NIXPKGS_ALLOW_UNFREE = 1;
   };
-  
+
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -94,7 +101,7 @@
   services.desktopManager.plasma6.enable = true;
 
   # Configure keymap in X11
-  services.xserver.xkb= {
+  services.xserver.xkb = {
     layout = "us";
     variant = "";
   };
@@ -116,6 +123,16 @@
     # use the example session manager (no others are packaged yet so this is enabled by default,
     # no need to redefine it in your config for now)
     #media-session.enable = true;
+  };
+
+  services.k3s.enable = true;
+  services.k3s.role = "server";
+  services.k3s.extraFlags = toString [
+    # "--kubelet-arg=v=4" # Optionally add additional args to k3s
+  ];
+
+  services.minio = {
+    enable = true;
   };
 
   # Install firefox.
@@ -140,16 +157,19 @@
     # allow the Tailscale UDP port through the firewall
     allowedUDPPorts = [ config.services.tailscale.port ];
     # let you SSH in over the public internet
-    allowedTCPPorts = [ 22 ];    
+    allowedTCPPorts = [
+      22
+      6443
+    ];
   };
-  
+
   programs.nix-ld = {
     enable = true;
     package = pkgs.nix-ld-rs;
     libraries = options.programs.nix-ld.libraries.default ++ (with pkgs; [
       glib
     ]);
-  }; 
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
