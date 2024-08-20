@@ -44,11 +44,13 @@
     juicefs
     atuin
     gcc
+    gnumake
     kubernetes-helm
     gedit
     envsubst
     cachix
     devenv
+    cmake
     # FIXME: you can add plugins, change keymaps etc using (jeezyvim.nixvimExtend {})
     # https://github.com/LGUG2Z/JeezyVim#extending
     jeezyvim
