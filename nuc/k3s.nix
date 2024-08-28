@@ -13,8 +13,8 @@
     enable = true;
     role = "server";
     extraFlags = toString [
-      # "--kubelet-arg=v=4" # Optionally add additional args to k3s
-      "--kubelet-arg=node-ip=0.0.0.0"
+      "--advertise-address=100.127.172.105"
+      "--node-ip=100.127.172.105"
       "--embedded-registry"
     ];
   };
