@@ -15,6 +15,7 @@
     extraFlags = toString [
       # "--kubelet-arg=v=4" # Optionally add additional args to k3s
       "--kubelet-arg=node-ip=0.0.0.0"
+      "--embedded-registry"
     ];
   };
 
