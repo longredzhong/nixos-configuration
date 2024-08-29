@@ -96,7 +96,7 @@
     driSupport = true;
     driSupport32Bit = true;
     extraPackages = with pkgs; [
-        mesa.drivers
+        intel-media-driver
         libGL
         mesa
         mesa-demos

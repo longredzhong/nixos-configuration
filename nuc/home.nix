@@ -203,7 +203,6 @@ in {
         atuin init fish | source
         set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"
         eval "$(micromamba shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX)"
-        set -gx LD_LIBRARY_PATH "/usr/lib/wsl/lib:$LD_LIBRARY_PATH"
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
         ${pkgs.lib.strings.fileContents (pkgs.fetchFromGitHub {
             owner = "rebelot";
