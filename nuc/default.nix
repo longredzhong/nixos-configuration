@@ -14,6 +14,7 @@
       # Include the results of the hardware scan.
       ./hardware-configuration.nix
       ./k3s.nix
+      ./cloudflared.nix
     ];
 
   # FIXME: change to your tz! look it up with "timedatectl list-timezones"
@@ -93,6 +94,27 @@
     extraUpFlags = "--ssh";
   };
 
+  services.minio = {
+    enable = true;
+    accessKey = secrets.minio.accessKey;
+    secretKey = secrets.minio.secretKey;
+  };
+
+  environment.systemPackages = with pkgs; [
+    dufs
+  ];
+
+  systemd.services.dufs = {
+    description = "DUFS Service";
+    after = [ "network.target" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      ExecStart = "${pkgs.dufs}/bin/dufs -A -p 5000 -a ${secrets.minio.accessKey}:${secrets.minio.secretKey}@/:rw /var/lib/dufs";
+      Restart = "always";
+      RestartSec = "10s";
+    };
+  };
+
   networking.firewall = {
     # enable the firewall
     enable = true;
@@ -136,10 +158,6 @@
     daemon.settings = {
       "registry-mirrors" = [ "https://docker.longred.work" ];
     };
-  };
-
-  services.minio = {
-    enable = true;
   };
 
   # Install firefox.
