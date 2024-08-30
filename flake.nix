@@ -83,6 +83,7 @@
         };
     in
     {
+      nix.settings.substituters = [ "https://mirror.sjtu.edu.cn/nix-channels/store" ];
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.alejandra;
       nixosConfigurations.thinkbook-wsl = mkNixosConfiguration {
         hostname = "thinkbook-wsl";
