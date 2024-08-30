@@ -107,6 +107,9 @@
       mesa
       mesa-demos
       libglvnd
+      mesa.drivers
+      libvdpau-va-gl
+      vaapiVdpau
     ];
     setLdLibraryPath = true;
   };
