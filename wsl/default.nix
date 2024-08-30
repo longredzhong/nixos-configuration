@@ -1,16 +1,17 @@
 {
   # FIXME: uncomment the next line if you want to reference your GitHub/GitLab access tokens and other secrets
   # secrets,
-  username,
-  hostname,
-  pkgs,
-  lib,
-  inputs,
-  config,
-  options,
-  nixpkgs,
-  ...
-}: {
+  username
+, hostname
+, pkgs
+, lib
+, inputs
+, config
+, options
+, nixpkgs
+, ...
+}:
+{
   # FIXME: change to your tz! look it up with "timedatectl list-timezones"
   time.timeZone = "Asia/Shanghai";
 
@@ -21,15 +22,20 @@
       glib
     ]);
   };
-  
+
   networking.hostName = "${hostname}";
 
   # FIXME: change your shell here if you don't want fish
   programs.fish.enable = true;
-  environment.pathsToLink = ["/share/fish"];
-  environment.shells = [pkgs.fish];
+  environment.pathsToLink = [ "/share/fish" ];
+  environment.shells = [ pkgs.fish ];
 
   environment.enableAllTerminfo = true;
+
+  environment.systemPackages = with pkgs; [
+    cudaPackages.cuda_nvcc
+    cudaPackages.cudnn
+  ];
 
   security.sudo.wheelNeedsPassword = false;
 
@@ -53,16 +59,10 @@
     # ];
   };
 
-  home-manager.users.${username} = {
-    imports = [
-      ./home.nix
-    ];
-  };
-
   system.stateVersion = "24.05";
 
   environment.variables = {
-    NIXPKGS_ALLOW_UNFREE=1;
+    NIXPKGS_ALLOW_UNFREE = 1;
   };
 
   wsl = {
@@ -91,17 +91,23 @@
     ];
   };
 
+  home-manager.users.${username} = {
+    imports = [
+      ./home.nix
+    ];
+  };
+
   hardware.opengl = {
     enable = true;
     driSupport = true;
     driSupport32Bit = true;
     extraPackages = with pkgs; [
-        intel-media-driver
-        libGL
-        mesa
-        mesa-demos
-        libglvnd
-     ];
+      intel-media-driver
+      libGL
+      mesa
+      mesa-demos
+      libglvnd
+    ];
     setLdLibraryPath = true;
   };
 
@@ -111,7 +117,7 @@
     autoPrune.enable = true;
   };
   systemd.services.docker-desktop-proxy.script = lib.mkForce ''${config.wsl.wslConf.automount.root}/wsl/docker-desktop/docker-desktop-user-distro proxy --docker-desktop-root ${config.wsl.wslConf.automount.root}/wsl/docker-desktop "C:\Program Files\Docker\Docker\resources"'';
-  
+
   # systemd.enableUnifiedCgroupHierarchy = false;
   # FIXME: uncomment the next block to make vscode running in Windows "just work" with NixOS on WSL
   # solution adapted from: https://github.com/K900/vscode-remote-workaround
@@ -133,7 +139,7 @@
 
   nix = {
     settings = {
-      trusted-users = [username];
+      trusted-users = [ username ];
       # FIXME: use your access tokens from secrets.json here to be able to clone private repos on GitHub and GitLab
       # access-tokens = [
       #   "github.com=${secrets.github_token}"
