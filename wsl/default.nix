@@ -32,11 +32,6 @@
 
   environment.enableAllTerminfo = true;
 
-  environment.systemPackages = with pkgs; [
-    cudaPackages.cuda_nvcc
-    cudaPackages.cudnn
-  ];
-
   security.sudo.wheelNeedsPassword = false;
 
   # FIXME: uncomment the next line to enable SSH

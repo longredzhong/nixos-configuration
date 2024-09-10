@@ -89,7 +89,7 @@ let
     statix # nixvimExtend
     nixpkgs-fmt # nix
   ];
-  
+
 in
 {
   imports = [
@@ -207,7 +207,7 @@ in
         fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1
         set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"
         eval "$(micromamba shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX)"
-        set -gx LD_LIBRARY_PATH "/usr/lib/wsl/lib:$LD_LIBRARY_PATH"
+        
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
         ${pkgs.lib.strings.fileContents (pkgs.fetchFromGitHub {
             owner = "rebelot";
@@ -217,6 +217,11 @@ in
           }
           + "/extras/kanagawa.fish")}
 
+        set -gx CUDA_HOME ${pkgs.cudatoolkit}
+        set -gx LD_LIBRARY_PATH "/usr/lib/wsl/lib:${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.ncurses5}/lib:$LD_LIBRARY_PATH"
+        set -gx EXTRA_LDFLAGS "-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib"
+        set -gx EXTRA_CCFLAGS "-I/usr/include"
+        
         set -U fish_greeting
       '';
       functions = {
@@ -265,6 +270,7 @@ in
         pbpaste = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -command 'Get-Clipboard'";
         explorer = "/mnt/c/Windows/explorer.exe";
         code = "/mnt/c/Users/longred/scoop/apps/vscode/current/bin/code";
+        cursor = "/mnt/c/Users/longred/scoop/apps/Cursor/current/resources/app/bin/cursor";
       };
       plugins = [
         {
