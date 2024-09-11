@@ -215,13 +215,7 @@ in
             rev = "de7fb5f5de25ab45ec6039e33c80aeecc891dd92";
             sha256 = "sha256-f/CUR0vhMJ1sZgztmVTPvmsAgp0kjFov843Mabdzvqo=";
           }
-          + "/extras/kanagawa.fish")}
-
-        set -gx CUDA_HOME ${pkgs.cudatoolkit}
-        set -gx LD_LIBRARY_PATH "/usr/lib/wsl/lib:${pkgs.linuxPackages.nvidia_x11}/lib:${pkgs.ncurses5}/lib:$LD_LIBRARY_PATH"
-        set -gx EXTRA_LDFLAGS "-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib"
-        set -gx EXTRA_CCFLAGS "-I/usr/include"
-        
+          + "/extras/kanagawa.fish")}        
         set -U fish_greeting
       '';
       functions = {
