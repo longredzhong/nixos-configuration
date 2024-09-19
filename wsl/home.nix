@@ -33,8 +33,7 @@ let
     vim
     wget
     zip
-    ruff
-    ruff-lsp
+    uv
   ];
 
   stable-packages = with pkgs; [
@@ -207,7 +206,7 @@ in
         fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1
         set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"
         eval "$(micromamba shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX)"
-        
+        fish_add_path "/home/longred/.local/bin
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
         ${pkgs.lib.strings.fileContents (pkgs.fetchFromGitHub {
             owner = "rebelot";
