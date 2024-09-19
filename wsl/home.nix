@@ -203,10 +203,9 @@ in
       # fish_add_path --append /mnt/c/Users/<Your Windows Username>/scoop/apps/win32yank/0.1.1
       interactiveShellInit = ''
         atuin init fish | source
-        fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1
+        fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1 /home/longred/.local/bin
         set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"
         eval "$(micromamba shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX)"
-        fish_add_path "/home/longred/.local/bin
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
         ${pkgs.lib.strings.fileContents (pkgs.fetchFromGitHub {
             owner = "rebelot";
