@@ -93,14 +93,6 @@
           ./wsl
         ];
       };
-      nixosConfigurations.nuc-wsl = mkNixosConfiguration {
-        hostname = "nuc-wsl";
-        username = "longred"; # FIXME: replace with your own username!
-        modules = [
-          nixos-wsl.nixosModules.wsl
-          ./wsl
-        ];
-      };
       nixosConfigurations.metacube-wsl = mkNixosConfiguration {
         hostname = "metacube-wsl";
         username = "longred"; # FIXME: replace with your own username!
