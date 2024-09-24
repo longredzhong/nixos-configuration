@@ -34,6 +34,7 @@ let
     wget
     zip
     uv
+    juicefs
   ];
 
   stable-packages = with pkgs; [
@@ -42,7 +43,6 @@ let
     nvitop
     ffmpeg-full
     kubectl
-    juicefs
     atuin
     gcc
     gnumake
