@@ -17,10 +17,9 @@
       ./cloudflared.nix
     ];
 
-  # FIXME: change to your tz! look it up with "timedatectl list-timezones"
   time.timeZone = "Asia/Shanghai";
   networking.hostName = "${hostname}";
-  # FIXME: change your shell here if you don't want fish
+
   programs.fish.enable = true;
   environment.pathsToLink = [ "/share/fish" ];
   environment.shells = [ pkgs.fish ];
@@ -29,17 +28,13 @@
 
   security.sudo.wheelNeedsPassword = false;
 
-  # FIXME: uncomment the next line to enable SSH
-  # services.openssh.enable = true;
-
   users.users.${username} = {
     isNormalUser = true;
-    # FIXME: change your shell here if you don't want fish
+
     shell = pkgs.fish;
     extraGroups = [
       "wheel"
       "networkmanager"
-      # FIXME: uncomment the next line if you want to run docker without sudo
       "docker"
     ];
     # FIXME: add your own hashed password

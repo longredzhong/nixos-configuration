@@ -1,11 +1,10 @@
-{
-  # FIXME: uncomment the next line if you want to reference your GitHub/GitLab access tokens and other secrets
-  # secrets,
-  pkgs,
-  username,
-  nix-index-database,
-  ...
-}: let
+{ secrets
+, pkgs
+, username
+, nix-index-database
+, ...
+}:
+let
   unstable-packages = with pkgs.unstable; [
     # FIXME: select your core binaries that you always want on the bleeding-edge
     bat
@@ -54,7 +53,7 @@
     # FIXME: you can add plugins, change keymaps etc using (jeezyvim.nixvimExtend {})
     # https://github.com/LGUG2Z/JeezyVim#extending
     jeezyvim
-    
+
     # key tools
     gh # for bootstrapping
     just
@@ -88,7 +87,8 @@
     nixpkgs-fmt # nix
   ];
 
-in {
+in
+{
   imports = [
     nix-index-database.hmModules.nix-index
   ];
@@ -144,7 +144,7 @@ in {
     lsd.enableAliases = true;
     zoxide.enable = true;
     zoxide.enableFishIntegration = true;
-    zoxide.options = ["--cmd cd"];
+    zoxide.options = [ "--cmd cd" ];
     broot.enable = true;
     broot.enableFishIntegration = true;
     direnv.enable = true;
@@ -197,8 +197,6 @@ in {
     # FIXME: This is my fish config - you can fiddle with it if you want
     fish = {
       enable = true;
-      # FIXME: run 'scoop install win32yank' on Windows, then add this line with your Windows username to the bottom of interactiveShellInit
-      # fish_add_path --append /mnt/c/Users/<Your Windows Username>/scoop/apps/win32yank/0.1.1
       interactiveShellInit = ''
         atuin init fish | source
         set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"

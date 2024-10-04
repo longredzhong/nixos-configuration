@@ -87,7 +87,7 @@
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.alejandra;
       nixosConfigurations.thinkbook-wsl = mkNixosConfiguration {
         hostname = "thinkbook-wsl";
-        username = "longred"; # FIXME: replace with your own username!
+        username = "longred";
         modules = [
           nixos-wsl.nixosModules.wsl
           ./wsl
@@ -95,7 +95,7 @@
       };
       nixosConfigurations.metacube-wsl = mkNixosConfiguration {
         hostname = "metacube-wsl";
-        username = "longred"; # FIXME: replace with your own username!
+        username = "longred";
         modules = [
           nixos-wsl.nixosModules.wsl
           ./wsl
@@ -103,7 +103,7 @@
       };
       nixosConfigurations.nuc = mkNixosConfiguration {
         hostname = "nuc";
-        username = "longred"; # FIXME: replace with your own username!
+        username = "longred";
         modules = [
           ./nuc
         ];
