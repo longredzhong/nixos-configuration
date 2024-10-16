@@ -33,7 +33,6 @@ let
     zip
     uv
     devenv
-    juicefs
   ];
 
   stable-packages = with pkgs; [
@@ -53,6 +52,7 @@ let
     # FIXME: you can add plugins, change keymaps etc using (jeezyvim.nixvimExtend {})
     # https://github.com/LGUG2Z/JeezyVim#extending
     jeezyvim
+    juicefs
 
     # key tools
     gh # for bootstrapping
