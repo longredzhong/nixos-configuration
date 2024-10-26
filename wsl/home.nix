@@ -86,7 +86,7 @@ let
     statix # nixvimExtend
     nixpkgs-fmt # nix
   ];
-
+  pixi-package = pkgs.callPackage ../pkgs/pixi { };
 in
 {
   imports = [
@@ -112,6 +112,7 @@ in
     [
       # pkgs.some-package
       # pkgs.unstable.some-other-package
+      pixi-package
     ]
   ;
 
