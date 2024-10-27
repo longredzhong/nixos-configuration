@@ -60,22 +60,22 @@
     NIXPKGS_ALLOW_UNFREE = 1;
   };
 
-  hardware.opengl = {
-    enable = true;
-    driSupport = true;
-    driSupport32Bit = true;
-    extraPackages = with pkgs; [
-      intel-media-driver
-      libGL
-      mesa
-      mesa-demos
-      libglvnd
-      mesa.drivers
-      libvdpau-va-gl
-      vaapiVdpau
-    ];
-    setLdLibraryPath = true;
-  };
+  # hardware.opengl = {
+  #   enable = true;
+  #   driSupport = true;
+  #   driSupport32Bit = true;
+  #   extraPackages = with pkgs; [
+  #     intel-media-driver
+  #     libGL
+  #     mesa
+  #     mesa-demos
+  #     libglvnd
+  #     mesa.drivers
+  #     libvdpau-va-gl
+  #     vaapiVdpau
+  #   ];
+  #   setLdLibraryPath = true;
+  # };
 
   wsl = {
     enable = true;

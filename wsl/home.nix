@@ -200,9 +200,10 @@ in
       enable = true;
       interactiveShellInit = ''
         atuin init fish | source
-        fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1 /home/longred/.local/bin
+        fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1 /home/longred/.local/bin /home/longred/.pixi/bin
         set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"
         eval "$(micromamba shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX)"
+        echo 'pixi completion --shell fish | source' > ~/.config/fish/completions/pixi.fish
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
         ${pkgs.lib.strings.fileContents (pkgs.fetchFromGitHub {
             owner = "rebelot";
@@ -223,6 +224,18 @@ in
             set arr (echo $i |tr = \n)
             set -gx $arr[1] $arr[2]
           end
+        '';
+        set_proxy = ''
+        set -gx http_proxy http://127.0.0.1:7890
+        set -gx https_proxy http://127.0.0.1:7890
+        set -gx HTTP_PROXY $http_proxy
+        set -gx HTTPS_PROXY $https_proxy
+        '';
+        unset_proxy = ''
+        set -e http_proxy
+        set -e HTTP_PROXY
+        set -e https_proxy
+        set -e HTTPS_PROXY
         '';
       };
       shellAbbrs =
