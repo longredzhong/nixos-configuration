@@ -60,23 +60,33 @@
     NIXPKGS_ALLOW_UNFREE = 1;
   };
 
-  # hardware.opengl = {
-  #   enable = true;
-  #   driSupport = true;
-  #   driSupport32Bit = true;
-  #   extraPackages = with pkgs; [
-  #     intel-media-driver
-  #     libGL
-  #     mesa
-  #     mesa-demos
-  #     libglvnd
-  #     mesa.drivers
-  #     libvdpau-va-gl
-  #     vaapiVdpau
-  #   ];
-  #   setLdLibraryPath = true;
-  # };
-
+  hardware.opengl = {
+    enable = true;
+    driSupport = true;
+    driSupport32Bit = true;
+    extraPackages = with pkgs; [
+      intel-media-driver
+      libGL
+      mesa
+      mesa-demos
+      libglvnd
+      mesa.drivers
+      libvdpau-va-gl
+      vaapiVdpau
+    ];
+    setLdLibraryPath = true;
+  };
+  environment.sessionVariables = {
+    CUDA_PATH = "${pkgs.cudatoolkit}";
+    EXTRA_LDFLAGS = "-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib";
+    EXTRA_CCFLAGS = "-I/usr/include";
+    LD_LIBRARY_PATH = [
+      "/usr/lib/wsl/lib"
+      "${pkgs.linuxPackages.nvidia_x11}/lib"
+      "${pkgs.ncurses5}/lib"
+    ];
+    MESA_D3D12_DEFAULT_ADAPTER_NAME = "Nvidia";
+  };
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";
