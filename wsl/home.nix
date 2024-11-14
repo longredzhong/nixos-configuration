@@ -225,16 +225,19 @@ in
           end
         '';
         set_proxy = ''
-        set -gx http_proxy http://127.0.0.1:7890
-        set -gx https_proxy http://127.0.0.1:7890
-        set -gx HTTP_PROXY $http_proxy
-        set -gx HTTPS_PROXY $https_proxy
+          if test (count $argv) -eq 1
+            set proxy $argv[1]
+          else
+            set proxy "127.0.0.1:7890"
+          end
+          set -gx http_proxy http://$proxy
+          set -gx https_proxy http://$proxy
+          set -gx all_proxy socks5://$proxy
         '';
         unset_proxy = ''
-        set -e http_proxy
-        set -e HTTP_PROXY
-        set -e https_proxy
-        set -e HTTPS_PROXY
+          set -e http_proxy
+          set -e https_proxy
+          set -e all_proxy
         '';
       };
       shellAbbrs =
