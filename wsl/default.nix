@@ -53,7 +53,7 @@
     # ];
   };
 
-  system.stateVersion = "24.05";
+  system.stateVersion = "24.11";
 
   environment.variables = {
     NIXPKGS_ALLOW_UNFREE = 1;
@@ -61,14 +61,11 @@
 
   hardware.opengl = {
     enable = true;
-    driSupport = true;
-    driSupport32Bit = true;
     extraPackages = with pkgs; [
       libGL
       mesa
       libglvnd
     ];
-    setLdLibraryPath = true;
   };
   environment.sessionVariables = {
     CUDA_PATH = "${pkgs.cudatoolkit}";
@@ -121,6 +118,7 @@
     daemon.settings = {
       "registry-mirrors" = [ "https://docker.longred.work" ];
       "insecure-registries" = [ "172.16.100.6:18083" "172.16.100.6:18084" ];
+      "features" = { "buildkit" = true; };
     };
   };
   # systemd.services.docker-desktop-proxy.script = lib.mkForce ''${config.wsl.wslConf.automount.root}/wsl/docker-desktop/docker-desktop-user-distro proxy --docker-desktop-root ${config.wsl.wslConf.automount.root}/wsl/docker-desktop "C:\Program Files\Docker\Docker\resources"'';
@@ -150,7 +148,7 @@
       "/nix/var/nix/profiles/per-user/root/channels"
     ];
 
-    package = pkgs.nixFlakes;
+    package = pkgs.nixVersions.stable;
     extraOptions = ''experimental-features = nix-command flakes'';
 
     gc = {

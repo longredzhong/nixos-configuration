@@ -1,11 +1,11 @@
 {
   description = "NixOS configuration";
 
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
   inputs.nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
 
-  inputs.home-manager.url = "github:nix-community/home-manager/release-24.05";
+  inputs.home-manager.url = "github:nix-community/home-manager/release-24.11";
   inputs.home-manager.inputs.nixpkgs.follows = "nixpkgs";
 
   inputs.nur.url = "github:nix-community/NUR";
@@ -34,7 +34,7 @@
         };
 
         overlays = [
-          nur.overlay
+          nur.overlays.default
           jeezyvim.overlays.default
 
           (_final: prev: {
@@ -84,7 +84,6 @@
         };
     in
     {
-      nix.settings.substituters = [ "https://mirror.sjtu.edu.cn/nix-channels/store" ];
       formatter.x86_64-linux = nixpkgs.legacyPackages.x86_64-linux.alejandra;
       nixosConfigurations.thinkbook-wsl = mkNixosConfiguration {
         hostname = "thinkbook-wsl";

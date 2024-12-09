@@ -34,6 +34,7 @@ let
     uv
     devenv
     pixi
+    buildkit
   ];
 
   stable-packages = with pkgs; [
