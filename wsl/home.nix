@@ -274,7 +274,6 @@ in
         pbpaste = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -command 'Get-Clipboard'";
         explorer = "/mnt/c/Windows/explorer.exe";
         code = "/mnt/c/Users/longred/scoop/apps/vscode/current/bin/code";
-        cursor = "/mnt/c/Users/longred/scoop/apps/Cursor/current/resources/app/bin/cursor";
       };
       plugins = [
         {

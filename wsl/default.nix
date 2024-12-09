@@ -43,7 +43,6 @@
     shell = pkgs.fish;
     extraGroups = [
       "wheel"
-      # FIXME: uncomment the next line if you want to run docker without sudo
       "docker"
     ];
     # FIXME: add your own hashed password
@@ -119,8 +118,12 @@
     enable = true;
     enableOnBoot = true;
     autoPrune.enable = true;
+    daemon.settings = {
+      "registry-mirrors" = [ "https://docker.longred.work" ];
+      "insecure-registries" = [ "172.16.100.6:18083" "172.16.100.6:18084" ];
+    };
   };
-  systemd.services.docker-desktop-proxy.script = lib.mkForce ''${config.wsl.wslConf.automount.root}/wsl/docker-desktop/docker-desktop-user-distro proxy --docker-desktop-root ${config.wsl.wslConf.automount.root}/wsl/docker-desktop "C:\Program Files\Docker\Docker\resources"'';
+  # systemd.services.docker-desktop-proxy.script = lib.mkForce ''${config.wsl.wslConf.automount.root}/wsl/docker-desktop/docker-desktop-user-distro proxy --docker-desktop-root ${config.wsl.wslConf.automount.root}/wsl/docker-desktop "C:\Program Files\Docker\Docker\resources"'';
 
   nix = {
     settings = {
