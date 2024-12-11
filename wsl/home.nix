@@ -39,6 +39,7 @@ let
 
   stable-packages = with pkgs; [
     # FIXME: customize these stable packages to your liking for the languages that you use
+    wslu
     micromamba
     nvitop
     ffmpeg-full
