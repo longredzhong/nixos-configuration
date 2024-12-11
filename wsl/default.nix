@@ -59,7 +59,7 @@
     NIXPKGS_ALLOW_UNFREE = 1;
   };
 
-  hardware.opengl = {
+  hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
       libGL
