@@ -35,6 +35,7 @@ let
     devenv
     buildkit
     micromamba
+    pixi
   ];
 
   stable-packages = with pkgs; [
