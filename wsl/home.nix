@@ -281,10 +281,6 @@ in
           name = "autopair";
         }
         {
-          inherit (pkgs.fishPlugins.done) src;
-          name = "done";
-        }
-        {
           inherit (pkgs.fishPlugins.sponge) src;
           name = "sponge";
         }
