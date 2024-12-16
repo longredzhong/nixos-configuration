@@ -35,8 +35,12 @@
   security.sudo.wheelNeedsPassword = false;
 
   # FIXME: uncomment the next line to enable SSH
-  # services.openssh.enable = true;
-  services.tailscale.enable = true;
+  services.openssh.enable = true;
+  services.tailscale = {
+    enable = true;
+    package = pkgs.unstable.tailscale;
+    extraUpFlags = "--ssh";
+  };
   users.users.${username} = {
     isNormalUser = true;
     # FIXME: change your shell here if you don't want fish
