@@ -1,5 +1,7 @@
 { services
 , pkgs
+, config
+, outputs
 , ...
 }: {
   imports = with outputs.nixosModules; [
