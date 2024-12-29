@@ -1,6 +1,7 @@
 { networking
 , services
 , environment
+, pkgs
 , ...
 }: {
   networking.firewall = {
