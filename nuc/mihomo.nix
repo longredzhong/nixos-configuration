@@ -7,8 +7,8 @@ let
     # This is the configuration file for mihomo
     # You can find more information about the configuration options here:
     allow-lan: true
-    mixed-port: 7890
     ipv6: true
+    mixed-port: 7890
     socks-port: 7891
     port: 7892
     redir-port: 0
@@ -797,12 +797,6 @@ let
         name: GLOBAL
         type: select
     rules:
-      - DOMAIN-SUFFIX,baidu.com,DIRECT
-      - DOMAIN-SUFFIX,tencent.com,DIRECT
-      - DOMAIN-SUFFIX,adtiger.com,DIRECT
-      - DOMAIN-SUFFIX,adtensor.com,DIRECT
-      - DOMAIN-SUFFIX,longred.work,DIRECT
-      - DOMAIN-SUFFIX,quickconnect.to,DIRECT
       - RULE-SET,prevent_dns_leak,PROXY
       - RULE-SET,private,DIRECT
       - RULE-SET,bing,AIGC
