@@ -20,7 +20,21 @@
 
   time.timeZone = "Asia/Shanghai";
   networking.hostName = "${hostname}";
-
+  networking.firewall = {
+    allowedTCPPorts = [
+      6443
+      2379
+      2380
+      10250
+      7890
+    ];
+    allowedUDPPorts = [
+      8472
+      51820
+      51821
+      7890
+    ];
+  };
   programs.fish.enable = true;
   environment.pathsToLink = [ "/share/fish" ];
   environment.shells = [ pkgs.fish ];
