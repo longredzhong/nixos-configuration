@@ -3,6 +3,7 @@
 , environment
 , pkgs
 , config
+, systemd
 , ...
 }:
 let
@@ -31,5 +32,8 @@ in
     enable = true;
     name = "${config.networking.hostName}-initiatorhost";
   };
+  systemd.tmpfiles.rules = [
+  "L+ /usr/local/bin - - - - /run/current-system/sw/bin/"
+  ];
 
 }
