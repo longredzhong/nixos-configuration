@@ -15,6 +15,7 @@
       ./hardware-configuration.nix
       ./k3s.nix
       ./cloudflared.nix
+      ./mihomo.nix
     ];
 
   time.timeZone = "Asia/Shanghai";
