@@ -20,21 +20,6 @@
 
   time.timeZone = "Asia/Shanghai";
   networking.hostName = "${hostname}";
-  networking.firewall = {
-    allowedTCPPorts = [
-      6443
-      2379
-      2380
-      10250
-      7890
-    ];
-    allowedUDPPorts = [
-      8472
-      51820
-      51821
-      7890
-    ];
-  };
   programs.fish.enable = true;
   environment.pathsToLink = [ "/share/fish" ];
   environment.shells = [ pkgs.fish ];
@@ -131,13 +116,23 @@
     # always allow traffic from your Tailscale network
     trustedInterfaces = [ "tailscale0" ];
     # allow the Tailscale UDP port through the firewall
-    allowedUDPPorts = [ config.services.tailscale.port ];
+    allowedUDPPorts = [
+      config.services.tailscale.port
+      8472
+      51820
+      51821
+      7890
+    ];
     # let you SSH in over the public internet
     allowedTCPPorts = [
       22
+      6443
+      2379
+      2380
+      10250
+      7890
     ];
   };
-
   # Enable the KDE Plasma Desktop Environment.
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
