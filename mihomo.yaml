@@ -1,0 +1,918 @@
+mixed-port: 7890
+allow-lan: true
+bind-address: "*"
+mode: rule
+log-level: info
+external-controller: :9090
+global-client-fingerprint: chrome
+unified-delay: true
+geox-url:
+  mmdb: https://proxy.longred.work/proxy/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/country-lite.mmdb
+  geoip: https://proxy.longred.work/proxy/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip-lite.dat
+  geosite: https://proxy.longred.work/proxy/https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geosite.dat
+  asn: https://proxy.longred.work/proxy/https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb
+dns:
+  enable: true
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  use-hosts: false
+  default-nameserver:
+    - 120.53.53.53
+    - 1.12.12.12
+  nameserver:
+    - https://120.53.53.53/dns-query
+    - https://223.5.5.5/dns-query
+  proxy-server-nameserver:
+    - https://120.53.53.53/dns-query
+    - https://223.5.5.5/dns-query
+  fake-ip-filter:
+    - "*"
+    - +.lan
+    - +.local
+    - time.*.com
+    - ntp.*.com
+    - +.market.xiaomi.com
+  use-system-hosts: true
+  direct-nameserver: []
+  respect-rules: true
+  fallback: []
+  fallback-filter: {}
+proxies:
+  - name: 🇭🇰 [VL] HK 1 家宽
+    type: vless
+    server: vl-hk-1.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇭🇰 [VL] HK 2 移动*
+    type: vless
+    server: vl-hk-2.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇯🇵 [VL] JP 1 联通*
+    type: vless
+    server: vl-jp-1.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇯🇵 [VL] JP 2 电信
+    type: vless
+    server: vl-jp-2.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇸🇬 [VL] SG 联通*
+    type: vless
+    server: vl-sg-1.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇰🇷 [VL/0.8x] KR
+    type: vless
+    server: vl-kr-1.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇹🇼 [VL] TW 家宽
+    type: vless
+    server: vl-tw-1.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇭🇰 [专线/3x] HK
+    type: trojan
+    server: sz.zx.twcc.eu.org
+    port: 49001
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy120x232x13x210xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇸🇬 [专线/3x] SG
+    type: trojan
+    server: sz.zx.twcc.eu.org
+    port: 49003
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy120x232x13x210xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇯🇵 [专线/3x] JP
+    type: trojan
+    server: sz.zx.twcc.eu.org
+    port: 49004
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy120x232x13x210xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇹🇼 [专线/3x] TW
+    type: trojan
+    server: sz.zx.twcc.eu.org
+    port: 49002
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy120x232x13x210xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇰🇷 [专线/3x] KR
+    type: trojan
+    server: sz.zx.twcc.eu.org
+    port: 49007
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy120x232x13x210xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇺🇸 [专线/3x] US
+    type: trojan
+    server: sz.zx.twcc.eu.org
+    port: 49005
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy120x232x13x210xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇫🇮 [专线/3x] FI
+    type: trojan
+    server: sz.zx.twcc.eu.org
+    port: 49006
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy120x232x13x210xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇭🇰 [Hys] HK 1 移动*
+    server: smrt4-hk-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇭🇰 [Hys] HK 2 家宽
+    server: smrt4-hk-2.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇭🇰 [Hys] HK 3 移动*
+    server: smrt4-hk-3.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇭🇰 [Hys/0.2x] HK 4 ALICE
+    server: stable-hk-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇸🇬 [Hys/0.6x] SG 1 移动*
+    server: smrt4-sg-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇸🇬 [Hys] SG 2 联通*
+    server: smrt4-sg-2.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇹🇼 [Hys] TW 家宽
+    server: smrt4-tw-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇰🇷 [Hys/0.8x] KR
+    server: stable-kr-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇯🇵 [Hys] JP 1 联通*
+    server: smrt4-jp-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇯🇵 [Hys] JP 2 移动*
+    server: smrt4-jp-2.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇯🇵 [Hys] JP 3 电信
+    server: smrt4-jp-3.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇺🇸 [Hys/0.3x] US PZ
+    server: stable-usw-2.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇺🇸 [Hys/0.1x] US DO*
+    server: smrt4-sb-mg.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇩🇪 [Hys/0.1x] DE DO*
+    server: smrt4-sb-dg.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇩🇪 [Hys/0.5x] DE RM
+    server: stable-de-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇨🇦 [Hys/0.2x] CA BF
+    server: stable-ca-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇺🇸 [VL/0.1x] 下载 1 *
+    type: vless
+    server: smrt4-sb-mg.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇺🇸 [VL/0.1x] 下载 2
+    type: vless
+    server: vl-us-2.twcc.eu.org
+    port: 18003
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    flow: xtls-rprx-vision
+    tls: true
+    client-fingerprint: chrome
+    skip-cert-verify: true
+    servername: audio.itunes.apple.com
+  - name: 🇺🇸 [CDN/0.1x] 下载节点
+    type: vmess
+    server: anycast-us.twcc.eu.org
+    port: 443
+    uuid: b64673b2-a570-46b9-a341-62d88f47c8c1
+    alterId: 0
+    cipher: auto
+    udp: true
+    tls: true
+    client-fingerprint: chrome
+    servername: r-ATSvoQLOtqDXK69D.twcc.eu.org
+    network: ws
+    ws-opts:
+      path: /user?ed=2048
+      headers:
+        Host: uswest1-user.twcc.eu.org
+    ws-path: /user?ed=2048
+    ws-headers:
+      Host: uswest1-user.twcc.eu.org
+  - name: 🇭🇰 [中转] HK 1
+    type: trojan
+    server: n-48011.twcc.eu.org
+    port: 48011
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇭🇰 [中转] HK 2 家宽
+    type: trojan
+    server: n-48012.twcc.eu.org
+    port: 48012
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇭🇰 [中转] HK 3
+    type: trojan
+    server: n-48013.twcc.eu.org
+    port: 48013
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇭🇰 [中转] HK 4
+    type: trojan
+    server: n-48014.twcc.eu.org
+    port: 48014
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇹🇼 [中转] TW 1 家宽
+    type: trojan
+    server: n-48021.twcc.eu.org
+    port: 48021
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇹🇼 [中转] TW 2
+    type: trojan
+    server: n-48022.twcc.eu.org
+    port: 48022
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇸🇬 [中转] SG 1
+    type: trojan
+    server: n-48031.twcc.eu.org
+    port: 48031
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇸🇬 [中转] SG 2
+    type: trojan
+    server: n-48032.twcc.eu.org
+    port: 48032
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇯🇵 [中转] JP 1
+    type: trojan
+    server: n-48041.twcc.eu.org
+    port: 48041
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇯🇵 [中转] JP 2
+    type: trojan
+    server: n-48042.twcc.eu.org
+    port: 48042
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇯🇵 [中转] JP 3
+    type: trojan
+    server: n-48043.twcc.eu.org
+    port: 48043
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇰🇷 [中转] KR
+    type: trojan
+    server: n-48051.twcc.eu.org
+    port: 48051
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇺🇸 [中转] US
+    type: trojan
+    server: n-48061.twcc.eu.org
+    port: 48061
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇬🇧 [中转] 英国
+    type: trojan
+    server: n-3.twcc.eu.org
+    port: 48100
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇫🇷 [中转] 法国
+    type: trojan
+    server: n-3.twcc.eu.org
+    port: 48101
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇹🇭 [中转] 泰国
+    type: trojan
+    server: n-3.twcc.eu.org
+    port: 48103
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇮🇳 [中转] 印度
+    type: trojan
+    server: n-3.twcc.eu.org
+    port: 48104
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇦🇪 [中转] 迪拜
+    type: trojan
+    server: n-3.twcc.eu.org
+    port: 48105
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇮🇩 [中转] 印尼
+    type: trojan
+    server: n-3.twcc.eu.org
+    port: 48106
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+    udp: true
+    client-fingerprint: chrome
+    sni: xy14x18x107x81xy.mcdn.bilivideo.cn
+    skip-cert-verify: true
+    smux:
+      enabled: true
+      protocol: h2mux
+  - name: 🇭🇰 [IPv6] HKT 家宽 移动
+    server: smrt6-hk-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇭🇰 [IPv6] AWS 移动*
+    server: smrt6-hk-2.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇸🇬 [IPv6/0.6x] Linode 移动*
+    server: smrt6-sg-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇸🇬 [IPv6/0.6x] Oracle 移动*
+    server: smrt6-sg-2.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇸🇬 [IPv6] AWS 联通*
+    server: smrt6-sg-3.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇯🇵 [IPv6] AWS 联通*
+    server: smrt6-jp-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇯🇵 [IPv6] Linode  移动*
+    server: smrt6-jp-2.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+  - name: 🇨🇦 [IPv6/0.1x] OVH
+    server: smrt6-ca-1.twcc.eu.org
+    port: 18004
+    sni: i0.hdslb.com
+    skip-cert-verify: true
+    type: hysteria2
+    password: b64673b2-a570-46b9-a341-62d88f47c8c1
+proxy-groups:
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/Static.png
+    include-all: true
+    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    name: PROXY
+    type: select
+    proxies:
+      - AUTO
+      - HK AUTO
+      - SG AUTO
+      - JP AUTO
+      - US AUTO
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/Urltest.png
+    include-all: true
+    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    name: AUTO
+    type: url-test
+    interval: 300
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/OpenAI.png
+    name: AIGC
+    type: select
+    proxies:
+      - SG AUTO
+      - JP AUTO
+      - US AUTO
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/Telegram.png
+    name: Telegram
+    type: select
+    proxies:
+      - HK AUTO
+      - SG AUTO
+      - JP AUTO
+      - US AUTO
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/Google.png
+    name: Google
+    type: select
+    proxies:
+      - HK AUTO
+      - SG AUTO
+      - JP AUTO
+      - US AUTO
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/HK.png
+    include-all: true
+    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    filter: (?i)香港|Hong Kong|HK|🇭🇰
+    name: HK AUTO
+    type: url-test
+    interval: 300
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/SG.png
+    include-all: true
+    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    filter: (?i)新加坡|Singapore|🇸🇬
+    name: SG AUTO
+    type: url-test
+    interval: 300
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/JP.png
+    include-all: true
+    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    filter: (?i)日本|Japan|🇯🇵
+    name: JP AUTO
+    type: url-test
+    interval: 300
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/US.png
+    include-all: true
+    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    filter: (?i)美国|USA|🇺🇸
+    name: US AUTO
+    type: url-test
+    interval: 300
+  - icon: https://mirror.ghproxy.com/https://raw.githubusercontent.com/Orz-3/mini/master/Color/Global.png
+    include-all: true
+    exclude-filter: (?i)GB|Traffic|Expire|Premium|频道|订阅|ISP|流量|到期|重置
+    proxies:
+      - AUTO
+      - HK AUTO
+      - SG AUTO
+      - JP AUTO
+      - US AUTO
+    name: GLOBAL
+    type: select
+rules:
+  - DOMAIN-SUFFIX,baidu.com,DIRECT
+  - DOMAIN-SUFFIX,tencent.com,DIRECT
+  - DOMAIN-SUFFIX,adtiger.com,DIRECT
+  - DOMAIN-SUFFIX,adtensor.com,DIRECT
+  - DOMAIN-SUFFIX,longred.work,DIRECT
+  - DOMAIN-SUFFIX,quickconnect.to,DIRECT
+  - RULE-SET,prevent_dns_leak,PROXY
+  - RULE-SET,private,DIRECT
+  - RULE-SET,bing,AIGC
+  - RULE-SET,copilot,AIGC
+  - RULE-SET,bard,AIGC
+  - RULE-SET,openai,AIGC
+  - RULE-SET,claude,AIGC
+  - RULE-SET,steam,PROXY
+  - RULE-SET,telegram_domain,Telegram
+  - RULE-SET,telegram_ip,Telegram
+  - RULE-SET,google_domain,Google
+  - RULE-SET,google_ip,Google
+  - RULE-SET,geolocation-!cn,PROXY
+  - RULE-SET,cn_domain,DIRECT
+  - RULE-SET,cn_ip,DIRECT
+  - MATCH,PROXY
+rule-providers:
+  private:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/private.yaml
+    path: ./ruleset/private.yaml
+    behavior: domain
+    interval: 86400
+    format: yaml
+    type: http
+  cn_domain:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/cn.yaml
+    path: ./ruleset/cn_domain.yaml
+    behavior: domain
+    interval: 86400
+    format: yaml
+    type: http
+  telegram_domain:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/telegram.yaml
+    path: ./ruleset/telegram_domain.yaml
+    behavior: domain
+    interval: 86400
+    format: yaml
+    type: http
+  google_domain:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/google.yaml
+    path: ./ruleset/google_domain.yaml
+    behavior: domain
+    interval: 86400
+    format: yaml
+    type: http
+  geolocation-!cn:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geosite/geolocation-!cn.yaml
+    path: ./ruleset/geolocation-!cn.yaml
+    behavior: domain
+    interval: 86400
+    format: yaml
+    type: http
+  cn_ip:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/cn.yaml
+    path: ./ruleset/cn_ip.yaml
+    behavior: ipcidr
+    interval: 86400
+    format: yaml
+    type: http
+  telegram_ip:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/telegram.yaml
+    path: ./ruleset/telegram_ip.yaml
+    behavior: ipcidr
+    interval: 86400
+    format: yaml
+    type: http
+  google_ip:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/meta/geo/geoip/google.yaml
+    path: ./ruleset/google_ip.yaml
+    behavior: ipcidr
+    interval: 86400
+    format: yaml
+    type: http
+  bing:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Bing/Bing.yaml
+    path: ./ruleset/bing.yaml
+    behavior: classical
+    interval: 86400
+    format: yaml
+    type: http
+  copilot:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Copilot/Copilot.yaml
+    path: ./ruleset/copilot.yaml
+    behavior: classical
+    interval: 86400
+    format: yaml
+    type: http
+  claude:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Claude/Claude.yaml
+    path: ./ruleset/claude.yaml
+    behavior: classical
+    interval: 86400
+    format: yaml
+    type: http
+  bard:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/BardAI/BardAI.yaml
+    path: ./ruleset/bard.yaml
+    behavior: classical
+    interval: 86400
+    format: yaml
+    type: http
+  openai:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.yaml
+    path: ./ruleset/openai.yaml
+    behavior: classical
+    interval: 86400
+    format: yaml
+    type: http
+  steam:
+    url: https://mirror.ghproxy.com/https://raw.githubusercontent.com/blackmatrix7/ios_rule_script/master/rule/Clash/Steam/Steam.yaml
+    path: ./ruleset/steam.yaml
+    behavior: classical
+    interval: 86400
+    format: yaml
+    type: http
+  prevent_dns_leak:
+    type: http
+    interval: 86400
+    behavior: domain
+    format: text
+    url: https://raw.githubusercontent.com/xishang0128/rules/main/clash%20or%20stash/prevent_dns_leak/prevent_dns_leak_domain.list
+secret: longred
+ipv6: true
+socks-port: 7891
+port: 7892
+redir-port: 0
+tproxy-port: 0
+find-process-mode: strict
+tun:
+  enable: false
+  device: Mihomo Party
+  stack: gvisor
+  auto-route: true
+  auto-redirect: false
+  auto-detect-interface: true
+  dns-hijack:
+    - any:53
+  mtu: 1500
+  strict-route: true
+sniffer:
+  enable: true
+  parse-pure-ip: true
+  force-dns-mapping: true
+  override-destination: true
+  sniff:
+    HTTP:
+      ports:
+        - 80
+        - 443
+      override-destination: true
+    TLS:
+      ports:
+        - 443
+    QUIC:
+      ports:
+        - 443
+  skip-domain:
+    - +.push.apple.com
+  force-domain: []
+geo-auto-update: true
+geo-update-interval: 24
+geodata-mode: false
+profile:
+  store-selected: true
+  store-fake-ip: true
+tcp-concurrent: true
+skip-auth-prefixes:
+  - 127.0.0.1/32
+authentication: []
+lan-allowed-ips:
+  - 0.0.0.0/0
+  - ::/0
+lan-disallowed-ips: []
+hosts: {}
