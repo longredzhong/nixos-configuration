@@ -236,11 +236,19 @@ in
           set -gx http_proxy http://$proxy
           set -gx https_proxy http://$proxy
           set -gx all_proxy socks5://$proxy
+          set -gx no_proxy "localhost,100.64.0.0/10"
+          set -gx HTTP_PROXY http://$proxy
+          set -gx HTTPS_PROXY http://$proxy
+          set -gx ALL_PROXY socks5://$proxy
+          set -gx NO_PROXY "localhost,100.64.0.0/10"
         '';
         unset_proxy = ''
           set -e http_proxy
           set -e https_proxy
           set -e all_proxy
+          set -e HTTP_PROXY
+          set -e HTTPS_PROXY
+          set -e ALL_PROXY
         '';
       };
       shellAbbrs =
