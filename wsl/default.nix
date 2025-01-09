@@ -41,7 +41,7 @@
   };
   services.postgresql = {
     enable = true;
-    package = pkgs.postgresql;
+    package = pkgs.postgresql_17;
     enableTCPIP = true;
     port = 5432;
     authentication = pkgs.lib.mkOverride 10 ''
@@ -52,6 +52,7 @@
       # ipv6
       host all       all     ::1/128        trust
     '';
+    extensions = [ pkgs.postgresql17Packages.pgvector ];
   };
   users.users.${username} = {
     isNormalUser = true;
