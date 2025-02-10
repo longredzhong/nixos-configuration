@@ -2,7 +2,7 @@
 
 {
   # Ensure docker is enabled
-  services.docker.enable = true;
+  virtualisation.docker.enable = true;
 
   # Define a systemd service that wraps the docker run command
   systemd.services.deeplx = {
