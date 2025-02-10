@@ -9,7 +9,8 @@
   users.groups.cloudflared = { };
   systemd.services.cloudflared_tunnel = {
     wantedBy = [ "multi-user.target" ];
-    after = [ "systemd-resolved.service" ];
+    after = [ "systemd-resolved.service" "network-online.target" ];
+    wants = [ "network-online.target" ];
     serviceConfig = {
       ExecStart = "${pkgs.cloudflared}/bin/cloudflared tunnel --no-autoupdate run --token=${secrets.cloudflare_tunnelToken}";
       Restart = "always";
