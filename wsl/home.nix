@@ -202,7 +202,7 @@ in
       interactiveShellInit = ''
         atuin init fish | source
         fish_add_path --append /mnt/c/Users/longred/scoop/apps/win32yank/0.1.1 /home/longred/.local/bin /home/longred/.pixi/bin
-        set -gx MAMBA_ROOT_PREFIX "/home/longred/micromamba"
+        set -gx MAMBA_ROOT_PREFIX "/home/longred/.local/share/mamba"
         eval "$(micromamba shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX)"
         echo 'pixi completion --shell fish | source' > /home/longred/.config/fish/completions/pixi.fish
         set -gx UV_CACHE_DIR "/home/longred/.cache/rattler/cache/uv-cache"
