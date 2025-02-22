@@ -926,6 +926,6 @@ in
     enable = true;
     configFile = mihomo_config_file;
     webui = pkgs.metacubexd;
-    tunMode = true;
+    tunMode = false;
   };
 }
