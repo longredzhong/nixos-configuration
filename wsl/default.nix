@@ -103,7 +103,6 @@
     defaultUser = username;
     startMenuLaunchers = true;
     useWindowsDriver = true;
-    nativeSystemd = true;
     populateBin = true;
 
     # Enable integration with Docker Desktop (needs to be installed)
