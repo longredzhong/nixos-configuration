@@ -236,10 +236,10 @@ in
           end
           set -gx http_proxy http://$proxy
           set -gx https_proxy http://$proxy
-          set -gx no_proxy "localhost,100.64.0.0/10"
+          set -gx no_proxy "localhost,100.64.0.0/10,172.16.100.10"
           set -gx HTTP_PROXY http://$proxy
           set -gx HTTPS_PROXY http://$proxy
-          set -gx NO_PROXY "localhost,100.64.0.0/10"
+          set -gx NO_PROXY "localhost,100.64.0.0/10,172.16.100.10"
         '';
         unset_proxy = ''
           set -e http_proxy
