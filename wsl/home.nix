@@ -88,6 +88,7 @@ let
     shfmt
     statix # nixvimExtend
     nixpkgs-fmt # nix
+    nixfmt-rfc-style # nix
   ];
 in
 {
