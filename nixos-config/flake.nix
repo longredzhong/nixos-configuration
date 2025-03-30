@@ -49,7 +49,7 @@
               config.allowUnfree = true;
             };
           })
-          (import ./overlays)
+          # (import ./overlays)
         ];
       });
 
@@ -65,7 +65,7 @@
           inherit system;
           specialArgs = (commonSpecialArgs system) // { inherit hostname username; };
           modules = [
-            ./modules/core
+            ./modules/core.nix
             home-manager.nixosModules.home-manager
             {
               home-manager = {
