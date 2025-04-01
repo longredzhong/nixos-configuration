@@ -8,8 +8,8 @@
 
 {
   # Common system configuration for all hosts
+  system.stateVersion = "24.11";
   time.timeZone = "Asia/Shanghai";
-
   # Nix settings
   nix = {
     settings = {
@@ -30,6 +30,9 @@
       options = "--delete-older-than 7d";
     };
   };
+
+  imports = [
+  ];
 
   # Common programs
   programs = {
@@ -75,6 +78,4 @@
     };
   };
 
-  # Ensure state version is consistent
-  system.stateVersion = "24.11";
 }
