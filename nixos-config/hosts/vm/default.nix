@@ -31,6 +31,7 @@
       "wheel"
       "networkmanager"
     ];
+    password = "";
   };
 
   # 允许无密码sudo (测试环境)
