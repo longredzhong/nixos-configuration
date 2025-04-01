@@ -2,12 +2,9 @@
 
 {
   imports = [
-    ./programs/fish.nix
-    ./programs/git.nix
-    ./programs/neovim.nix
-    ./programs/tools.nix
-    ./programs/starship.nix
     nix-index-database.hmModules.nix-index
+    ./packages.nix
+    ./options.nix
   ];
 
   home = {
@@ -22,36 +19,11 @@
   };
 
   programs.home-manager.enable = true;
-
-  programs = {
-    fzf = {
-      enable = true;
-      enableFishIntegration = true;
-    };
-    lsd = {
-      enable = true;
-      enableAliases = true;
-    };
-    zoxide = {
-      enable = true;
-      enableFishIntegration = true;
-      options = [ "--cmd cd" ];
-    };
-    broot = {
-      enable = true;
-      enableFishIntegration = true;
-    };
-    direnv = {
-      enable = true;
-      nix-direnv.enable = true;
-    };
-    atuin = {
-      enable = true;
-      settings = {
-        auto_sync = true;
-        sync_frequency = "5m";
-        dotfiles.enabled = true;
-      };
-    };
+  
+  # 启用 nix-index 和相关功能
+  programs.nix-index = {
+    enable = true;
+    enableFishIntegration = true;
   };
+  programs.nix-index-database.comma.enable = true;
 }
