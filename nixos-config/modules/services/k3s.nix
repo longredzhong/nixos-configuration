@@ -27,7 +27,6 @@ in
       "--embedded-registry"
     ];
   };
-  # FIX for longhorn
   environment.systemPackages = [ pkgs.nfs-utils ];
   services.openiscsi = {
     enable = true;

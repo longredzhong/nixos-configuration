@@ -59,4 +59,39 @@
       { src = "${su}/bin/usermod"; }
     ];
   };
+
+  imports = [
+    ./hardware-configuration.nix
+    ./cloudflared.nix
+    ./deeplx.nix
+    ./dufs.nix
+    ./k3s.nix
+    ./mihomo.nix
+    ./minio.nix
+  ];
+
+  users.users.${username} = {
+    isNormalUser = true;
+    shell = pkgs.fish;
+    extraGroups = [
+      "wheel"
+      "docker"
+    ];
+  };
+
+  services = {
+    openssh = {
+      enable = true;
+      settings = {
+        PermitRootLogin = "no";
+        PasswordAuthentication = true;
+      };
+      openFirewall = true;
+    };
+    tailscale = {
+      enable = true;
+      package = pkgs.unstable.tailscale;
+      extraUpFlags = "--ssh";
+    };
+  };
 }
