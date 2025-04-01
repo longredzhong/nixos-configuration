@@ -1,4 +1,9 @@
-{ config, lib, pkgs, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 
 let
   unstable-packages = with pkgs.unstable; [
@@ -27,7 +32,7 @@ let
     uv
     devenv
     buildkit
-    micromamba
+    # micromamba 已在 languages.nix 中配置
     pixi
   ];
 
@@ -37,41 +42,22 @@ let
     ffmpeg-full
     kubectl
     atuin
-    gcc
-    gnumake
-    kubernetes-helm
-    envsubst
-    cachix
-    cmake
     jeezyvim
-    
+
     # 开发工具
     gh
     just
-    
-    # 语言支持
-    rustup
-    
-    # Rust 工具
-    cargo-cache
-    cargo-expand
-    
+
     # 本地开发工具
     mkcert
     httpie
-    
+
     # 语法分析
     tree-sitter
-    
-    # 语言服务器
-    nodePackages.vscode-langservers-extracted
-    nodePackages.yaml-language-server
-    nil
-    
+
     # 格式化和代码检查工具
     alejandra
     deadnix
-    nodePackages.prettier
     shellcheck
     shfmt
     statix
