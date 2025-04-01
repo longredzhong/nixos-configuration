@@ -144,6 +144,14 @@
             ./hosts/wsl
           ];
         };
+
+        nixosConfigurations.vm-test = mkHost {
+          hostname = "vm-test";
+          username = "longred";
+          modules = [
+            ./hosts/wsl
+          ];
+        };
       };
     };
 }
