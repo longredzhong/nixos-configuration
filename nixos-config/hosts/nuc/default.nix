@@ -14,6 +14,12 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ../../modules/services/cloudflared.nix
+    ../../modules/services/deeplx.nix
+    ../../modules/services/dufs.nix
+    ../../modules/services/k3s.nix
+    ../../modules/services/mihomo.nix
+    ../../modules/services/minio.nix
   ];
   boot.loader = {
     systemd-boot.enable = true;
@@ -57,6 +63,35 @@
     alsa.support32Bit = true;
     pulse.enable = true;
   };
+  # Tailscale configuration
+  services.tailscale = {
+    enable = true;
+    package = pkgs.unstable.tailscale;
+    extraUpFlags = [ "--ssh" ];
+  };
 
+  networking.firewall = {
+    # enable the firewall
+    enable = true;
+    # always allow traffic from your Tailscale network
+    trustedInterfaces = [ "tailscale0" ];
+    # allow the Tailscale UDP port through the firewall
+    allowedUDPPorts = [
+      config.services.tailscale.port
+      8472
+      51820
+      51821
+      7890
+    ];
+    # let you SSH in over the public internet
+    allowedTCPPorts = [
+      22
+      6443
+      2379
+      2380
+      10250
+      7890
+    ];
+  };
   system.stateVersion = "24.11";
 }

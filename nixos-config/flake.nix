@@ -117,12 +117,6 @@
           username = "longred";
           extraModules = [
             ./hosts/nuc
-            ./modules/services/cloudflared.nix
-            ./modules/services/deeplx.nix
-            ./modules/services/dufs.nix
-            ./modules/services/k3s.nix
-            ./modules/services/mihomo.nix
-            ./modules/services/minio.nix
           ];
         };
 
