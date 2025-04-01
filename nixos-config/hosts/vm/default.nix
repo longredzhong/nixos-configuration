@@ -1,4 +1,9 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 {
   imports = [
@@ -7,7 +12,7 @@
 
   # 基本系统配置
   system.stateVersion = "24.11";
-  
+
   # 虚拟机特定设置
   virtualisation.vmVariant = {
     # 这些设置只在虚拟机模式下生效
@@ -18,12 +23,14 @@
 
   # 启用 QEMU Guest Agent
   services.qemuGuest.enable = true;
-  
+
   # 默认用户设置
   users.users.longred = {
     isNormalUser = true;
-    extraGroups = [ "wheel" "networkmanager" ];
-    initialPassword = "changeme";
+    extraGroups = [
+      "wheel"
+      "networkmanager"
+    ];
   };
 
   # 允许无密码sudo (测试环境)

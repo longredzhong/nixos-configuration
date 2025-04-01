@@ -57,8 +57,6 @@
     ];
   };
 
-  imports = [ ];
-
   users.users.${username} = {
     isNormalUser = true;
     shell = pkgs.fish;
@@ -66,21 +64,5 @@
       "wheel"
       "docker"
     ];
-  };
-
-  services = {
-    openssh = {
-      enable = true;
-      settings = {
-        PermitRootLogin = "no";
-        PasswordAuthentication = true;
-      };
-      openFirewall = true;
-    };
-    tailscale = {
-      enable = true;
-      package = pkgs.unstable.tailscale;
-      extraUpFlags = "--ssh";
-    };
   };
 }

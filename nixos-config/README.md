@@ -11,6 +11,7 @@
 - **thinkbook-wsl**: ThinkBook 笔记本上的 WSL 环境
 - **metacube-wsl**: Metacube 主机上的 WSL 环境
 - **nuc**: Intel NUC 物理机器
+- **vm**: 虚拟机环境
 
 ## 目录结构
 
@@ -23,8 +24,20 @@
 │   │   ├── default.nix  # 基本配置
 │   │   ├── cli.nix      # 命令行工具配置
 │   │   └── editors.nix  # 编辑器配置
-├── wsl/                 # WSL 特定配置
-└── nuc/                 # NUC 特定配置
+│   ├── modules/         # NixOS 模块
+│   │   ├── core/        # 核心模块，包含通用配置
+│   │   │   └── default.nix
+│   │   └── services/    # 服务模块，包含各种服务的配置
+│   │       ├── dufs.nix
+│   │       ├── k3s.nix
+│   │       └── cloudflared.nix
+├── hosts/             # 主机特定配置
+│   ├── wsl/           # WSL 特定配置
+│   │   └── default.nix
+│   ├── nuc/           # NUC 特定配置
+│   │   └── default.nix
+│   └── vm/            # 虚拟机特定配置
+│       └── default.nix
 ```
 
 ## 特性
@@ -35,6 +48,8 @@
 - 集成了 NUR (Nix User Repository)
 - 集成了 nix-index-database 用于命令查找
 - 包含了 JeezyVim 配置
+- 模块化配置，易于维护和扩展
+- 通用配置和主机特定配置分离
 
 ## 使用方法
 
@@ -59,9 +74,10 @@ sudo nixos-rebuild switch --flake .#主机名 --update-input nixpkgs
 
 要添加新的系统配置，请按照以下步骤操作：
 
-1. 在 flake.nix 中添加新的 nixosConfigurations 条目
-2. 创建系统特定的配置目录
-3. 根据需要自定义 home-manager 配置
+1.  在 `flake.nix` 中添加新的 `nixosConfigurations` 条目
+2.  创建系统特定的配置目录，例如 `hosts/new-host/`
+3.  在 `hosts/new-host/default.nix` 中导入 `core` 模块和任何其他需要的模块
+4.  根据需要自定义 `home-manager` 配置
 
 ## 依赖
 
@@ -71,3 +87,9 @@ sudo nixos-rebuild switch --flake .#主机名 --update-input nixpkgs
 - nixos-wsl (WSL 支持)
 - nix-index-database
 - JeezyVim
+
+## 安全注意事项
+
+-   请勿公开分享 `secrets.json` 文件，该文件包含敏感信息。
+-   在生产环境中，请使用更安全的 SSH 配置，例如禁用密码登录，使用密钥登录。
+-   定期更新系统和软件包，以修复安全漏洞。

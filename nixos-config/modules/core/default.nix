@@ -41,6 +41,7 @@
         glib
       ];
     };
+    firefox.enable = true;
   };
 
   # Security settings
@@ -80,6 +81,30 @@
     enable = true;
     package = lib.mkDefault pkgs.unstable.tailscale;
     extraUpFlags = [ "--ssh" ];
+  };
+
+  networking.firewall = {
+    # enable the firewall
+    enable = true;
+    # always allow traffic from your Tailscale network
+    trustedInterfaces = [ "tailscale0" ];
+    # allow the Tailscale UDP port through the firewall
+    allowedUDPPorts = [
+      config.services.tailscale.port
+      8472
+      51820
+      51821
+      7890
+    ];
+    # let you SSH in over the public internet
+    allowedTCPPorts = [
+      22
+      6443
+      2379
+      2380
+      10250
+      7890
+    ];
   };
 
   # Ensure state version is consistent
