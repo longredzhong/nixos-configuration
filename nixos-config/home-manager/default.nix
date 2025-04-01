@@ -2,8 +2,8 @@
 
 {
   imports = [
-    ./cli
-    ./editors
+    ./cli.nix
+    ./editors.nix
     nix-index-database.hmModules.nix-index
   ];
 

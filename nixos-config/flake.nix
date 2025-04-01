@@ -101,6 +101,7 @@
                 extraSpecialArgs = (commonSpecialArgs system) // {
                   inherit hostname username;
                 };
+                users.${username} = ./home-manager/default.nix;
               };
             }
           ] ++ extraModules;
