@@ -2,8 +2,11 @@
 
 {
   imports = [
-    ./cli.nix
-    ./editors.nix
+    ./programs/fish.nix
+    ./programs/git.nix
+    ./programs/neovim.nix
+    ./programs/tools.nix
+    ./programs/starship.nix
     nix-index-database.hmModules.nix-index
   ];
 

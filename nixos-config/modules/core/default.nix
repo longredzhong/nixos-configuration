@@ -10,19 +10,6 @@
   # Common system configuration for all hosts
   time.timeZone = "Asia/Shanghai";
 
-  environment = {
-    enableAllTerminfo = true;
-    pathsToLink = [ "/share/fish" ];
-    shells = [ pkgs.fish ];
-    systemPackages = with pkgs; [
-      vim
-      git
-      wget
-      curl
-      htop
-    ];
-  };
-
   # Nix settings
   nix = {
     settings = {
@@ -49,7 +36,7 @@
     fish.enable = true;
     nix-ld = {
       enable = true;
-      package = pkgs.nix-ld-rs;
+      package = lib.mkDefault pkgs.nix-ld-rs;
       libraries = with pkgs; [
         glib
       ];
@@ -72,7 +59,6 @@
   # Basic user setup
   users.users.${username} = {
     isNormalUser = true;
-    shell = pkgs.fish;
     extraGroups = [
       "wheel"
       "docker"
@@ -92,7 +78,7 @@
   # Tailscale configuration
   services.tailscale = {
     enable = true;
-    package = pkgs.unstable.tailscale;
+    package = lib.mkDefault pkgs.unstable.tailscale;
     extraUpFlags = [ "--ssh" ];
   };
 

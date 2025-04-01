@@ -54,7 +54,7 @@
             permittedInsecurePackages = [ ];
           };
           overlays = [
-            nur.overlay
+            nur.overlays.default
             jeezyvim.overlays.default
             (final: prev: {
               unstable = import nixpkgs-unstable {
@@ -62,7 +62,7 @@
                 config.allowUnfree = true;
               };
             })
-            (final: prev: import ./overlays { inherit final prev; })
+            (final: prev: import ./overlays { inherit inputs final prev; })
           ];
         }
       );
@@ -145,11 +145,11 @@
           ];
         };
 
-        nixosConfigurations.vm-test = mkHost {
+        "vm-test" = mkHost {
           hostname = "vm-test";
           username = "longred";
-          modules = [
-            ./hosts/wsl
+          extraModules = [
+            ./hosts/vm
           ];
         };
       };

@@ -44,9 +44,6 @@
     useWindowsDriver = true;
     populateBin = true;
 
-    # Enable integration with Docker Desktop (needs to be installed)
-    docker-desktop.enable = false;
-
     extraBin = with pkgs; [
       # Binaries for Docker Desktop wsl-distro-proxy
       { src = "${coreutils}/bin/mkdir"; }
@@ -60,15 +57,7 @@
     ];
   };
 
-  imports = [
-    ./hardware-configuration.nix
-    ./cloudflared.nix
-    ./deeplx.nix
-    ./dufs.nix
-    ./k3s.nix
-    ./mihomo.nix
-    ./minio.nix
-  ];
+  imports = [ ];
 
   users.users.${username} = {
     isNormalUser = true;

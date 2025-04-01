@@ -13,10 +13,6 @@
     [
       # Include the results of the hardware scan.
       ./hardware-configuration.nix
-      ./k3s.nix
-      ./cloudflared.nix
-      ./mihomo.nix
-      ./deeplx.nix
     ];
 
   time.timeZone = "Asia/Shanghai";
@@ -52,7 +48,7 @@
 
   home-manager.users.${username} = {
     imports = [
-      ./home.nix
+      ../../home-manager/default.nix
     ];
   };
 
