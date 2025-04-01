@@ -23,55 +23,84 @@
     jeezyvim.url = "github:LGUG2Z/JeezyVim";
   };
 
-  outputs = inputs @ { self, nixpkgs, nixpkgs-unstable, home-manager, nur, nixos-wsl, nix-index-database, jeezyvim, ... }:
+  outputs =
+    inputs@{
+      self,
+      nixpkgs,
+      nixpkgs-unstable,
+      home-manager,
+      nur,
+      nixos-wsl,
+      nix-index-database,
+      jeezyvim,
+      ...
+    }:
     let
       secrets = builtins.fromJSON (builtins.readFile ./secrets.json);
-      
+
       # System types
       supportedSystems = [ "x86_64-linux" ];
-      
+
       # Helper function for system-specific configurations
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
-      
+
       # Nixpkgs with overlays for each system
-      nixpkgsWithOverlays = forAllSystems (system: import nixpkgs {
-        inherit system;
-        config = { 
-          allowUnfree = true;
-          permittedInsecurePackages = [];
-        };
-        overlays = [
-          nur.overlay
-          jeezyvim.overlays.default
-          (final: prev: {
-            unstable = import nixpkgs-unstable {
-              inherit (prev) system;
-              config.allowUnfree = true;
-            };
-          })
-          # (import ./overlays)
-        ];
-      });
+      nixpkgsWithOverlays = forAllSystems (
+        system:
+        import nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true;
+            permittedInsecurePackages = [ ];
+          };
+          overlays = [
+            nur.overlay
+            jeezyvim.overlays.default
+            (final: prev: {
+              unstable = import nixpkgs-unstable {
+                inherit (prev) system;
+                config.allowUnfree = true;
+              };
+            })
+            (final: prev: import ./overlays { inherit final prev; })
+          ];
+        }
+      );
 
       # Common special arguments for both NixOS and home-manager modules
       commonSpecialArgs = system: {
-        inherit secrets inputs self nix-index-database;
+        inherit
+          secrets
+          inputs
+          self
+          nix-index-database
+          ;
         pkgs = nixpkgsWithOverlays.${system};
       };
 
       # NixOS configuration for a given host
-      mkHost = { system ? "x86_64-linux", hostname, username, extraModules ? [] }:
+      mkHost =
+        {
+          system ? "x86_64-linux",
+          hostname,
+          username,
+          extraModules ? [ ],
+        }:
         nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = (commonSpecialArgs system) // { inherit hostname username; };
+          specialArgs = (commonSpecialArgs system) // {
+            inherit hostname username;
+          };
           modules = [
-            ./modules/core.nix
+            ./modules/core/default.nix
             home-manager.nixosModules.home-manager
             {
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
-                extraSpecialArgs = (commonSpecialArgs system) // { inherit hostname username; };
+                extraSpecialArgs = (commonSpecialArgs system) // {
+                  inherit hostname username;
+                };
               };
             }
           ] ++ extraModules;
