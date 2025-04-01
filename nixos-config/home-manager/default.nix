@@ -2,9 +2,13 @@
 
 {
   imports = [
-    nix-index-database.hmModules.nix-index
     ./packages.nix
     ./options.nix
+    ./programs/cli/default.nix
+    ./programs/development/default.nix
+    ./programs/editors/default.nix
+    ./programs/shells/default.nix
+    nix-index-database.hmModules.nix-index
   ];
 
   home = {

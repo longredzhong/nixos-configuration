@@ -17,5 +17,19 @@ in {
       default = false;
       description = "是否为无图形界面环境";
     };
+    
+    development = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = "是否启用开发环境配置";
+      };
+      
+      languages = mkOption {
+        type = types.listOf types.str;
+        default = [ "nix" ];
+        description = "要启用的开发语言";
+      };
+    };
   };
 }
