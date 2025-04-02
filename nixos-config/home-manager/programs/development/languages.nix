@@ -81,7 +81,6 @@
 
           # 构建工具
           nodePackages.webpack
-          nodePackages.vite
         ]
       ))
 
@@ -140,7 +139,6 @@
 
           # 静态分析和格式化工具
           cppcheck
-          clang-format
         ]
       ))
 

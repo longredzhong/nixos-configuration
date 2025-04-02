@@ -2,6 +2,8 @@
   config,
   pkgs,
   lib,
+  hostname,
+  username,
   ...
 }:
 
@@ -25,7 +27,7 @@
   services.qemuGuest.enable = true;
 
   # 默认用户设置
-  users.users.longred = {
+  users.users.${hostname} = {
     isNormalUser = true;
     extraGroups = [
       "wheel"

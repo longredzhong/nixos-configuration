@@ -85,6 +85,9 @@
           hostname,
           username,
           extraModules ? [ ],
+          isWsl ? false,
+          isHeadless ? false,
+          developmentLanguages ? [ "nix" ],
         }:
         nixpkgs.lib.nixosSystem {
           inherit system;
@@ -101,11 +104,23 @@
                 extraSpecialArgs = (commonSpecialArgs system) // {
                   inherit hostname username;
                 };
-                users.${username} = ./home-manager/default.nix;
+                users.${username} =
+                  { ... }:
+                  {
+                    imports = [ ./home-manager/default.nix ];
+                    custom = {
+                      inherit isWsl isHeadless;
+                      development = {
+                        enable = true;
+                        languages = developmentLanguages;
+                      };
+                    };
+                  };
               };
             }
           ] ++ extraModules;
         };
+
     in
     {
       formatter = forAllSystems (system: nixpkgsWithOverlays.${system}.alejandra);
@@ -115,6 +130,14 @@
         nuc = mkHost {
           hostname = "nuc";
           username = "longred";
+          isWsl = false;
+          isHeadless = false;
+          developmentLanguages = [
+            "nix"
+            "python"
+            "rust"
+            "go"
+          ];
           extraModules = [
             ./hosts/nuc
           ];
@@ -124,6 +147,16 @@
         thinkbook-wsl = mkHost {
           hostname = "thinkbook-wsl";
           username = "longred";
+          isWsl = true;
+          isHeadless = true;
+          developmentLanguages = [
+            "nix"
+            "python"
+            "node"
+            "cpp"
+            "go"
+            "rust"
+          ];
           extraModules = [
             nixos-wsl.nixosModules.wsl
             ./hosts/wsl
@@ -133,6 +166,14 @@
         metacube-wsl = mkHost {
           hostname = "metacube-wsl";
           username = "longred";
+          isWsl = true;
+          isHeadless = true;
+          developmentLanguages = [
+            "nix"
+            "python"
+            "node"
+            "cpp"
+          ];
           extraModules = [
             nixos-wsl.nixosModules.wsl
             ./hosts/wsl
@@ -142,6 +183,7 @@
         vm-test = mkHost {
           hostname = "vm-test";
           username = "longred";
+          isHeadless = true;
           extraModules = [
             ./hosts/vm
           ];
