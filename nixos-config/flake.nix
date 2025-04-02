@@ -121,7 +121,7 @@
         };
 
         # WSL configurations
-        "thinkbook-wsl" = mkHost {
+        thinkbook-wsl = mkHost {
           hostname = "thinkbook-wsl";
           username = "longred";
           extraModules = [
@@ -130,7 +130,7 @@
           ];
         };
 
-        "metacube-wsl" = mkHost {
+        metacube-wsl = mkHost {
           hostname = "metacube-wsl";
           username = "longred";
           extraModules = [
@@ -139,7 +139,7 @@
           ];
         };
 
-        "vm-test" = mkHost {
+        vm-test = mkHost {
           hostname = "vm-test";
           username = "longred";
           extraModules = [
