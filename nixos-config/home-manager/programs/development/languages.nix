@@ -42,8 +42,6 @@
         with pkgs;
         [
           # Rust 编译器和包管理器
-          rustc
-          cargo
           rustup
 
           # 开发工具
