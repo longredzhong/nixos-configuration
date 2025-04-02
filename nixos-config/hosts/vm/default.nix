@@ -9,7 +9,7 @@
   imports = [
     ./hardware-configuration.nix
   ];
-
+  networking.hostName = "${hostname}";
   # 基本系统配置
   system.stateVersion = "24.11";
 

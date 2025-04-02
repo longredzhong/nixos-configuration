@@ -14,7 +14,7 @@
     ../../modules/core/default.nix
     # ../../modules/services/postgresql.nix
   ];
-
+  networking.hostName = "${hostname}";
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
