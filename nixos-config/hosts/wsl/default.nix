@@ -12,7 +12,7 @@
 {
   imports = [
     ../../modules/core/default.nix
-    ../../modules/services/postgresql.nix
+    # ../../modules/services/postgresql.nix
   ];
 
   hardware.graphics = {
