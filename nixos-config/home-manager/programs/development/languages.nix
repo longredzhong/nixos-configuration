@@ -13,18 +13,10 @@
         with pkgs;
         [
           # Python 解释器和基础工具
-          python311
-          python311Packages.pip
-          python311Packages.setuptools
-          python311Packages.wheel
-
-          # 开发工具
-          python311Packages.pytest
-          python311Packages.black
-          python311Packages.flake8
-          python311Packages.isort
-          python311Packages.mypy
-          python311Packages.ruff
+          python312
+          python312Packages.pip
+          python312Packages.setuptools
+          python312Packages.wheel
 
           # 语言服务器和编辑器集成
           pyright
@@ -34,6 +26,7 @@
           poetry
           pipx
           micromamba
+          uv
         ]
       ))
 
