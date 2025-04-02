@@ -44,11 +44,6 @@
           # Rust 编译器和包管理器
           rustup
 
-          # 开发工具
-          rust-analyzer
-          rustfmt
-          clippy
-
           # 构建工具和实用程序
           cmake
           pkg-config
