@@ -41,7 +41,14 @@
       thunderbird
     ];
   };
-
+  services.openssh = {
+    enable = true;
+    settings = {
+      PermitRootLogin = "no";
+      PasswordAuthentication = true;
+    };
+    openFirewall = true;
+  };
   services.displayManager.sddm.enable = true;
   services.desktopManager.plasma6.enable = true;
 
@@ -86,11 +93,6 @@
     # let you SSH in over the public internet
     allowedTCPPorts = [
       22
-      6443
-      2379
-      2380
-      10250
-      7890
     ];
   };
   system.stateVersion = "24.11";

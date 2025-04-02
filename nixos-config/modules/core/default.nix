@@ -48,16 +48,7 @@
 
   # Security settings
   security.sudo.wheelNeedsPassword = false;
-
-  # Enable SSH server
-  services.openssh = {
-    enable = true;
-    settings = {
-      PermitRootLogin = "no";
-      PasswordAuthentication = true;
-    };
-    openFirewall = true;
-  };
+  
 
   # Basic user setup
   users.users.${username} = {
