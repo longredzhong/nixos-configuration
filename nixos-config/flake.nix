@@ -153,8 +153,6 @@
             "nix"
             "python"
             "node"
-            "cpp"
-            "go"
             "rust"
           ];
           extraModules = [
@@ -172,7 +170,6 @@
             "nix"
             "python"
             "node"
-            "cpp"
           ];
           extraModules = [
             nixos-wsl.nixosModules.wsl
