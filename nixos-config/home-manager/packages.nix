@@ -32,8 +32,10 @@ let
     uv
     devenv
     buildkit
-    # micromamba 已在 languages.nix 中配置
     pixi
+    poetry
+    pipx
+    micromamba
   ];
 
   stable-packages = with pkgs; [

@@ -20,13 +20,7 @@
 
           # 语言服务器和编辑器集成
           pyright
-          python311Packages.python-lsp-server
-
-          # 有用的库和工具
-          poetry
-          pipx
-          micromamba
-          uv
+          python312Packages.python-lsp-server
         ]
       ))
 
