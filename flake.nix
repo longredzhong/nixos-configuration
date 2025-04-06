@@ -15,13 +15,14 @@
   };
 
   outputs =
-    inputs@{ self
-    , nixpkgs
-    , nixpkgs-unstable
-    , home-manager
-    , nixos-wsl
-    , agenix
-    , ...
+    inputs@{
+      self,
+      nixpkgs,
+      nixpkgs-unstable,
+      home-manager,
+      nixos-wsl,
+      agenix,
+      ...
     }:
     {
       nixosConfigurations = {
@@ -29,7 +30,13 @@
           let
             username = "longred";
             hostName = "metacube-wsl";
-            specialArgs = { inherit username hostName; };
+            specialArgs = {
+              inherit username hostName;
+              channels = {
+                inherit nixpkgs nixpkgs-unstable;
+              };
+              unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
+            };
           in
           nixpkgs.lib.nixosSystem {
             inherit specialArgs;
@@ -60,7 +67,13 @@
           let
             username = "longred";
             hostName = "thinkbook-wsl";
-            specialArgs = { inherit username hostName; };
+            specialArgs = {
+              inherit username hostName;
+              channels = {
+                inherit nixpkgs nixpkgs-unstable;
+              };
+              unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
+            };
           in
           nixpkgs.lib.nixosSystem {
             inherit specialArgs;
@@ -91,7 +104,13 @@
           let
             username = "longred";
             hostName = "nuc";
-            specialArgs = { inherit username hostName; };
+            specialArgs = { 
+              inherit username hostName; 
+              channels = {
+                inherit nixpkgs nixpkgs-unstable;
+              };
+              unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
+            };
           in
           nixpkgs.lib.nixosSystem {
             inherit specialArgs;

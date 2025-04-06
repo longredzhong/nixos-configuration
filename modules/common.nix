@@ -1,10 +1,43 @@
-{ pkgs
-, config
-, lib
-, username
-, hostName
-, ...
+{
+  pkgs,
+  config,
+  lib,
+  username,
+  hostName,
+  channels,
+  options,
+  unstable,
+  ...
 }:
+let
+  stable-packages = with pkgs; [
+    # 这里的包会被安装到系统中
+    coreutils
+    curl
+    wget
+    git
+    vim
+    htop
+    ripgrep
+    fd
+    tree
+    unzip
+    zip
+    jq
+    fzf
+    btop
+    nvme-cli
+    nmap
+    inetutils
+    dig
+  ];
+  unstable-packages = with unstable; [
+    rustup
+    micromamba
+    pixi
+    just
+  ];
+in
 {
   i18n = {
     defaultLocale = "en_US.UTF-8";
@@ -61,7 +94,40 @@
       options = "--delete-older-than 30d";
     };
   };
+  # 系统安全设置
+  security.sudo.wheelNeedsPassword = false;
 
+  # 常用服务
+  services = {
+    # SSH服务
+    openssh = {
+      enable = true;
+      settings = {
+        PermitRootLogin = "no";
+        PasswordAuthentication = false;
+      };
+    };
+    # tailscale 服务
+    tailscale = {
+      enable = true;
+      package = unstable.tailscale;
+      extraUpFlags = "--ssh";
+    };
+    # 时间同步
+    timesyncd.enable = true;
+  };
+  # 常用软件包
+  # 这里的包会被安装到系统中
+  environment.systemPackages = stable-packages ++ unstable-packages ++ [ ];
+  programs.nix-ld = {
+    enable = true;
+    package = pkgs.nix-ld-rs;
+    libraries =
+      options.programs.nix-ld.libraries.default
+      ++ (with pkgs; [
+        glib
+      ]);
+  };
   # 系统状态版本（不要轻易改变）
   system.stateVersion = "24.11";
 }
