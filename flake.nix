@@ -15,14 +15,13 @@
   };
 
   outputs =
-    inputs@{
-      self,
-      nixpkgs,
-      nixpkgs-unstable,
-      home-manager,
-      nixos-wsl,
-      agenix,
-      ...
+    inputs@{ self
+    , nixpkgs
+    , nixpkgs-unstable
+    , home-manager
+    , nixos-wsl
+    , agenix
+    , ...
     }:
     {
       nixosConfigurations = {
@@ -104,8 +103,8 @@
           let
             username = "longred";
             hostName = "nuc";
-            specialArgs = { 
-              inherit username hostName; 
+            specialArgs = {
+              inherit username hostName;
               channels = {
                 inherit nixpkgs nixpkgs-unstable;
               };

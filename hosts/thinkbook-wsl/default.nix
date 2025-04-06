@@ -29,8 +29,6 @@
     ];
   };
 
-  programs.fish.enable = true;
-
   networking.hostName = "${hostName}";
   networking.networkmanager.enable = true;
   nixpkgs.config.allowUnfree = true;

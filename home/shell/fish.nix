@@ -1,14 +1,11 @@
-{ pkgs, ... }:
+{ pkgs, unstable, ... }:
 {
   programs.fish = {
     enable = true;
     interactiveShellInit = ''
-      ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
       set -U fish_greeting
       # 提高历史记录限制
       set -g fish_history_max_length 10000
-      ${pkgs.micromamba}/bin/micromamba shell init --shell fish --prefix $HOME/.share/mamba
-      ${pkgs.pixi}/bin/pixi completion --shell fish | source
     '';
     functions = {
       refresh = "source $HOME/.config/fish/config.fish";

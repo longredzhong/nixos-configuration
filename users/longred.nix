@@ -21,6 +21,7 @@
       ../home/shell/atuin.nix
     ];
     programs = {
+      fish.enable = true;
       fzf.enable = true;
       fzf.enableFishIntegration = true;
       lsd.enable = true;

@@ -1,13 +1,12 @@
-{
-  pkgs,
-  config,
-  lib,
-  username,
-  hostName,
-  channels,
-  options,
-  unstable,
-  ...
+{ pkgs
+, config
+, lib
+, username
+, hostName
+, channels
+, options
+, unstable
+, ...
 }:
 let
   stable-packages = with pkgs; [
@@ -30,6 +29,7 @@ let
     nmap
     inetutils
     dig
+    nixpkgs-fmt
   ];
   unstable-packages = with unstable; [
     rustup
@@ -74,7 +74,7 @@ in
       substituters = [
         # cache mirror located in China
         # status: https://mirror.sjtu.edu.cn/
-        "https://mirror.sjtu.edu.cn/nix-channels/store"
+        # "https://mirror.sjtu.edu.cn/nix-channels/store"
         # status: https://mirrors.ustc.edu.cn/status/
         "https://mirrors.ustc.edu.cn/nix-channels/store"
 
@@ -128,6 +128,7 @@ in
         glib
       ]);
   };
+  programs.fish.enable = true;
   # 系统状态版本（不要轻易改变）
   system.stateVersion = "24.11";
 }

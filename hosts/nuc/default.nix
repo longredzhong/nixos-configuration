@@ -35,6 +35,5 @@
   };
   networking.hostName = "${hostName}";
   networking.networkmanager.enable = true;
-  programs.fish.enable = true;
   system.stateVersion = "24.11"; # Added to avoid warnings
 }
