@@ -12,6 +12,9 @@
     nixos-wsl.inputs.nixpkgs.follows = "nixpkgs";
 
     agenix.url = "github:ryantm/agenix";
+
+    nix-index-database.url = "github:nix-community/nix-index-database";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
@@ -21,6 +24,7 @@
     , home-manager
     , nixos-wsl
     , agenix
+    , nix-index-database
     , ...
     }:
     {
@@ -60,6 +64,7 @@
                 wsl.defaultUser = username;
               }
               agenix.nixosModules.default
+              nix-index-database.nixosModules.nix-index
             ];
           };
         thinkbook-wsl =
@@ -97,6 +102,7 @@
                 wsl.defaultUser = username;
               }
               agenix.nixosModules.default
+              nix-index-database.nixosModules.nix-index
             ];
           };
         nuc =
@@ -128,6 +134,7 @@
                 # home-manager.users.${username} = import ./home/home.nix;
               }
               agenix.nixosModules.default
+              nix-index-database.nixosModules.nix-index
             ];
           };
       };
