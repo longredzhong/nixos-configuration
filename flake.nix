@@ -36,6 +36,7 @@
             inherit specialArgs;
             system = "x86_64-linux";
             modules = [
+              ./modules/common.nix
               ./hosts/${hostName}
               ./users/${username}.nix
               home-manager.nixosModules.home-manager
@@ -44,7 +45,7 @@
                 home-manager.useUserPackages = true;
 
                 home-manager.extraSpecialArgs = inputs // specialArgs;
-                home-manager.users.${username} = import ./home/home.nix;
+                # home-manager.users.${username} = import ./home/home.nix;
               }
               nixos-wsl.nixosModules.wsl
               {
@@ -66,6 +67,7 @@
             inherit specialArgs;
             system = "x86_64-linux";
             modules = [
+              ./modules/common.nix
               ./hosts/${hostName}
               ./users/${username}.nix
               home-manager.nixosModules.home-manager
@@ -74,7 +76,7 @@
                 home-manager.useUserPackages = true;
 
                 home-manager.extraSpecialArgs = inputs // specialArgs;
-                home-manager.users.${username} = import ./home/home.nix;
+                # home-manager.users.${username} = import ./home/home.nix;
               }
               nixos-wsl.nixosModules.wsl
               {
@@ -96,6 +98,7 @@
             inherit specialArgs;
             system = "x86_64-linux";
             modules = [
+              ./modules/common.nix
               ./hosts/${hostName}
               ./users/${username}.nix
               home-manager.nixosModules.home-manager
@@ -104,7 +107,7 @@
                 home-manager.useUserPackages = true;
 
                 home-manager.extraSpecialArgs = inputs // specialArgs;
-                home-manager.users.${username} = import ./home/home.nix;
+                # home-manager.users.${username} = import ./home/home.nix;
               }
               agenix.nixosModules.default
             ];
