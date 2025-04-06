@@ -17,11 +17,10 @@
     imports = [
       ../home/shell/fish.nix
       ../home/shell/git.nix
-
+      ../home/shell/starship.nix
+      ../home/shell/atuin.nix
     ];
     programs = {
-      broot.enable = true;
-      broot.enableFishIntegration = true;
       fzf.enable = true;
       fzf.enableFishIntegration = true;
       lsd.enable = true;
@@ -29,6 +28,14 @@
       zoxide.enable = true;
       zoxide.enableFishIntegration = true;
       zoxide.options = [ "--cmd cd" ];
+      broot.enable = true;
+      broot.enableFishIntegration = true;
+      direnv.enable = true;
+      direnv.nix-direnv.enable = true;
+      git = {
+        userEmail = "longredzhong@outlook.com";
+        userName = "longred";
+      };
     };
   };
 }
