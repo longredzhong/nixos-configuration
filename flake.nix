@@ -101,6 +101,7 @@
               ./modules/common.nix
               ./hosts/${hostName}
               ./users/${username}.nix
+              ./modules/services/deeplx.nix
               home-manager.nixosModules.home-manager
               {
                 home-manager.useGlobalPkgs = true;
