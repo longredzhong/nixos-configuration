@@ -46,10 +46,6 @@ show-systems:
 options host="metacube-wsl":
     nixos-option --flake .#{{host}}
 
-# 显示特定主机的特定系统选项
-option host="metacube-wsl" option:
-    nixos-option --flake .#{{host}} {{option}}
-
 # 虚拟机测试指定主机的配置
 vm host="metacube-wsl":
     nixos-rebuild build-vm --flake .#{{host}}

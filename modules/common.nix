@@ -1,10 +1,9 @@
-{
-  pkgs,
-  config,
-  lib,
-  username,
-  hostName,
-  ...
+{ pkgs
+, config
+, lib
+, username
+, hostName
+, ...
 }:
 {
   i18n = {

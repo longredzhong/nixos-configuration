@@ -1,13 +1,12 @@
-{
-  username,
-  hostName,
-  pkgs,
-  lib,
-  inputs,
-  config,
-  options,
-  nixpkgs,
-  ...
+{ username
+, hostName
+, pkgs
+, lib
+, inputs
+, config
+, options
+, nixpkgs
+, ...
 }:
 {
   virtualisation.docker = {

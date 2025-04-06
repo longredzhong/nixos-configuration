@@ -1,13 +1,12 @@
-{
-  username,
-  hostName,
-  pkgs,
-  lib,
-  inputs,
-  config,
-  options,
-  nixpkgs,
-  ...
+{ username
+, hostName
+, pkgs
+, lib
+, inputs
+, config
+, options
+, nixpkgs
+, ...
 }:
 {
   system.stateVersion = "24.11";
