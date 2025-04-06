@@ -17,6 +17,7 @@
     imports = [
       ../home/shell/fish.nix
       ../home/shell/git.nix
+
     ];
     programs = {
       broot.enable = true;

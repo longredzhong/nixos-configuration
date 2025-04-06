@@ -10,6 +10,7 @@
   ...
 }:
 {
+  system.stateVersion = "24.11";
   virtualisation.docker = {
     enable = true;
     enableOnBoot = true;
@@ -28,8 +29,40 @@
       "docker"
     ];
   };
+
+  programs.fish.enable = true;
+
   networking.hostName = "${hostName}";
   networking.networkmanager.enable = true;
-  programs.fish.enable = true;
-  system.stateVersion = "24.11"; # Added to avoid warnings
+  nixpkgs.config.allowUnfree = true;
+  environment.sessionVariables = {
+    CUDA_PATH = "${pkgs.cudatoolkit}";
+    EXTRA_LDFLAGS = "-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib";
+    EXTRA_CCFLAGS = "-I/usr/include";
+    LD_LIBRARY_PATH = [
+      "/usr/lib/wsl/lib"
+      "${pkgs.linuxPackages.nvidia_x11}/lib"
+      "${pkgs.ncurses5}/lib"
+    ];
+    MESA_D3D12_DEFAULT_ADAPTER_NAME = "Nvidia";
+  };
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [
+      libGL
+      mesa
+      libglvnd
+    ];
+  };
+
+  wsl = {
+    enable = true;
+    wslConf.automount.root = "/mnt";
+    wslConf.interop.appendWindowsPath = false;
+    wslConf.network.generateHosts = true;
+    defaultUser = username;
+    startMenuLaunchers = true;
+    useWindowsDriver = true;
+    populateBin = true;
+  };
 }

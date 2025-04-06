@@ -45,7 +45,7 @@
                 home-manager.useUserPackages = true;
 
                 home-manager.extraSpecialArgs = inputs // specialArgs;
-                # home-manager.users.${username} = import ./home/home.nix;
+                home-manager.users.${username} = import ./home/wsl.nix;
               }
               nixos-wsl.nixosModules.wsl
               {
@@ -76,7 +76,7 @@
                 home-manager.useUserPackages = true;
 
                 home-manager.extraSpecialArgs = inputs // specialArgs;
-                # home-manager.users.${username} = import ./home/home.nix;
+                home-manager.users.${username} = import ./home/wsl.nix;
               }
               nixos-wsl.nixosModules.wsl
               {

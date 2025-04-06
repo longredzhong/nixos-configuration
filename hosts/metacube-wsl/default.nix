@@ -31,5 +31,15 @@
   networking.hostName = "${hostName}";
   networking.networkmanager.enable = true;
   programs.fish.enable = true;
-  system.stateVersion = "24.11"; # Added to avoid warnings
+  system.stateVersion = "24.11";
+  wsl = {
+    enable = true;
+    wslConf.automount.root = "/mnt";
+    wslConf.interop.appendWindowsPath = false;
+    wslConf.network.generateHosts = true;
+    defaultUser = username;
+    startMenuLaunchers = true;
+    useWindowsDriver = true;
+    populateBin = true;
+  };
 }
