@@ -31,12 +31,6 @@
       package.disabled = false;
       rust.format = "via [🦀 $version](red bold)";
       nodejs.format = "via [⬢ $version](green bold)";
-      time = {
-        disabled = false;
-        format = "[$time]($style) ";
-        time_format = "%R";
-        style = "bright-black";
-      };
     };
   };
 }
