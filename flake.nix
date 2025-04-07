@@ -26,18 +26,13 @@
           specialArgs = {
             inherit username hostName;
             channels = { inherit nixpkgs nixpkgs-unstable; };
+            inherit inputs;
           };
         in nixpkgs.lib.nixosSystem {
           inherit specialArgs;
           system = "x86_64-linux";
           modules = [
-            {
-              nixpkgs.overlays = [
-                (final: prev: {
-                  unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
-                })
-              ];
-            }
+            ./modules/overlays.nix
             ./modules/common.nix
             ./hosts/${hostName}
             ./users/${username}.nix
@@ -66,18 +61,13 @@
           specialArgs = {
             inherit username hostName;
             channels = { inherit nixpkgs nixpkgs-unstable; };
+            inherit inputs;
           };
         in nixpkgs.lib.nixosSystem {
           inherit specialArgs;
           system = "x86_64-linux";
           modules = [
-            {
-              nixpkgs.overlays = [
-                (final: prev: {
-                  unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
-                })
-              ];
-            }
+            ./modules/overlays.nix
             ./modules/common.nix
             ./hosts/${hostName}
             ./users/${username}.nix
@@ -106,18 +96,13 @@
           specialArgs = {
             inherit username hostName;
             channels = { inherit nixpkgs nixpkgs-unstable; };
+            inherit inputs;
           };
         in nixpkgs.lib.nixosSystem {
           inherit specialArgs;
           system = "x86_64-linux";
           modules = [
-            {
-              nixpkgs.overlays = [
-                (final: prev: {
-                  unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
-                })
-              ];
-            }
+            ./modules/overlays.nix
             ./modules/common.nix
             ./hosts/${hostName}
             ./users/${username}.nix
@@ -133,6 +118,19 @@
             agenix.nixosModules.default
             nix-index-database.nixosModules.nix-index
           ];
+        };
+      };
+
+      # 添加测试系统
+      nixosTests = let
+        system = "x86_64-linux";
+      in {
+        # 基本引导测试
+        basic-boot = import ./tests/default.nix {
+          inherit system;
+          pkgs = nixpkgs.legacyPackages.${system};
+          lib = nixpkgs.lib;
+          inherit inputs;
         };
       };
     };
