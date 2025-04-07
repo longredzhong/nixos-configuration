@@ -1,35 +1,37 @@
-{ username
-, hostName
-, pkgs
-, lib
-, inputs
-, config
-, options
-, nixpkgs
-, ...
-}:
-{
+{ username, hostName, pkgs, lib, inputs, config, options, nixpkgs, ... }: {
+  system.stateVersion = "24.11";
   virtualisation.docker = {
     enable = true;
     enableOnBoot = true;
     autoPrune.enable = true;
-    daemon.settings = {
-      "features" = {
-        "buildkit" = true;
-      };
-    };
+    daemon.settings = { "features" = { "buildkit" = true; }; };
   };
   users.users.${username} = {
     isNormalUser = true;
     shell = pkgs.fish;
-    extraGroups = [
-      "wheel"
-      "docker"
-    ];
+    extraGroups = [ "wheel" "docker" ];
   };
+
   networking.hostName = "${hostName}";
   networking.networkmanager.enable = true;
-  system.stateVersion = "24.11";
+  nixpkgs.config.allowUnfree = true;
+  environment.sessionVariables = {
+    CUDA_PATH = "${pkgs.cudatoolkit}";
+    EXTRA_LDFLAGS = "-L/lib -L${pkgs.linuxPackages.nvidia_x11}/lib";
+    EXTRA_CCFLAGS = "-I/usr/include";
+    LD_LIBRARY_PATH = [
+      "/usr/lib/wsl/lib"
+      "${pkgs.linuxPackages.nvidia_x11}/lib"
+      "${pkgs.ncurses5}/lib"
+    ];
+    MESA_D3D12_DEFAULT_ADAPTER_NAME = "Nvidia";
+  };
+
+  hardware.graphics = {
+    enable = true;
+    extraPackages = with pkgs; [ libGL mesa libglvnd ];
+  };
+
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";

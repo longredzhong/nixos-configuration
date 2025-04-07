@@ -3,7 +3,8 @@
 let
   unstable-packages = with pkgs.unstable; [ nvitop ];
   stable-packages = with pkgs; [ ];
-in {
+in
+{
 
   users.users.longred = {
     openssh.authorizedKeys.keys = [
@@ -19,7 +20,7 @@ in {
       stateVersion = "24.11";
       packages = stable-packages ++ unstable-packages ++ [ ];
     };
-    
+
     imports = [
       ../home/cli-environment.nix
     ];

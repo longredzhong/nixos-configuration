@@ -1,32 +1,15 @@
-{ username
-, hostName
-, pkgs
-, lib
-, inputs
-, config
-, options
-, nixpkgs
-, ...
-}:
-{
+{ username, hostName, pkgs, lib, inputs, config, options, nixpkgs, ... }: {
   system.stateVersion = "24.11";
   virtualisation.docker = {
     enable = true;
     enableOnBoot = true;
     autoPrune.enable = true;
-    daemon.settings = {
-      "features" = {
-        "buildkit" = true;
-      };
-    };
+    daemon.settings = { "features" = { "buildkit" = true; }; };
   };
   users.users.${username} = {
     isNormalUser = true;
     shell = pkgs.fish;
-    extraGroups = [
-      "wheel"
-      "docker"
-    ];
+    extraGroups = [ "wheel" "docker" ];
   };
 
   networking.hostName = "${hostName}";
@@ -43,14 +26,10 @@
     ];
     MESA_D3D12_DEFAULT_ADAPTER_NAME = "Nvidia";
   };
-  
+
   hardware.graphics = {
     enable = true;
-    extraPackages = with pkgs; [
-      libGL
-      mesa
-      libglvnd
-    ];
+    extraPackages = with pkgs; [ libGL mesa libglvnd ];
   };
 
   wsl = {
