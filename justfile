@@ -1,3 +1,6 @@
+# 获取当前主机名作为默认值
+DEFAULT_HOST := `hostname`
+
 # 默认显示所有可用命令列表
 default:
     @just --list
@@ -15,19 +18,19 @@ update-input input:
     nix flake lock --update-input {{input}}
 
 # 构建指定主机的系统配置
-build host="metacube-wsl":
+build host=DEFAULT_HOST:
     nixos-rebuild build --flake .#{{host}}
 
 # 构建并切换到指定主机的系统配置
-switch host="metacube-wsl":
+switch host=DEFAULT_HOST:
     sudo nixos-rebuild switch --flake .#{{host}}
 
 # 构建并切换到指定主机的系统配置(以boot方式)
-boot host="metacube-wsl":
+boot host=DEFAULT_HOST:
     sudo nixos-rebuild boot --flake .#{{host}}
 
 # 应用home-manager配置
-home host="metacube-wsl" user="longred":
+home host=DEFAULT_HOST user="longred":
     home-manager switch --flake .#{{user}}@{{host}}
 
 # 清理nix存储
@@ -42,12 +45,8 @@ gc-old:
 show-systems:
     nix flake show --json | jq '.nixosConfigurations'
 
-# 显示特定主机的所有系统选项
-options host="metacube-wsl":
-    nixos-option --flake .#{{host}}
-
 # 虚拟机测试指定主机的配置
-vm host="metacube-wsl":
+vm host=DEFAULT_HOST:
     nixos-rebuild build-vm --flake .#{{host}}
 
 # 列出系统中所有的generations（世代）
@@ -61,31 +60,6 @@ rollback:
 # 格式化所有的nix文件
 fmt:
     nixpkgs-fmt $(find . -name "*.nix")
-
-# 更新项目文档
-update-docs:
-    @echo "正在更新项目文档..."
-    @echo "# Nix Configuration\n" > README.md
-    @echo "This repository is home to the nix code that builds my systems.\n" >> README.md
-    @echo "## 项目结构\n" >> README.md
-    @echo "\`\`\`bash" >> README.md
-    @find . -type f -not -path "*/\\.*" | sort >> README.md
-    @echo "\`\`\`\n" >> README.md
-    @echo "## 使用方法\n" >> README.md
-    @echo "### 系统安装\n" >> README.md
-    @echo "\`\`\`bash" >> README.md
-    @echo "# 使用nixos-rebuild切换到此配置" >> README.md
-    @echo "sudo nixos-rebuild switch --flake .#<hostname>" >> README.md
-    @echo "\`\`\`\n" >> README.md
-    @echo "### Home Manager配置应用\n" >> README.md
-    @echo "\`\`\`bash" >> README.md
-    @echo "# 应用home-manager配置" >> README.md
-    @echo "home-manager switch --flake .#<username>@<hostname>" >> README.md
-    @echo "\`\`\`\n" >> README.md
-    @echo "可用命令请参考justfile:" >> README.md
-    @echo "\`\`\`bash" >> README.md
-    @echo "just" >> README.md
-    @echo "\`\`\`" >> README.md
 
 # 创建新主机配置
 create-host host:
