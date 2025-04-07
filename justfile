@@ -23,11 +23,11 @@ build host=DEFAULT_HOST:
 
 # 构建并切换到指定主机的系统配置
 switch host=DEFAULT_HOST:
-    sudo nixos-rebuild switch --flake .#{{host}}
+    sudo -E nixos-rebuild switch --flake .#{{host}}
 
 # 构建并切换到指定主机的系统配置(以boot方式)
 boot host=DEFAULT_HOST:
-    sudo nixos-rebuild boot --flake .#{{host}}
+    sudo -E nixos-rebuild boot --flake .#{{host}}
 
 # 应用home-manager配置
 home host=DEFAULT_HOST user="longred":

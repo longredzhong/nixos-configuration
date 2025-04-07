@@ -30,6 +30,9 @@ let
     inetutils
     dig
     nixpkgs-fmt
+    watchman
+    nixfmt-classic
+    nixfmt-rfc-style
   ];
   unstable-packages = with unstable; [
     rustup
