@@ -21,10 +21,7 @@ in {
     };
     
     imports = [
-      ../home/shell/fish.nix
-      ../home/shell/git.nix
-      ../home/shell/starship.nix
-      ../home/shell/atuin.nix
+      ../home/cli-environment.nix
     ];
     programs = {
       fish.enable = true;
