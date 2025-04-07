@@ -1,7 +1,7 @@
-{ config, pkgs, unstable,... }:
+{ config, pkgs, ... }:
 
 let
-  unstable-packages = with unstable; [ nvitop ];
+  unstable-packages = with pkgs.unstable; [ nvitop ];
   stable-packages = with pkgs; [ ];
 in {
 

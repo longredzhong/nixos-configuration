@@ -5,7 +5,6 @@
 , hostName
 , channels
 , options
-, unstable
 , ...
 }:
 let
@@ -34,7 +33,7 @@ let
     nixfmt-classic
     nixfmt-rfc-style
   ];
-  unstable-packages = with unstable; [
+  unstable-packages = with pkgs.unstable; [
     rustup
     micromamba
     pixi
@@ -113,7 +112,7 @@ in
     # tailscale 服务
     tailscale = {
       enable = true;
-      package = unstable.tailscale;
+      package = pkgs.unstable.tailscale;
       extraUpFlags = "--ssh";
     };
     # 时间同步

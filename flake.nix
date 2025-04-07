@@ -14,7 +14,7 @@
     agenix.url = "github:ryantm/agenix";
 
     nix-index-database.url = "github:nix-community/nix-index-database";
-    nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
+    nix-index-database.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, nixos-wsl
@@ -26,12 +26,18 @@
           specialArgs = {
             inherit username hostName;
             channels = { inherit nixpkgs nixpkgs-unstable; };
-            unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
           };
         in nixpkgs.lib.nixosSystem {
           inherit specialArgs;
           system = "x86_64-linux";
           modules = [
+            {
+              nixpkgs.overlays = [
+                (final: prev: {
+                  unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
+                })
+              ];
+            }
             ./modules/common.nix
             ./hosts/${hostName}
             ./users/${username}.nix
@@ -60,12 +66,18 @@
           specialArgs = {
             inherit username hostName;
             channels = { inherit nixpkgs nixpkgs-unstable; };
-            unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
           };
         in nixpkgs.lib.nixosSystem {
           inherit specialArgs;
           system = "x86_64-linux";
           modules = [
+            {
+              nixpkgs.overlays = [
+                (final: prev: {
+                  unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
+                })
+              ];
+            }
             ./modules/common.nix
             ./hosts/${hostName}
             ./users/${username}.nix
@@ -94,12 +106,18 @@
           specialArgs = {
             inherit username hostName;
             channels = { inherit nixpkgs nixpkgs-unstable; };
-            unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
           };
         in nixpkgs.lib.nixosSystem {
           inherit specialArgs;
           system = "x86_64-linux";
           modules = [
+            {
+              nixpkgs.overlays = [
+                (final: prev: {
+                  unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
+                })
+              ];
+            }
             ./modules/common.nix
             ./hosts/${hostName}
             ./users/${username}.nix

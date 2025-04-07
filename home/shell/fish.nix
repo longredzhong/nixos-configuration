@@ -1,7 +1,7 @@
-{ pkgs, unstable, ... }: {
+{ pkgs, ... }: {
   programs.fish = {
     enable = true;
-    package = unstable.fish;
+    package = pkgs.unstable.fish;
 
     interactiveShellInit = ''
       set -U fish_greeting
