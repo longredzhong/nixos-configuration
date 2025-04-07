@@ -1,6 +1,10 @@
-{ config, pkgs, ... }:
+{ config, pkgs, unstable,... }:
 
-{
+let
+  unstable-packages = with unstable; [ nvitop ];
+  stable-packages = with pkgs; [ ];
+in {
+
   users.users.longred = {
     openssh.authorizedKeys.keys = [
 
@@ -13,7 +17,9 @@
       username = "longred";
       homeDirectory = "/home/longred";
       stateVersion = "24.11";
+      packages = stable-packages ++ unstable-packages ++ [ ];
     };
+    
     imports = [
       ../home/shell/fish.nix
       ../home/shell/git.nix

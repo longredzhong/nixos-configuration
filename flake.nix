@@ -17,126 +17,105 @@
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs =
-    inputs@{ self
-    , nixpkgs
-    , nixpkgs-unstable
-    , home-manager
-    , nixos-wsl
-    , agenix
-    , nix-index-database
-    , ...
-    }:
-    {
+  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, nixos-wsl
+    , agenix, nix-index-database, ... }: {
       nixosConfigurations = {
-        metacube-wsl =
-          let
-            username = "longred";
-            hostName = "metacube-wsl";
-            specialArgs = {
-              inherit username hostName;
-              channels = {
-                inherit nixpkgs nixpkgs-unstable;
-              };
-              unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
-            };
-          in
-          nixpkgs.lib.nixosSystem {
-            inherit specialArgs;
-            system = "x86_64-linux";
-            modules = [
-              ./modules/common.nix
-              ./hosts/${hostName}
-              ./users/${username}.nix
-              home-manager.nixosModules.home-manager
-              {
-                home-manager.useGlobalPkgs = true;
-                home-manager.useUserPackages = true;
-
-                home-manager.extraSpecialArgs = inputs // specialArgs;
-                home-manager.users.${username} = import ./home/wsl.nix;
-              }
-              nixos-wsl.nixosModules.wsl
-              {
-                # Enable WSL2
-                wsl.enable = true;
-                # Set the default user for WSL
-                wsl.defaultUser = username;
-              }
-              agenix.nixosModules.default
-              nix-index-database.nixosModules.nix-index
-            ];
+        metacube-wsl = let
+          username = "longred";
+          hostName = "metacube-wsl";
+          specialArgs = {
+            inherit username hostName;
+            channels = { inherit nixpkgs nixpkgs-unstable; };
+            unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
           };
-        thinkbook-wsl =
-          let
-            username = "longred";
-            hostName = "thinkbook-wsl";
-            specialArgs = {
-              inherit username hostName;
-              channels = {
-                inherit nixpkgs nixpkgs-unstable;
-              };
-              unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
-            };
-          in
-          nixpkgs.lib.nixosSystem {
-            inherit specialArgs;
-            system = "x86_64-linux";
-            modules = [
-              ./modules/common.nix
-              ./hosts/${hostName}
-              ./users/${username}.nix
-              home-manager.nixosModules.home-manager
-              {
-                home-manager.useGlobalPkgs = true;
-                home-manager.useUserPackages = true;
+        in nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          system = "x86_64-linux";
+          modules = [
+            ./modules/common.nix
+            ./hosts/${hostName}
+            ./users/${username}.nix
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
 
-                home-manager.extraSpecialArgs = inputs // specialArgs;
-                home-manager.users.${username} = import ./home/wsl.nix;
-              }
-              nixos-wsl.nixosModules.wsl
-              {
-                # Enable WSL2
-                wsl.enable = true;
-                # Set the default user for WSL
-                wsl.defaultUser = username;
-              }
-              agenix.nixosModules.default
-              nix-index-database.nixosModules.nix-index
-            ];
+              home-manager.extraSpecialArgs = inputs // specialArgs;
+              home-manager.users.${username} = import ./home/wsl.nix;
+            }
+            nixos-wsl.nixosModules.wsl
+            {
+              # Enable WSL2
+              wsl.enable = true;
+              # Set the default user for WSL
+              wsl.defaultUser = username;
+            }
+            agenix.nixosModules.default
+            nix-index-database.nixosModules.nix-index
+          ];
+        };
+        thinkbook-wsl = let
+          username = "longred";
+          hostName = "thinkbook-wsl";
+          specialArgs = {
+            inherit username hostName;
+            channels = { inherit nixpkgs nixpkgs-unstable; };
+            unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
           };
-        nuc =
-          let
-            username = "longred";
-            hostName = "nuc";
-            specialArgs = {
-              inherit username hostName;
-              channels = {
-                inherit nixpkgs nixpkgs-unstable;
-              };
-              unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
-            };
-          in
-          nixpkgs.lib.nixosSystem {
-            inherit specialArgs;
-            system = "x86_64-linux";
-            modules = [
-              ./modules/common.nix
-              ./hosts/${hostName}
-              ./users/${username}.nix
-              ./modules/services/deeplx.nix
-              home-manager.nixosModules.home-manager
-              {
-                home-manager.useGlobalPkgs = true;
-                home-manager.useUserPackages = true;
+        in nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          system = "x86_64-linux";
+          modules = [
+            ./modules/common.nix
+            ./hosts/${hostName}
+            ./users/${username}.nix
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
 
-                home-manager.extraSpecialArgs = inputs // specialArgs;
-                # home-manager.users.${username} = import ./home/home.nix;
-              }
-              agenix.nixosModules.default
-              nix-index-database.nixosModules.nix-index
-            ];
+              home-manager.extraSpecialArgs = inputs // specialArgs;
+              home-manager.users.${username} = import ./home/wsl.nix;
+            }
+            nixos-wsl.nixosModules.wsl
+            {
+              # Enable WSL2
+              wsl.enable = true;
+              # Set the default user for WSL
+              wsl.defaultUser = username;
+            }
+            agenix.nixosModules.default
+            nix-index-database.nixosModules.nix-index
+          ];
+        };
+        nuc = let
+          username = "longred";
+          hostName = "nuc";
+          specialArgs = {
+            inherit username hostName;
+            channels = { inherit nixpkgs nixpkgs-unstable; };
+            unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
           };
+        in nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          system = "x86_64-linux";
+          modules = [
+            ./modules/common.nix
+            ./hosts/${hostName}
+            ./users/${username}.nix
+            ./modules/services/deeplx.nix
+            home-manager.nixosModules.home-manager
+            {
+              home-manager.useGlobalPkgs = true;
+              home-manager.useUserPackages = true;
+
+              home-manager.extraSpecialArgs = inputs // specialArgs;
+              # home-manager.users.${username} = import ./home/home.nix;
+            }
+            agenix.nixosModules.default
+            nix-index-database.nixosModules.nix-index
+          ];
+        };
       };
     };
 }
