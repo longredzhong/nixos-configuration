@@ -8,7 +8,8 @@ in
 
   users.users.longred = {
     openssh.authorizedKeys.keys = [
-
+      # 这里应该填入与加密私钥对应的公钥
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJqRxH9Kk4St9Vm+5GRyeHIHOxttJj7f4jLxuNVaLgX3 longred@example.com"
     ];
   };
 
