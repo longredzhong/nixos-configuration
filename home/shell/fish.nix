@@ -11,37 +11,36 @@
       set -U fish_greeting
 
       # CD 补全样式优化
-      # 基础颜色设置
+      # 基础颜色设置优化
       set -g fish_color_normal normal
-      set -g fish_color_command blue --bold
-      set -g fish_color_param cyan
-      set -g fish_color_redirection yellow
-      set -g fish_color_comment brblack
-      set -g fish_color_error red --bold
-      set -g fish_color_escape magenta
-      set -g fish_color_operator green
-      set -g fish_color_end green
-      set -g fish_color_quote yellow
-      set -g fish_color_autosuggestion brblack
-      set -g fish_color_valid_path --underline
-      set -g fish_color_cwd green
-      set -g fish_color_cwd_root red
+      set -g fish_color_command cyan --bold  # 命令颜色更醒目
+      set -g fish_color_param green          # 参数颜色柔和
+      set -g fish_color_redirection yellow   # 重定向颜色保持
+      set -g fish_color_comment brgray       # 注释颜色更柔和
+      set -g fish_color_error red --bold     # 错误颜色保持
+      set -g fish_color_escape magenta       # 转义字符颜色保持
+      set -g fish_color_operator blue        # 操作符颜色调整为蓝色
+      set -g fish_color_end green            # 结束符颜色保持
+      set -g fish_color_quote yellow         # 引号颜色保持
+      set -g fish_color_autosuggestion brblack  # 自动补全颜色保持
+      set -g fish_color_valid_path cyan --underline  # 有效路径颜色更醒目
+      set -g fish_color_cwd green --bold     # 当前目录颜色加粗
+      set -g fish_color_cwd_root red --bold  # 根目录颜色加粗
 
       # 目录补全菜单样式优化
-      set -g fish_pager_color_prefix blue --bold  # 前缀匹配部分
-      set -g fish_pager_color_completion normal   # 补全条目
-      set -g fish_pager_color_description yellow  # 补全描述
-      set -g fish_pager_color_progress brwhite --background=blue  # 分页指示器
+      set -g fish_pager_color_prefix magenta --bold  # 前缀匹配部分更醒目
+      set -g fish_pager_color_completion normal      # 补全条目保持
+      set -g fish_pager_color_progress white --background=cyan  # 分页指示器更柔和
 
       # 选中项样式优化
-      set -g fish_pager_color_selected_background --background=brblack  # 选中项背景色
-      set -g fish_pager_color_selected_prefix blue --bold --background=brblack  # 选中项的前缀
-      set -g fish_pager_color_selected_completion white --background=brblack  # 选中项的补全文本
+      set -g fish_pager_color_selected_background --background=brblue  # 选中项背景色柔和
+      set -g fish_pager_color_selected_prefix yellow --bold --background=brblue  # 选中项的前缀更醒目
+      set -g fish_pager_color_selected_completion white --background=brblue  # 选中项的补全文本保持
 
       # 增强 CD 补全的特殊处理
       function __enhanced_cd_complete
-          # 使用标准的目录补全，但添加额外的格式化
-          __fish_complete_directories $argv
+          # 使用标准的目录补全，但移除描述信息
+          __fish_complete_directories $argv | cut -f1
       end
 
       # 为 cd 命令注册自定义补全
