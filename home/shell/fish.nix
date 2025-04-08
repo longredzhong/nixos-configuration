@@ -117,10 +117,6 @@
         name = "sponge";
       }
       {
-        inherit (pkgs.fishPlugins.wakatime-fish) src;
-        name = "wakatime-fish";
-      }
-      {
         inherit (pkgs.fishPlugins.pure) src;
         name = "pure";
       }

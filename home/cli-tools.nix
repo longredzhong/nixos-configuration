@@ -45,11 +45,4 @@
     enableFishIntegration = true;
     options = [ "--cmd cd" ];
   };
-
-  # 配置 McFly (更好的 Ctrl+R)
-  programs.mcfly = {
-    enable = true;
-    enableFishIntegration = true;
-    keyScheme = "vim";
-  };
 }
