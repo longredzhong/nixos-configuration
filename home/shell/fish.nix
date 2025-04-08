@@ -4,9 +4,49 @@
     package = pkgs.unstable.fish;
 
     interactiveShellInit = ''
-      set -U fish_greeting
       # Increase history limit
       set -g fish_history_max_length 10000
+
+      ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
+      set -U fish_greeting
+
+      # CD 补全样式优化
+      # 基础颜色设置
+      set -g fish_color_normal normal
+      set -g fish_color_command blue --bold
+      set -g fish_color_param cyan
+      set -g fish_color_redirection yellow
+      set -g fish_color_comment brblack
+      set -g fish_color_error red --bold
+      set -g fish_color_escape magenta
+      set -g fish_color_operator green
+      set -g fish_color_end green
+      set -g fish_color_quote yellow
+      set -g fish_color_autosuggestion brblack
+      set -g fish_color_valid_path --underline
+      set -g fish_color_cwd green
+      set -g fish_color_cwd_root red
+
+      # 目录补全菜单样式优化
+      set -g fish_pager_color_prefix blue --bold  # 前缀匹配部分
+      set -g fish_pager_color_completion normal   # 补全条目
+      set -g fish_pager_color_description yellow  # 补全描述
+      set -g fish_pager_color_progress brwhite --background=blue  # 分页指示器
+
+      # 选中项样式优化
+      set -g fish_pager_color_selected_background --background=brblack  # 选中项背景色
+      set -g fish_pager_color_selected_prefix blue --bold --background=brblack  # 选中项的前缀
+      set -g fish_pager_color_selected_completion white --background=brblack  # 选中项的补全文本
+
+      # 增强 CD 补全的特殊处理
+      function __enhanced_cd_complete
+          # 使用标准的目录补全，但添加额外的格式化
+          __fish_complete_directories $argv
+      end
+
+      # 为 cd 命令注册自定义补全
+      complete -c cd -e
+      complete -c cd -f -a "(__enhanced_cd_complete)"
     '';
 
     functions = {
