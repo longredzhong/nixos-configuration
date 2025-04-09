@@ -27,7 +27,7 @@
   };
   users.users.${username} = {
     isNormalUser = true;
-    shell = pkgs.fish;
+    shell = pkgs.unstable.fish;
     extraGroups = [
       "wheel"
       "docker"
