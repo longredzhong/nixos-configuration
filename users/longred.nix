@@ -3,13 +3,11 @@
 let
   unstable-packages = with pkgs.unstable; [ nvitop ];
   stable-packages = with pkgs; [ ];
-in
-{
+in {
 
   users.users.longred = {
     openssh.authorizedKeys.keys = [
-      # 这里应该填入与加密私钥对应的公钥
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJqRxH9Kk4St9Vm+5GRyeHIHOxttJj7f4jLxuNVaLgX3 longred@example.com"
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJndrhj8hUnT6hKAtd2+jIzoAJV8oo0NoTjQ73rdgiOC"
     ];
   };
 
@@ -22,9 +20,7 @@ in
       packages = stable-packages ++ unstable-packages ++ [ ];
     };
 
-    imports = [
-      ../home/cli-environment.nix
-    ];
+    imports = [ ../home/cli-environment.nix ];
     programs = {
       fish.enable = true;
       fzf.enable = true;
