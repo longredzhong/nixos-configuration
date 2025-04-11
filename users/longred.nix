@@ -2,7 +2,7 @@
 
 let
   unstable-packages = with pkgs.unstable; [ nvitop ];
-  stable-packages = with pkgs; [ ];
+  stable-packages = with pkgs; [ expat ];
 in {
 
   users.users.longred = {
