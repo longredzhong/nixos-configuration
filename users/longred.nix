@@ -1,7 +1,7 @@
 { config, pkgs, ... }:
 
 let
-  unstable-packages = with pkgs.unstable; [ nvitop ];
+  unstable-packages = with pkgs.unstable; [ nvitop juicefs];
   stable-packages = with pkgs; [ expat ];
 in {
 
