@@ -148,6 +148,7 @@ in {
       ++ (with pkgs; [ glib ]);
   };
   programs.fish.enable = true;
+  programs.fish.package = pkgs.unstable.fish;
   # 系统状态版本（不要轻易改变）
   system.stateVersion = "24.11";
 }
