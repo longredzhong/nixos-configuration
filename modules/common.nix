@@ -24,6 +24,7 @@ let
     watchman
     nixfmt-classic
     nixfmt-rfc-style
+    age
   ];
   unstable-packages = with pkgs.unstable; [
     rustup
