@@ -25,7 +25,7 @@ let
     nixfmt-classic
     nixfmt-rfc-style
   ];
-  unstable-packages = with pkgs.unstable; [ rustup micromamba pixi just ];
+  unstable-packages = with pkgs.unstable; [ rustup micromamba pixi just agenix-cli];
 in {
   i18n = {
     defaultLocale = "en_US.UTF-8";
@@ -97,8 +97,7 @@ in {
   };
   # 常用软件包
   # 这里的包会被安装到系统中
-  environment.systemPackages = stable-packages ++ unstable-packages
-    ++ [ pkgs.age ];  # agenix 已经通过 flake 引入，不需要添加在这里
+  environment.systemPackages = stable-packages ++ unstable-packages ++ [ ];
 
   # 配置 SSH 密钥
   # age.secrets = {
