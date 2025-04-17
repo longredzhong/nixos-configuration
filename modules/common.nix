@@ -25,7 +25,13 @@ let
     nixfmt-classic
     nixfmt-rfc-style
   ];
-  unstable-packages = with pkgs.unstable; [ rustup micromamba pixi just agenix-cli];
+  unstable-packages = with pkgs.unstable; [
+    rustup
+    micromamba
+    pixi
+    just
+    agenix-cli
+  ];
 in {
   i18n = {
     defaultLocale = "en_US.UTF-8";
@@ -98,41 +104,6 @@ in {
   # 常用软件包
   # 这里的包会被安装到系统中
   environment.systemPackages = stable-packages ++ unstable-packages ++ [ ];
-
-  # 配置 SSH 密钥
-  # age.secrets = {
-  #   "ssh_id_ed25519" = {
-  #     file = ../secrets/ssh/id_ed25519.age;
-  #     path = "/home/${username}/.ssh/id_ed25519";
-  #     owner = username;
-  #     group = "users";
-  #     mode = "0600"; # SSH 私钥需要严格的权限
-  #   };
-
-  #   "ssh_id_ed25519_pub" = {
-  #     file = ../secrets/ssh/id_ed25519.pub.age;
-  #     path = "/home/${username}/.ssh/id_ed25519.pub";
-  #     owner = username;
-  #     group = "users";
-  #     mode = "0644"; # 公钥权限可以宽松一些
-  #   };
-
-  #   "ssh_config" = {
-  #     file = ../secrets/ssh/config.age;
-  #     path = "/home/${username}/.ssh/config";
-  #     owner = username;
-  #     group = "users";
-  #     mode = "0600";
-  #   };
-
-  #   "ssh_known_hosts" = {
-  #     file = ../secrets/ssh/known_hosts.age;
-  #     path = "/home/${username}/.ssh/known_hosts";
-  #     owner = username;
-  #     group = "users";
-  #     mode = "0644";
-  #   };
-  # };
 
   # 确保 .ssh 目录存在并有正确权限
   system.activationScripts.sshUserDir = ''
