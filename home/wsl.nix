@@ -1,6 +1,7 @@
 { pkgs, ... }:
 let
   win32yankPath = "/mnt/c/Users/longred/scoop/apps/win32yank/0.1.1";
+  vscodebinPath = "/mnt/c/Users/longred/scoop/apps/vscode/current/bin";
   commonShellAliases = {
     pbcopy = "/mnt/c/Windows/System32/clip.exe";
     pbpaste =
@@ -8,12 +9,12 @@ let
     explorer = "/mnt/c/Windows/explorer.exe";
     code = "/mnt/c/Users/longred/scoop/apps/vscode/current/bin/code";
   };
-in
-{
+in {
   programs = {
     fish = {
       interactiveShellInit = ''
         fish_add_path --append ${win32yankPath}
+        fish_add_path --append ${vscodebinPath}
         # 让 WSL 使用 Windows 的 Chrome
         set -gx BROWSER "/mnt/c/Program Files/Google/Chrome/Application/chrome.exe"
 
@@ -77,13 +78,13 @@ in
     };
     bash = {
       bashrcExtra = ''
-        export PATH=$PATH:${win32yankPath}
+        export PATH=$PATH:${win32yankPath}:${vscodebinPath}
       '';
       shellAliases = commonShellAliases;
     };
     zsh = {
       initExtra = ''
-        export PATH=$PATH:${win32yankPath}
+        export PATH=$PATH:${win32yankPath}:${vscodebinPath}
       '';
       shellAliases = commonShellAliases;
     };
