@@ -8,6 +8,7 @@ let
     curl
     # Chinese fonts
     noto-fonts-cjk-sans # Google Noto CJK 字体
+    fira-code-nerdfont
     fontconfig # 字体配置工具
     mihomo-party
     gnomeExtensions.mihomo-tray
