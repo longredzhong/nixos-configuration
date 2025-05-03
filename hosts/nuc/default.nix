@@ -1,7 +1,7 @@
 { username, hostName, pkgs, lib, inputs, config, options, nixpkgs, ... }:
 
 let
-  unstable-packages = with pkgs.unstable; [
+  stable-packages = with pkgs; [
     vim
     wget
     git
@@ -9,13 +9,14 @@ let
     # Chinese fonts
     noto-fonts-cjk-sans # Google Noto CJK 字体
     fontconfig # 字体配置工具
-  ];
-  stable-packages = with pkgs; [
     mihomo-party
     gnomeExtensions.mihomo-tray
+  ];
+  unstable-packages = with pkgs.unstable; [
     vscode
     google-chrome
     bitwarden-desktop
+    v2rayn
   ];
 in {
   system.stateVersion = "24.11";
