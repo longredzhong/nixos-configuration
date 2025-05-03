@@ -4,31 +4,38 @@
 { config, lib, pkgs, modulesPath, ... }:
 
 {
-  imports =
-    [ (modulesPath + "/installer/scan/not-detected.nix")
-    ];
+  imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
 
-  boot.initrd.availableKernelModules = [ "xhci_pci" "thunderbolt" "ahci" "nvme" "usbhid" "usb_storage" "sd_mod" "rtsx_pci_sdmmc" ];
+  boot.initrd.availableKernelModules = [
+    "xhci_pci"
+    "thunderbolt"
+    "ahci"
+    "nvme"
+    "usbhid"
+    "usb_storage"
+    "sd_mod"
+    "rtsx_pci_sdmmc"
+  ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
-  fileSystems."/" =
-    { device = "/dev/disk/by-uuid/2e79ad05-42af-4d06-a995-48109664c43e";
-      fsType = "btrfs";
-      options = [ "subvol=@" ];
-    };
+  fileSystems."/" = {
+    device = "/dev/disk/by-uuid/2e79ad05-42af-4d06-a995-48109664c43e";
+    fsType = "btrfs";
+    options = [ "subvol=@" ];
+  };
 
-  fileSystems."/boot" =
-    { device = "/dev/disk/by-uuid/17D3-64CC";
-      fsType = "vfat";
-      options = [ "fmask=0077" "dmask=0077" ];
-    };
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/17D3-64CC";
+    fsType = "vfat";
+    options = [ "fmask=0077" "dmask=0077" ];
+  };
 
-  fileSystems."/data" =
-    { device = "/dev/disk/by-uuid/2744660f-022d-43c2-a15d-515a924eac03";
-      fsType = "btrfs";
-    };
+  fileSystems."/data" = {
+    device = "/dev/disk/by-uuid/2744660f-022d-43c2-a15d-515a924eac03";
+    fsType = "btrfs";
+  };
 
   swapDevices = [ ];
 
@@ -41,5 +48,6 @@
   # networking.interfaces.wlo1.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+  hardware.cpu.intel.updateMicrocode =
+    lib.mkDefault config.hardware.enableRedistributableFirmware;
 }

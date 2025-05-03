@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   programs.git = {
     enable = true;
     delta.enable = true;
@@ -13,12 +12,8 @@
         default = "current";
         autoSetupRemote = true;
       };
-      merge = {
-        conflictstyle = "diff3";
-      };
-      diff = {
-        colorMoved = "default";
-      };
+      merge = { conflictstyle = "diff3"; };
+      diff = { colorMoved = "default"; };
     };
   };
 }

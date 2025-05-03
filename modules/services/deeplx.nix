@@ -13,7 +13,8 @@
 
     serviceConfig = {
       # Start the container mapping port 1188
-      ExecStart = "${pkgs.docker}/bin/docker run --rm --name deeplx -p 1188:1188 ghcr.longred.work/owo-network/deeplx:latest";
+      ExecStart =
+        "${pkgs.docker}/bin/docker run --rm --name deeplx -p 1188:1188 ghcr.longred.work/owo-network/deeplx:latest";
       # Stop the container on service stop
       ExecStop = "${pkgs.docker}/bin/docker stop deeplx";
       Restart = "always";

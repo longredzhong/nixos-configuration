@@ -53,7 +53,7 @@
       set -gx MAMBA_ROOT_PREFIX "/home/longred/.local/share/mamba"
       $MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source
       # <<< mamba initialize <<<
-      
+
     '';
 
     functions = {
