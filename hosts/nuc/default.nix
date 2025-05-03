@@ -1,6 +1,21 @@
 { username, hostName, pkgs, lib, inputs, config, options, nixpkgs, ... }: 
 
-{
+let
+  unstable-packages = with pkgs.unstable; [ 
+    vim
+    wget
+    git
+    curl
+    # Chinese fonts
+    noto-fonts-cjk-sans   # Google Noto CJK 字体
+    fontconfig            # 字体配置工具
+  ];
+  stable-packages = with pkgs; [ 
+    mihomo-party 
+    vscode
+    google-chrome
+    bitwarden-desktop ];
+in {
   system.stateVersion = "24.11";
   imports =
     [ # Include the results of the hardware scan.
@@ -93,8 +108,8 @@
   };
 
   # Enable automatic login for the user.
-  services.xserver.displayManager.autoLogin.enable = true;
-  services.xserver.displayManager.autoLogin.user = "longred";
+  services.displayManager.autoLogin.enable = true;
+  services.displayManager.autoLogin.user = "${username}";
 
   # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
   systemd.services."getty@tty1".enable = false;
@@ -107,15 +122,7 @@
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
-  environment.systemPackages = with pkgs; [
-    vim
-    wget
-    git
-    curl
-    vscode
-    google-chrome
-    bitwarden-desktop
-  ];
+  environment.systemPackages = stable-packages ++ unstable-packages ++ [ ];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
