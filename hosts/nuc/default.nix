@@ -17,6 +17,9 @@ let
     google-chrome
     bitwarden-desktop
     v2rayn
+    gui-for-singbox
+    cherry-studio
+    obsidian
   ];
 in {
   system.stateVersion = "24.11";
@@ -55,7 +58,17 @@ in {
     LC_TELEPHONE = "zh_CN.UTF-8";
     LC_TIME = "zh_CN.UTF-8";
   };
-
+  i18n.inputMethod = {
+     type = "fcitx5";
+     enable = true;
+     fcitx5.addons = with pkgs; [
+       fcitx5-gtk             # alternatively, kdePackages.fcitx5-qt
+       fcitx5-chinese-addons  # table input method support
+       fcitx5-nord            # a color theme
+       fcitx5-rime
+       rime-data
+     ];
+   };
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
