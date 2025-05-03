@@ -1,26 +1,27 @@
-{ username, hostName, pkgs, lib, inputs, config, options, nixpkgs, ... }: 
+{ username, hostName, pkgs, lib, inputs, config, options, nixpkgs, ... }:
 
 let
-  unstable-packages = with pkgs.unstable; [ 
+  unstable-packages = with pkgs.unstable; [
     vim
     wget
     git
     curl
     # Chinese fonts
-    noto-fonts-cjk-sans   # Google Noto CJK 字体
-    fontconfig            # 字体配置工具
+    noto-fonts-cjk-sans # Google Noto CJK 字体
+    fontconfig # 字体配置工具
   ];
-  stable-packages = with pkgs; [ 
-    mihomo-party 
+  stable-packages = with pkgs; [
+    mihomo-party
+    gnomeExtensions.mihomo-tray
     vscode
     google-chrome
-    bitwarden-desktop ];
+    bitwarden-desktop
+  ];
 in {
   system.stateVersion = "24.11";
-  imports =
-    [ # Include the results of the hardware scan.
-      ./hardware-configuration.nix
-    ];
+  imports = [ # Include the results of the hardware scan.
+    ./hardware-configuration.nix
+  ];
 
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -95,9 +96,10 @@ in {
     description = "${username}";
     shell = pkgs.unstable.fish;
     extraGroups = [ "networkmanager" "wheel" "docker" ];
-    packages = with pkgs; [
-    #  thunderbird
-    ];
+    packages = with pkgs;
+      [
+        #  thunderbird
+      ];
   };
 
   virtualisation.docker = {
