@@ -100,6 +100,29 @@
         git branch | fzf --preview "git log --oneline --graph --date=short --color=always --pretty='%C(auto)%h %s %C(blue)%cr' {1}" | sed 's/^..//' | cut -d' ' -f1 | tr -d '\n' | read -l branch
         and git checkout $branch
       '';
+
+      # Add common proxy functions moved from wsl.nix
+      set_proxy = ''
+        if test (count $argv) -eq 1
+          set proxy $argv[1]
+        else
+          set proxy "127.0.0.1:7890"
+        end
+        set -gx http_proxy http://$proxy
+        set -gx https_proxy http://$proxy
+        set -gx no_proxy "localhost,100.64.0.0/10,172.16.100.10"
+        set -gx HTTP_PROXY http://$proxy
+        set -gx HTTPS_PROXY http://$proxy
+        set -gx NO_PROXY "localhost,100.64.0.0/10,172.16.100.10"
+      '';
+      unset_proxy = ''
+        set -e http_proxy
+        set -e https_proxy
+        set -e no_proxy
+        set -e HTTP_PROXY
+        set -e HTTPS_PROXY
+        set -e NO_PROXY
+      '';
     };
 
     shellAbbrs = {

@@ -43,10 +43,11 @@
     populateBin = true;
   };
 
-  services.xserver.enable = true;
-
-  services.xserver.displayManager.sddm.enable = true;
-  services.xserver.desktopManager.plasma6.enable = true;
-  services.xserver.displayManager.defaultSession = "plasmax11";
+  # Removed Xserver/Plasma settings for consistency with metacube-wsl
+  # services.xserver.enable = true;
+  #
+  # services.xserver.displayManager.sddm.enable = true;
+  # services.xserver.desktopManager.plasma6.enable = true;
+  # services.xserver.displayManager.defaultSession = "plasmax11";
 
 }

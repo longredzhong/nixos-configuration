@@ -31,6 +31,7 @@
       lazygit # git TUI 界面
       difftastic # 结构化差异比较
       wezterm # 终端模拟器
+      ffmpeg
     ];
     unstablePackages = with pkgs.unstable; [
     ];

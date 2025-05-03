@@ -43,7 +43,10 @@
               home-manager.useUserPackages = true;
 
               home-manager.extraSpecialArgs = inputs // specialArgs;
-              home-manager.users.${username} = import ./home/wsl.nix;
+              # Import base home config and WSL specific config
+              home-manager.users.${username} = {
+                imports = [ ./home/home.nix ./home/wsl.nix ];
+              };
             }
             nixos-wsl.nixosModules.wsl
             {
@@ -78,7 +81,10 @@
               home-manager.useUserPackages = true;
 
               home-manager.extraSpecialArgs = inputs // specialArgs;
-              home-manager.users.${username} = import ./home/wsl.nix;
+              # Import base home config and WSL specific config
+              home-manager.users.${username} = {
+                imports = [ ./home/home.nix ./home/wsl.nix ];
+              };
             }
             nixos-wsl.nixosModules.wsl
             {
@@ -114,7 +120,10 @@
               home-manager.useUserPackages = true;
 
               home-manager.extraSpecialArgs = inputs // specialArgs;
-              # home-manager.users.${username} = import ./home/home.nix;
+              # Import base home config and NUC specific config
+              home-manager.users.${username} = {
+                imports = [ ./home/home.nix ./home/nuc.nix ];
+              };
             }
             agenix.nixosModules.default
             nix-index-database.nixosModules.nix-index

@@ -28,28 +28,7 @@ in {
       '';
       shellAliases = commonShellAliases;
       functions = {
-        set_proxy = ''
-          if test (count $argv) -eq 1
-            set proxy $argv[1]
-          else
-            set proxy "127.0.0.1:7890"
-          end
-          set -gx http_proxy http://$proxy
-          set -gx https_proxy http://$proxy
-          set -gx no_proxy "localhost,100.64.0.0/10,172.16.100.10"
-          set -gx HTTP_PROXY http://$proxy
-          set -gx HTTPS_PROXY http://$proxy
-          set -gx NO_PROXY "localhost,100.64.0.0/10,172.16.100.10"
-        '';
-        unset_proxy = ''
-          set -e http_proxy
-          set -e https_proxy
-          set -e no_proxy
-          set -e HTTP_PROXY
-          set -e HTTPS_PROXY
-          set -e NO_PROXY
-
-        '';
+        # Removed set_proxy and unset_proxy, moved to home/shell/fish.nix
         wopen = "/mnt/c/Windows/explorer.exe .";
         wslpath = ''
           set -l path $argv[1]

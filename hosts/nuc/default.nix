@@ -1,28 +1,9 @@
 { username, hostName, pkgs, lib, inputs, config, options, nixpkgs, ... }:
 
 let
-  stable-packages = with pkgs; [
-    vim
-    wget
-    git
-    curl
-    # Chinese fonts
-    noto-fonts-cjk-sans # Google Noto CJK 字体
-    fira-code-nerdfont
-    fontconfig # 字体配置工具
-    mihomo-party
-    gnomeExtensions.mihomo-tray
-  ];
-  unstable-packages = with pkgs.unstable; [
-    vscode
-    google-chrome
-    bitwarden-desktop
-    v2rayn
-    gui-for-singbox
-    cherry-studio
-    obsidian
-    kitty
-  ];
+  # Packages moved to home/nuc.nix
+  # stable-packages = ...;
+  # unstable-packages = ...;
 in {
   system.stateVersion = "24.11";
   imports = [ # Include the results of the hardware scan.
@@ -63,13 +44,8 @@ in {
   i18n.inputMethod = {
     type = "fcitx5";
     enable = true;
-    fcitx5.addons = with pkgs; [
-      fcitx5-gtk # alternatively, kdePackages.fcitx5-qt
-      fcitx5-chinese-addons # table input method support
-      fcitx5-nord # a color theme
-      fcitx5-rime
-      rime-data
-    ];
+    # Addons moved to home/nuc.nix
+    # fcitx5.addons = with pkgs; [ ... ];
   };
   # Enable the X11 windowing system.
   services.xserver.enable = true;
@@ -79,7 +55,8 @@ in {
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
 
-  programs.hyprland.enable = true;
+  # Hyprland enable moved to home/nuc.nix (consider if system-level start is needed)
+  # programs.hyprland.enable = true;
 
   # Configure keymap in X11
   services.xserver.xkb = {
@@ -115,10 +92,8 @@ in {
     description = "${username}";
     shell = pkgs.unstable.fish;
     extraGroups = [ "networkmanager" "wheel" "docker" ];
-    packages = with pkgs;
-      [
-        #  thunderbird
-      ];
+    # Packages moved to home/nuc.nix
+    # packages = with pkgs; [ ... ];
   };
 
   virtualisation.docker = {
@@ -136,14 +111,15 @@ in {
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
-  # Install firefox.
-  programs.firefox.enable = true;
+  # Install firefox moved to home/nuc.nix
+  # programs.firefox.enable = true;
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
-  environment.systemPackages = stable-packages ++ unstable-packages ++ [ ];
+  # Most packages moved to home/nuc.nix or modules/common.nix
+  environment.systemPackages = [ ];
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.

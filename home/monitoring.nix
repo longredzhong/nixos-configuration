@@ -6,7 +6,7 @@
     dstat # 资源统计
     iotop # 磁盘IO监控
     bottom # 终端系统监控
-
+    nvitop # NVIDIA GPU 监控
     # 网络监控
     bandwhich # 终端带宽使用监控
     iftop # 网络带宽监控

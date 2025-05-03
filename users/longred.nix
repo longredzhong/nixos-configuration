@@ -1,9 +1,4 @@
-{ config, pkgs, ... }:
-
-let
-  unstable-packages = with pkgs.unstable; [ nvitop juicefs ffmpeg ];
-  stable-packages = with pkgs; [ expat ];
-in {
+{ config, pkgs, ... }: {
 
   users.users.longred = {
     openssh.authorizedKeys.keys = [
@@ -17,10 +12,8 @@ in {
       username = "longred";
       homeDirectory = "/home/longred";
       stateVersion = "24.11";
-      packages = stable-packages ++ unstable-packages ++ [ ];
     };
 
-    imports = [ ../home/cli-environment.nix ];
     programs = {
       fish.enable = true;
       fzf.enable = true;
