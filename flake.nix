@@ -118,6 +118,7 @@
             {
               home-manager.useGlobalPkgs = true;
               home-manager.useUserPackages = true;
+              home-manager.backupFileExtension = "backup";
 
               home-manager.extraSpecialArgs = inputs // specialArgs;
               # Import base home config and NUC specific config

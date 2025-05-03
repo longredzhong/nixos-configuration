@@ -41,12 +41,7 @@ in {
     LC_TELEPHONE = "zh_CN.UTF-8";
     LC_TIME = "zh_CN.UTF-8";
   };
-  i18n.inputMethod = {
-    type = "fcitx5";
-    enable = true;
-    # Addons moved to home/nuc.nix
-    # fcitx5.addons = with pkgs; [ ... ];
-  };
+
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
@@ -54,9 +49,6 @@ in {
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
-
-  # Hyprland enable moved to home/nuc.nix (consider if system-level start is needed)
-  # programs.hyprland.enable = true;
 
   # Configure keymap in X11
   services.xserver.xkb = {
