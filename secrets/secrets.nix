@@ -22,6 +22,7 @@ let
   # --- Secret Recipient Mapping (Documentation) ---
   secretRecipients = {
     "tmp.age" = definedUsers.longred ++ definedHosts.nuc;
+    "minio-credentials.age" = definedHosts.nuc;
     # ... other mappings ...
   };
 

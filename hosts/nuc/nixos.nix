@@ -8,8 +8,17 @@
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
     ../../secrets/agenix-config.nix
+    ../../modules/services/deeplx.nix
   ];
-
+  # customize the system services
+  services.deeplx.enable = true;
+  services.minio = {
+    enable = true;
+    listenAddress = ":9000";
+    consoleAddress = ":9001";
+    dataDir = [ "/data/minio" ];
+    rootCredentialsFile = "/etc/nixos/minio-root-credentials";
+  };
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -49,7 +58,7 @@
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
-  
+
   programs.dconf.enable = true;
 
   # Configure keymap in X11

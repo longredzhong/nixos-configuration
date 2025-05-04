@@ -24,13 +24,19 @@ in
   ];
 
   age.secrets."test" = {
-    # Use the imported helper function
-    # ${intendedRecipientsComment "tmp.age"}
     file = ./tmp.age;
     owner = config.users.users.${username}.name;
     group = config.users.users.${username}.group;
     mode = "600";
     path = "/home/${username}/test";
+  };
+
+  age.secrets."minio-credentials" = {
+    file = ./minio-credentials.age;
+    owner = "root";
+    group = "root";
+    mode = "600";
+    path = "/etc/nixos/minio-root-credentials";
   };
 
   # Add other age.secrets definitions here as needed...
