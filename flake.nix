@@ -16,63 +16,77 @@
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
-  outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, nixos-wsl
-    , agenix, nix-index-database, ... }: {
+  outputs =
+    inputs@{ self
+    , nixpkgs
+    , nixpkgs-unstable
+    , home-manager
+    , nixos-wsl
+    , agenix
+    , nix-index-database
+    , ...
+    }: {
       nixosConfigurations = {
-        metacube-wsl = let
-          username = "longred";
-          hostname = "metacube-wsl";
-          specialArgs = {
-            inherit username hostname;
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
+        metacube-wsl =
+          let
+            username = "longred";
+            hostname = "metacube-wsl";
+            specialArgs = {
+              inherit username hostname;
+              channels = { inherit nixpkgs nixpkgs-unstable; };
+              inherit inputs;
+            };
+          in
+          nixpkgs.lib.nixosSystem {
+            inherit specialArgs;
+            system = "x86_64-linux";
+            modules = [
+              ./modules/overlays.nix
+              ./hosts/${hostname}/nixos.nix
+              ./hosts/${hostname}/home.nix
+              ./users/${username}
+            ];
           };
-        in nixpkgs.lib.nixosSystem {
-          inherit specialArgs;
-          system = "x86_64-linux";
-          modules = [
-            ./modules/overlays.nix
-            ./hosts/${hostname}/nixos.nix
-            ./hosts/${hostname}/home.nix
-            ./users/${username}
-          ];
-        };
-        thinkbook-wsl = let
-          username = "longred";
-          hostname = "thinkbook-wsl";
-          specialArgs = {
-            inherit username hostname;
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
+        thinkbook-wsl =
+          let
+            username = "longred";
+            hostname = "thinkbook-wsl";
+            specialArgs = {
+              inherit username hostname;
+              channels = { inherit nixpkgs nixpkgs-unstable; };
+              inherit inputs;
+            };
+          in
+          nixpkgs.lib.nixosSystem {
+            inherit specialArgs;
+            system = "x86_64-linux";
+            modules = [
+              ./modules/overlays.nix
+              ./hosts/${hostname}/nixos.nix
+              ./hosts/${hostname}/home.nix
+              ./users/${username}
+            ];
           };
-        in nixpkgs.lib.nixosSystem {
-          inherit specialArgs;
-          system = "x86_64-linux";
-          modules = [
-            ./modules/overlays.nix
-            ./hosts/${hostname}/nixos.nix
-            ./hosts/${hostname}/home.nix
-            ./users/${username}
-          ];
-        };
-        nuc = let
-          username = "longred";
-          hostname = "nuc";
-          specialArgs = {
-            inherit username hostname;
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
+        nuc =
+          let
+            username = "longred";
+            hostname = "nuc";
+            specialArgs = {
+              inherit username hostname;
+              channels = { inherit nixpkgs nixpkgs-unstable; };
+              inherit inputs;
+            };
+          in
+          nixpkgs.lib.nixosSystem {
+            inherit specialArgs;
+            system = "x86_64-linux";
+            modules = [
+              ./modules/overlays.nix
+              ./hosts/${hostname}/nixos.nix
+              ./hosts/${hostname}/home.nix
+              ./users/${username}
+            ];
           };
-        in nixpkgs.lib.nixosSystem {
-          inherit specialArgs;
-          system = "x86_64-linux";
-          modules = [
-            ./modules/overlays.nix
-            ./hosts/${hostname}/nixos.nix
-            ./hosts/${hostname}/home.nix
-            ./users/${username}
-          ];
-        };
       };
 
     };
