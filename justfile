@@ -29,10 +29,6 @@ switch host=DEFAULT_HOST:
 boot host=DEFAULT_HOST:
     sudo -E nixos-rebuild boot --flake .#{{host}}
 
-# 应用home-manager配置
-home host=DEFAULT_HOST user="longred":
-    home-manager switch --flake .#{{user}}@{{host}}
-
 # 清理nix存储
 gc:
     sudo nix-collect-garbage -d
