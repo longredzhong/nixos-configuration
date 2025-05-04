@@ -35,9 +35,28 @@
             ./modules/overlays.nix
             ./hosts/${hostname}/nixos.nix
             ./hosts/${hostname}/home.nix
-            
+
+          ];
+        };
+        nuc = let
+          username = "longred";
+          hostname = "nuc";
+          specialArgs = {
+            inherit username hostname;
+            channels = { inherit nixpkgs nixpkgs-unstable; };
+            inherit inputs;
+          };
+        in nixpkgs.lib.nixosSystem {
+          inherit specialArgs;
+          system = "x86_64-linux";
+          modules = [
+            ./modules/overlays.nix
+            ./hosts/${hostname}/nixos.nix
+            ./hosts/${hostname}/home.nix
+
           ];
         };
       };
+
     };
 }

@@ -15,6 +15,9 @@
         eza # 更好的 ls
         ncdu # 磁盘使用分析
         duf # 更好的 df
+        starship # shell 提示符
+        zoxide # cd 增强
+        atuin # shell 历史记录管理
 
         # --- 搜索 & 过滤 ---
         fd # 更好的 find

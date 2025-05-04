@@ -1,8 +1,10 @@
 { username, hostname, pkgs, lib, inputs, config, options, nixpkgs, ... }: {
-  system.stateVersion = "24.11";
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
+    ../../modules/nixos/common.nix
+    inputs.home-manager.nixosModules.home-manager
+    inputs.nix-index-database.nixosModules.nix-index
   ];
 
   # Bootloader.
@@ -72,16 +74,6 @@
 
   # Enable touchpad support (enabled default in most desktopManager).
   # services.xserver.libinput.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
-  users.users.${username} = {
-    isNormalUser = true;
-    description = "${username}";
-    shell = pkgs.unstable.fish;
-    extraGroups = [ "networkmanager" "wheel" "docker" ];
-    # Packages moved to home/nuc.nix
-    # packages = with pkgs; [ ... ];
-  };
 
   virtualisation.docker = {
     enable = true;

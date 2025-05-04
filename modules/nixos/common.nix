@@ -29,6 +29,8 @@ let
   ];
   unstable-packages = with pkgs.unstable; [ agenix-cli ];
 in {
+  # 系统状态版本（不要轻易改变）
+  system.stateVersion = "24.11";
   networking.hostName = "${hostname}";
   networking.networkmanager.enable = true;
   nixpkgs.config.allowUnfree = true;
@@ -41,7 +43,7 @@ in {
   users.users.${username} = {
     isNormalUser = true;
     shell = pkgs.unstable.fish;
-    extraGroups = [ "wheel" "docker" ];
+    extraGroups = [ "networkmanager" "wheel" "docker" ];
   };
   i18n = {
     defaultLocale = "en_US.UTF-8";
@@ -127,8 +129,5 @@ in {
     libraries = options.programs.nix-ld.libraries.default
       ++ (with pkgs; [ glib ]);
   };
-  programs.fish.enable = true;
-  programs.fish.package = pkgs.unstable.fish;
-  # 系统状态版本（不要轻易改变）
-  system.stateVersion = "24.11";
+
 }
