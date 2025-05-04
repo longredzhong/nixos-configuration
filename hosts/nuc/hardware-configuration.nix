@@ -5,7 +5,7 @@
 
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
-
+  hardware.bluetooth.enable = true;
   boot.initrd.availableKernelModules = [
     "xhci_pci"
     "thunderbolt"
