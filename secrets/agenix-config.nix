@@ -39,6 +39,13 @@ in
     path = "/etc/nixos/minio-root-credentials";
   };
 
+  age.secrets.dufs-admin-credentials = {
+    file = ./dufs-admin-credentials.age;
+    owner = "root";
+    group = config.services.dufs.group;
+    mode = "640";
+    path = "/run/secrets/dufs-admin-credentials";
+  };
   # Add other age.secrets definitions here as needed...
   # Example:
   # age.secrets."user-api-token" = {

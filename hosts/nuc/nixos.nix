@@ -9,15 +9,46 @@
     # Import the new agenix config module, not the secrets data file
     ../../secrets/agenix-config.nix
     ../../modules/services/deeplx.nix
+    ../../modules/services/dufs.nix
   ];
   # customize the system services
   services.deeplx.enable = true;
+  services.dufs = {
+    enable = true;
+    servePath = "/data/dufs";
+    allowAll = true;
+    auth = [
+      {
+        credentials = "admin:$(cat ${config.age.secrets.dufs-admin-credentials.path})";
+        path = "/";
+        permissions = "rw";
+      }
+    ];
+  };
   services.minio = {
     enable = true;
     listenAddress = ":9000";
     consoleAddress = ":9001";
     dataDir = [ "/data/minio" ];
     rootCredentialsFile = "/etc/nixos/minio-root-credentials";
+  };
+  services.postgresql = {
+    enable = true;
+    enableTCPIP = true;
+    authentication = pkgs.lib.mkOverride 10 ''
+      #type database  DBuser  auth-method
+      local all       all     trust
+      # ipv4
+      host  all      all     127.0.0.1/32   trust
+    '';
+    extensions = ps: with ps; [ postgis pgvector ];
+    settings.port = 5432;
+  };
+  services.postgresqlBackup = {
+    enable = true;
+    startAt = "*-*-* 01:15:00";
+    backupAll = true;
+    location = "/data/backup/postgresql";
   };
   # Bootloader.
   boot.loader.systemd-boot.enable = true;

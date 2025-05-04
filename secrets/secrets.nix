@@ -23,6 +23,7 @@ let
   secretRecipients = {
     "tmp.age" = definedUsers.longred ++ definedHosts.nuc;
     "minio-credentials.age" = definedHosts.nuc;
+    "dufs-admin-credentials.age" = definedUsers.longred ++ definedHosts.nuc;
     # ... other mappings ...
   };
 
