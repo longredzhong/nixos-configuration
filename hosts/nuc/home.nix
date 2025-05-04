@@ -32,6 +32,7 @@ in
           bitwarden-desktop
           cherry-studio
           obsidian
+          navicat-premium
         ];
       in
       stable-packages ++ unstable-packages;

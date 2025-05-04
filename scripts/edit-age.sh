@@ -6,8 +6,8 @@ identity_provided="" # Store explicitly provided identity
 input_file=""
 current_user=$(whoami)
 default_identities=(
-    "/etc/ssh/ssh_host_ed25519_key"
     "/home/${current_user}/.ssh/id_ed25519"
+    "/etc/ssh/ssh_host_ed25519_key"
 )
 
 while [[ $# -gt 0 ]]; do
@@ -107,7 +107,7 @@ fi
 # --- End Decryption Logic ---
 
 orig_sum=$(sha256sum "$tmp" | cut -d' ' -f1)
-${EDITOR:-vim} "$tmp"
+${EDITOR:-nano} "$tmp"
 new_sum=$(sha256sum "$tmp" | cut -d' ' -f1)
 
 if [[ "$orig_sum" == "$new_sum" ]]; then
