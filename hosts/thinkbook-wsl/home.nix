@@ -25,6 +25,7 @@ in
         unstable-packages = with pkgs.unstable;
           [
             # 不稳定版本的软件包 (仅保留此主机特有的)
+            nvitop
           ];
       in
       stable-packages ++ unstable-packages;
