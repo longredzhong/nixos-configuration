@@ -35,7 +35,7 @@
             ./modules/overlays.nix
             ./hosts/${hostname}/nixos.nix
             ./hosts/${hostname}/home.nix
-
+            ./users/${username}
           ];
         };
         nuc = let
@@ -53,7 +53,7 @@
             ./modules/overlays.nix
             ./hosts/${hostname}/nixos.nix
             ./hosts/${hostname}/home.nix
-
+            ./users/${username}
           ];
         };
       };
