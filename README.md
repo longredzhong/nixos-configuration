@@ -1,6 +1,15 @@
 # NixOS Configuration
+<!-- Add Flakes badge -->
+[![Nix Flake](https://img.shields.io/badge/flake-supported-brightgreen)](https://nixos.wiki/wiki/Flakes)
 
 本仓库是基于 Nix Flakes 和 Home Manager 的 NixOS 配置集合，支持多主机和多用户的模块化管理。
+
+## Table of Contents
+- [Project Structure](#项目结构)
+- [Common Commands](#常用命令)
+- [Development Guide](#开发指南)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## 项目结构
 
@@ -40,6 +49,9 @@
 - `just gc`               # 清理 nix 存储
 - `just gc-old`           # 清理旧 generations
 - `just rollback`         # 回滚到上一个系统 generation
+- `just encrypt <file> --host <h> --user <u> ...` # 加密文件
+- `just edit-age <file.age> [--identity <key>]`       # 编辑加密文件
+- `just rekey-age <file.age> --host <h> --user <u> ...` # 更改加密文件的接收者
 
 更多命令请查看 `justfile`。
 
@@ -55,4 +67,16 @@
 6. **提交规范**：建议遵循 Conventional Commits 规范（VSCode 用户可参考 `.vscode/settings.json` 自动生成规范提交信息）。
 
 ---
+
 如需自定义主机或用户，建议复制现有目录结构并按需调整。
+
+## Contributing
+
+We welcome contributions! Please:
+- Fork the repo and create a feature branch.
+- Follow Conventional Commits for commit messages.
+- Run `just fmt` and `just check` before submitting a PR.
+
+## License
+
+This repository is licensed under [MIT](LICENSE).
