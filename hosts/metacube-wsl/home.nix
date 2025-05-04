@@ -5,6 +5,7 @@
     imports = [
       ../../modules/home-manager/common.nix
       ../../modules/home-manager/wsl.nix
+      ../../modules/home-manager/cli-environment.nix
     ];
     home.packages = let
       stable-packages = with pkgs; [
