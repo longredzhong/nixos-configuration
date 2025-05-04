@@ -53,6 +53,10 @@
       set -gx MAMBA_ROOT_PREFIX "/home/${config.home.username}/.local/share/mamba" # 保持用户目录
       $MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source
       # <<< mamba initialize <<<
+
+      # --- Pixi 初始化 ---
+      ${pkgs.unstable.pixi}/bin/pixi completion --shell fish | source
+      fish_add_path $HOME/.pixi/bin
     '';
 
     # --- 自定义函数 ---
