@@ -36,6 +36,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --host|--user)
             mode=$1; shift
+            if [[ -z "${1:-}" || "$1" == --* ]]; then echo "Error: Missing name for ${mode}" >&2; exit 1; fi
             name=$1; shift
             # read each key line without word-splitting
             mapfile -t user_keys < <(get_key "${mode#--}" "$name")

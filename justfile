@@ -105,3 +105,17 @@ encrypt file *args:
     echo "2. Update the 'secretRecipients' map in 'secrets/secrets.nix' for '$output_file'."
     echo "3. Delete the plaintext file '$input_file'."
     echo "4. Commit '$output_file' and the changes to 'secrets.nix'."
+
+# Decrypt, edit-age, and re‑encrypt an existing .age file
+# Usage: just edit-age <file.age> [--identity <keyfile>]
+edit-age file_age *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./scripts/edit-age.sh "{{file_age}}" {{args}}
+
+# Rekey (change recipients) of an existing .age file
+# Usage: just rekey <file.age> [--identity <keyfile>] --host <h> --user <u> ...
+rekey-age file_age *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    ./scripts/rekey-age.sh "{{file_age}}" {{args}}
