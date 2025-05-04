@@ -25,9 +25,7 @@ let
     nixfmt-rfc-style
     age
   ];
-  unstable-packages = with pkgs.unstable; [
-    agenix-cli
-  ];
+  unstable-packages = with pkgs.unstable; [ agenix-cli ];
 in {
   i18n = {
     defaultLocale = "en_US.UTF-8";

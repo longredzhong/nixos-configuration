@@ -1,4 +1,4 @@
-{ username, hostname, pkgs, lib, inputs, config, options, nixpkgs, ... }:{
+{ username, hostname, pkgs, lib, inputs, config, options, nixpkgs, ... }: {
   system.stateVersion = "24.11";
   imports = [ # Include the results of the hardware scan.
     ./hardware-configuration.nix

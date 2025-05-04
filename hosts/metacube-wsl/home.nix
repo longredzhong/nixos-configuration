@@ -1,4 +1,5 @@
-{ config, pkgs, lib, username, inputs, hostname, channels, ... }: # <--- 添加 username 和其他需要的参数
+{ config, pkgs, lib, username, inputs, hostname, channels, ...
+}: # <--- 添加 username 和其他需要的参数
 
 {
   home-manager.users.${username} = {
@@ -18,12 +19,7 @@
         fd
         bat
       ];
-      unstable-packages = with pkgs.unstable; [
-        fish
-        micromamba
-        pixi
-        just
-      ];
+      unstable-packages = with pkgs.unstable; [ fish micromamba pixi just ];
     in stable-packages ++ unstable-packages;
 
   };
