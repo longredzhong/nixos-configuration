@@ -5,6 +5,8 @@
     ../../modules/nixos/common.nix
     inputs.home-manager.nixosModules.home-manager
     inputs.nix-index-database.nixosModules.nix-index
+    inputs.agenix.nixosModules.default
+    ../../secrets/secrets.nix
   ];
 
   # Bootloader.

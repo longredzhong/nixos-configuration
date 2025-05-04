@@ -27,7 +27,7 @@ let
     just
     direnv
   ];
-  unstable-packages = with pkgs.unstable; [ agenix-cli ];
+  unstable-packages = with pkgs.unstable; [ ];
 in {
   # 系统状态版本（不要轻易改变）
   system.stateVersion = "24.11";

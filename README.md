@@ -40,7 +40,6 @@
 - `just gc`               # 清理 nix 存储
 - `just gc-old`           # 清理旧 generations
 - `just rollback`         # 回滚到上一个系统 generation
-- `just create-host host=<hostname>` # 快速创建新主机配置目录
 
 更多命令请查看 `justfile`。
 
