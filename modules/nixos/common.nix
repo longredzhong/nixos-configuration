@@ -41,6 +41,7 @@ in
     enableOnBoot = true;
     autoPrune.enable = true;
     daemon.settings = { "features" = { "buildkit" = true; }; };
+    storageDriver = "btrfs";
   };
   users.users.${username} = {
     isNormalUser = true;
