@@ -44,7 +44,6 @@
         glances # 系统监控
         dstat # 资源统计
         iotop # 磁盘IO监控
-        nvitop # NVIDIA GPU 监控
 
         # --- 网络工具 ---
         httpie # 友好的 HTTP 客户端
@@ -59,10 +58,13 @@
         # --- 开发工具 ---
         just # 任务运行器
         direnv # 环境变量管理
+
       ];
       unstablePackages = with pkgs.unstable;
         [
           # 添加不稳定的包（如果需要）
+          pixi # 开发环境
+          micromamba
         ];
     in
     stablePackages ++ unstablePackages;
