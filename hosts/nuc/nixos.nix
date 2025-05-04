@@ -6,7 +6,8 @@
     inputs.home-manager.nixosModules.home-manager
     inputs.nix-index-database.nixosModules.nix-index
     inputs.agenix.nixosModules.default
-    ../../secrets/secrets.nix
+    # Import the new agenix config module, not the secrets data file
+    ../../secrets/agenix-config.nix
   ];
 
   # Bootloader.

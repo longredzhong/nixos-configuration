@@ -56,3 +56,52 @@ rollback:
 # 格式化所有的nix文件
 fmt:
     nixpkgs-fmt $(find . -name "*.nix")
+
+# --- Agenix Secret Management ---
+
+# Encrypt a file using age for specified hosts/users/keys
+# Usage: just encrypt <file> --host <h1> --user <u1> --key <age_key> ...
+# Example: just encrypt secrets/db-pass --host nuc --user longred
+# Example: just encrypt secrets/api-token --key age1...
+encrypt file *args:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    input_file="{{file}}"
+    # Ensure the input file exists
+    if [[ ! -f "$input_file" ]]; then
+        echo "Error: Input file '$input_file' not found."
+        exit 1
+    fi
+
+    # Default output file path (e.g., secrets/db-pass -> secrets/db-pass.age)
+    output_file="${input_file}.age"
+
+    # Check if output file already exists
+    if [[ -e "$output_file" ]]; then
+        read -p "Output file '$output_file' already exists. Overwrite? (y/N): " confirm
+        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 0
+        fi
+    fi
+
+    # 直接拿到一行带引号的 -r 参数
+    recipient_flags=$(./scripts/get-age-keys.sh {{args}})
+    if [[ -z "$recipient_flags" ]]; then
+        echo "Error: Failed to get recipient keys. No flags generated."
+        exit 1
+    fi
+
+    echo "Encrypting '$input_file' to '$output_file'..."
+    # 用 eval 让 shell 保留双引号
+    # Debug: print the age command before executing
+    echo "Debug: age $recipient_flags -o $output_file $input_file"
+    eval age $recipient_flags -o "$output_file" "$input_file"
+
+    echo "Encryption complete: $output_file"
+    echo ""
+    echo "IMPORTANT:"
+    echo "1. Add the definition for '$output_file' to 'secrets/secrets.nix'."
+    echo "2. Update the 'secretRecipients' map in 'secrets/secrets.nix' for '$output_file'."
+    echo "3. Delete the plaintext file '$input_file'."
+    echo "4. Commit '$output_file' and the changes to 'secrets.nix'."

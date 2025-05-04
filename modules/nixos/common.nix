@@ -26,6 +26,7 @@ let
     age
     just
     direnv
+    ssh-to-age
   ];
   unstable-packages = with pkgs.unstable; [ ];
 in {

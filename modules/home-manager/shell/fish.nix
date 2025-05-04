@@ -160,7 +160,6 @@
       find = "fd"; # 使用 fd 替代 find
       df = "duf"; # 使用 duf 替代 df
       top = "btop"; # 使用 btop 替代 top/htop
-      ping = "gping"; # 使用 gping (如果安装)
       dig = "dog"; # 使用 dog 替代 dig
     };
 
