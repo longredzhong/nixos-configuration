@@ -1,4 +1,4 @@
-{ pkgs, config, lib, username, hostName, channels, options, ... }:
+{ pkgs, config, lib, username, hostname, channels, options, ... }:
 let
   stable-packages = with pkgs; [
     coreutils
@@ -24,9 +24,25 @@ let
     nixfmt-classic
     nixfmt-rfc-style
     age
+    just
+    direnv
   ];
   unstable-packages = with pkgs.unstable; [ agenix-cli ];
 in {
+  networking.hostName = "${hostname}";
+  networking.networkmanager.enable = true;
+  nixpkgs.config.allowUnfree = true;
+  virtualisation.docker = {
+    enable = true;
+    enableOnBoot = true;
+    autoPrune.enable = true;
+    daemon.settings = { "features" = { "buildkit" = true; }; };
+  };
+  users.users.${username} = {
+    isNormalUser = true;
+    shell = pkgs.unstable.fish;
+    extraGroups = [ "wheel" "docker" ];
+  };
   i18n = {
     defaultLocale = "en_US.UTF-8";
     supportedLocales = [ "en_US.UTF-8/UTF-8" "zh_CN.UTF-8/UTF-8" ];

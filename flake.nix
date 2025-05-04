@@ -32,45 +32,12 @@
           inherit specialArgs;
           system = "x86_64-linux";
           modules = [
-            ./modules/nixos/common.nix
             ./modules/overlays.nix
-            nixos-wsl.nixosModules.wsl
-            home-manager.nixosModules.home-manager
             ./hosts/${hostname}/nixos.nix
             ./hosts/${hostname}/home.nix
+            
           ];
         };
-        # thinkbook-wsl = let
-        #   username = "longred";
-        #   hostname = "thinkbook-wsl";
-        #   specialArgs = {
-        #     inherit username hostname;
-        #     channels = { inherit nixpkgs nixpkgs-unstable; };
-        #     inherit inputs;
-        #   };
-        # in nixpkgs.lib.nixosSystem {
-        #   inherit specialArgs;
-        #   system = "x86_64-linux";
-        #   modules = [
-        #     nixos-wsl.nixosModules.wsl
-        #     ./hosts/${hostname}/nixos.nix
-        #     ./hosts/${hostname}/home.nix
-        #   ];
-        # };
-        # nuc = let
-        #   username = "longred";
-        #   hostname = "nuc";
-        #   specialArgs = {
-        #     inherit username hostname;
-        #     channels = { inherit nixpkgs nixpkgs-unstable; };
-        #     inherit inputs;
-        #   };
-        # in nixpkgs.lib.nixosSystem {
-        #   inherit specialArgs;
-        #   system = "x86_64-linux";
-        #   modules =
-        #     [ ./hosts/${hostname}/nixos.nix ./hosts/${hostname}/home.nix ];
-        # };
       };
     };
 }

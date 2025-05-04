@@ -7,6 +7,7 @@ let
       config = prev.config;
     };
   };
-in {
+in
+{
   nixpkgs.overlays = [ (final: prev: unstableOverlay prev.system final prev) ];
 }
