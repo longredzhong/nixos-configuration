@@ -1,73 +1,149 @@
-# This file now ONLY defines keys and recipient mappings for reference and scripting.
-# It is NOT a NixOS module anymore.
-{ lib ? { } }: # Only need lib for helper function potentially
+# 密钥定义和映射配置
+{ lib ? { } }:
 let
-  # --- Key Definitions ---
-  user_nuc_longred_ssh =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICucQsD88/+YzMcFFKc7p8rxx489u/panXkKkOFpzrDG";
-  user_thinkbook_longred_ssh =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJndrhj8hUnT6hKAtd2+jIzoAJV8oo0NoTjQ73rdgiOC";
-  user_metacube_longred_ssh =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFjn1fjQIAWN6VGEWa6z9uIbJg9i4HN9F+cUJlJVnYB6";
-  allUsers = [ user_nuc_longred_ssh user_thinkbook_longred_ssh ];
+  # --- 公钥定义 ---
+  publicKeys = {
+    users = {
+      # 用户密钥
+      longred = {
+        nuc = {
+          type = "ssh-ed25519";
+          key =
+            "AAAAC3NzaC1lZDI1NTE5AAAAICucQsD88/+YzMcFFKc7p8rxx489u/panXkKkOFpzrDG";
+          identityPath = "/home/longred/.ssh/id_ed25519";
+        };
+        thinkbook-wsl = {
+          type = "ssh-ed25519";
+          key =
+            "AAAAC3NzaC1lZDI1NTE5AAAAIJndrhj8hUnT6hKAtd2+jIzoAJV8oo0NoTjQ73rdgiOC";
+          identityPath = "/home/longred/.ssh/id_ed25519";
+        };
+        metacube-wsl = {
+          type = "ssh-ed25519";
+          key =
+            "AAAAC3NzaC1lZDI1NTE5AAAAIFjn1fjQIAWN6VGEWa6z9uIbJg9i4HN9F+cUJlJVnYB6";
+          identityPath = "/home/longred/.ssh/id_ed25519";
+        };
+      };
+    };
 
-  host_nuc_ssh =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO1dYCjl6iFU6sqTuk7PLl/Mn2CP8wVehoTv3+HzQwCb root@nixos";
-  host_thinkbook_ssh =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICXrz5suGCEP2Al0b8OHtSgsPJpZ93uAE4ieUu/so3Uc root@thinkbook-wsl";
-  host_metacube_ssh =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPIRrBqrTEPFhywJcRB/PO1TzFJsyOgcKWb0nBloo7c1 root@nixos";
-  allHosts = [ host_nuc_ssh host_thinkbook_ssh host_metacube_ssh ];
-
-  # --- Key Name Mappings ---
-  definedUsers = {
-    longred = [ user_nuc_longred_ssh user_thinkbook_longred_ssh ];
+    hosts = {
+      # 主机密钥
+      nuc = {
+        type = "ssh-ed25519";
+        key =
+          "AAAAC3NzaC1lZDI1NTE5AAAAIO1dYCjl6iFU6sqTuk7PLl/Mn2CP8wVehoTv3+HzQwCb";
+        identityPath = "/etc/ssh/ssh_host_ed25519_key";
+      };
+      thinkbook-wsl = {
+        type = "ssh-ed25519";
+        key =
+          "AAAAC3NzaC1lZDI1NTE5AAAAICXrz5suGCEP2Al0b8OHtSgsPJpZ93uAE4ieUu/so3Uc";
+        identityPath = "/etc/ssh/ssh_host_ed25519_key";
+      };
+      metacube-wsl = {
+        type = "ssh-ed25519";
+        key =
+          "AAAAC3NzaC1lZDI1NTE5AAAAIPIRrBqrTEPFhywJcRB/PO1TzFJsyOgcKWb0nBloo7c1";
+        identityPath = "/etc/ssh/ssh_host_ed25519_key";
+      };
+    };
   };
-  definedHosts = {
-    nuc = [ host_nuc_ssh ];
-    thinkbook-wsl = [ host_thinkbook_ssh ];
-    metacube-wsl = [ host_metacube_ssh ];
+
+  # --- 密钥组定义 ---
+  keyGroups = {
+    allUsers =
+      [ publicKeys.users.longred.nuc publicKeys.users.longred.thinkbook-wsl ];
+    allHosts = [
+      publicKeys.hosts.nuc
+      publicKeys.hosts.thinkbook-wsl
+      publicKeys.hosts.metacube-wsl
+    ];
+    # 指定机器需要的密钥组
+    nuc = [ publicKeys.hosts.nuc ];
+    longred =
+      [ publicKeys.users.longred.nuc publicKeys.users.longred.thinkbook-wsl ];
   };
 
-  # --- Secret Recipient Mapping (Documentation) ---
-  secretRecipients = {
-    "tmp.age" = definedUsers.longred ++ definedHosts.nuc
-      ++ definedHosts.thinkbook-wsl;
-    "minio-credentials.age" = definedHosts.nuc;
-    "dufs-admin-credentials.age" = definedUsers.longred ++ definedHosts.nuc;
-    # ... other mappings ...
+  # --- 分配密钥接收者 ---
+  secretMappings = {
+    "tmp.age" = {
+      recipients = keyGroups.allUsers ++ keyGroups.allHosts;
+      targetPath = "/home/longred/test";
+      owner = "longred";
+      group = "users";
+      mode = "600";
+    };
+
+    "minio-credentials.age" = {
+      recipients = keyGroups.nuc;
+      targetPath = "/etc/nixos/minio-root-credentials";
+      owner = "root";
+      group = "root";
+      mode = "600";
+    };
+
+    "dufs-admin-credentials.age" = {
+      recipients = keyGroups.longred ++ keyGroups.nuc;
+      targetPath = "/run/secrets/dufs-admin-credentials";
+      owner = "root";
+      group = "dufs";
+      mode = "640";
+    };
   };
 
-  # --- Helper Function (Optional, can be moved or duplicated if needed elsewhere) ---
-  intendedRecipientsCommentGenerator =
-    recipientsMap: definedUsersMap: definedHostsMap: secretFileName:
+  # --- 辅助函数 ---
+  keyToString = key: "${key.type} ${key.key}";
+
+  recipientComment = secretName:
     let
-      keys =
-        recipientsMap.${secretFileName} or [ "ERROR: No recipients defined" ];
-      findName = key:
-        let
-          userNames =
-            lib.attrNames (lib.filterAttrs (n: v: v == key) definedUsersMap);
-          hostNames =
-            lib.attrNames (lib.filterAttrs (n: v: v == key) definedHostsMap);
-        in
-        if (userNames != [ ]) then
-          "User '${builtins.elemAt userNames 0}'"
-        else if (hostNames != [ ]) then
-          "Host '${builtins.elemAt hostNames 0}'"
-        else
-          "Unknown Key";
-      recipientNames = lib.concatStringsSep ", " (map findName keys);
-    in
-    "# Intended Recipients: ${recipientNames}";
+      info = secretMappings.${secretName} or null;
+      keys = if info == null then [ ] else info.recipients;
 
-in
-{
-  # Return structure containing keys and mappings
-  keys = { inherit definedUsers definedHosts allUsers allHosts; };
-  recipientMap = secretRecipients;
-  # Expose the generator function if needed by agenix-config.nix
-  generateComment =
-    intendedRecipientsCommentGenerator secretRecipients definedUsers
-      definedHosts;
+      # 查找密钥所属用户/主机
+      findKeyOwner = k:
+        let
+          findUser = lib.concatMapStrings (u:
+            lib.concatMapStrings (h:
+              if publicKeys.users.${u}.${h} == k then
+                "User '${u}@${h}'"
+              else
+                "") (lib.attrNames publicKeys.users.${u}))
+            (lib.attrNames publicKeys.users);
+
+          findHost = lib.concatMapStrings
+            (h: if publicKeys.hosts.${h} == k then "Host '${h}'" else "")
+            (lib.attrNames publicKeys.hosts);
+        in if findUser != "" then
+          findUser
+        else if findHost != "" then
+          findHost
+        else
+          "Unknown key";
+
+      names = map findKeyOwner keys;
+    in "# Recipients: ${lib.concatStringsSep ", " names}";
+
+in {
+  # 输出数据供 agenix-config.nix 使用
+  inherit publicKeys keyGroups secretMappings;
+
+  # 获取指定主机应该有的私钥路径
+  getIdentityPaths = hostname:
+    let
+      relevantSecrets = lib.filterAttrs (name: mapping:
+        lib.any
+        (key: key.identityPath != "" && key == publicKeys.hosts.${hostname})
+        mapping.recipients) secretMappings;
+
+      paths = lib.unique
+        (lib.concatMap (mapping: lib.catAttrs "identityPath" mapping.recipients)
+          (lib.attrValues relevantSecrets));
+    in paths;
+
+  # 密钥组转换为公钥字符串
+  groupToKeys = group: map keyToString group;
+
+  # 获取接收者注释
+  getRecipientComment = recipientComment;
 }

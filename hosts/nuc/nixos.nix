@@ -7,9 +7,9 @@
     inputs.nix-index-database.nixosModules.nix-index
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
-    ../../secrets/agenix-config.nix
     ../../modules/services/deeplx.nix
     ../../modules/services/dufs.nix
+    ../../secrets/agenix-config.nix
   ];
   # customize the system services
   services.deeplx.enable = true;
@@ -19,7 +19,7 @@
     allowAll = true;
     auth = [
       {
-        credentials = "admin:$(cat ${config.age.secrets.dufs-admin-credentials.path})";
+        credentials = "admin:$(cat ${config.age.secrets."dufs-admin-credentials".path})";
         path = "/";
         permissions = "rw";
       }
@@ -30,7 +30,7 @@
     listenAddress = ":9000";
     consoleAddress = ":9001";
     dataDir = [ "/data/minio" ];
-    rootCredentialsFile = "/etc/nixos/minio-root-credentials";
+    rootCredentialsFile = "${config.age.secrets."minio-credentials".path}";
   };
   services.postgresql = {
     enable = true;
