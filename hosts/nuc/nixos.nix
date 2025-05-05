@@ -127,6 +127,7 @@
     enableOnBoot = true;
     autoPrune.enable = true;
     daemon.settings = { "features" = { "buildkit" = true; }; };
+    storageDriver = "btrfs";
   };
 
   # Enable automatic login for the user.
