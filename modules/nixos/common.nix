@@ -29,8 +29,7 @@ let
     ssh-to-age
   ];
   unstable-packages = with pkgs.unstable; [ ];
-in
-{
+in {
   # 系统状态版本（不要轻易改变）
   system.stateVersion = "24.11";
   networking.hostName = "${hostname}";

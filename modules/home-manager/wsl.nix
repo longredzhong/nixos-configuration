@@ -9,8 +9,7 @@ let
     explorer = "/mnt/c/Windows/explorer.exe";
     code = "/mnt/c/Users/longred/scoop/apps/vscode/current/bin/code";
   };
-in
-{
+in {
   programs = {
     fish = {
       interactiveShellInit = ''

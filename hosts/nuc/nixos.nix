@@ -17,13 +17,12 @@
     enable = true;
     servePath = "/data/dufs";
     allowAll = true;
-    auth = [
-      {
-        credentials = "admin:$(cat ${config.age.secrets."dufs-admin-credentials".path})";
-        path = "/";
-        permissions = "rw";
-      }
-    ];
+    auth = [{
+      credentials =
+        "admin:$(cat ${config.age.secrets."dufs-admin-credentials".path})";
+      path = "/";
+      permissions = "rw";
+    }];
   };
   services.minio = {
     enable = true;

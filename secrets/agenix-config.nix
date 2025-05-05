@@ -4,21 +4,19 @@
 let
   # 导入密钥和映射数据
   secretsInfo = import ./secrets.nix { inherit lib; };
-  
+
   # 获取当前主机应使用的私钥路径
   hostIdentityPaths = secretsInfo.getIdentityPaths hostname;
-  
+
   # 获取用户私钥路径
-  userIdentityPaths = [
-    "/home/${username}/.ssh/id_ed25519"
-  ];
-  
+  userIdentityPaths = [ "/home/${username}/.ssh/id_ed25519" ];
+
   # 动态生成密钥配置
   generateSecrets = let
     # 处理所有 .age 文件
-    secretFiles = lib.filterAttrs (name: _: lib.hasSuffix ".age" name) 
-                                  secretsInfo.secretMappings;
-    
+    secretFiles = lib.filterAttrs (name: _: lib.hasSuffix ".age" name)
+      secretsInfo.secretMappings;
+
     # 将每个 .age 文件映射到 age.secrets.* 配置（关键修改：使用 mapAttrs' 并移除 .age 后缀）
     mkSecrets = lib.mapAttrs' (name: info: {
       # 去掉 .age 后缀作为属性名
@@ -38,7 +36,7 @@ in {
   # 配置 agenix 模块
   age.identityPaths = hostIdentityPaths ++ userIdentityPaths;
   age.secrets = generateSecrets;
-  
+
   # 确保配置的一致性 (在系统激活时检查)
   system.activationScripts.checkSecrets = ''
     echo "Verifying secret configurations..."

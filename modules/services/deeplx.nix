@@ -2,10 +2,8 @@
 
 with lib;
 
-let
-  cfg = config.services.deeplx;
-in
-{
+let cfg = config.services.deeplx;
+in {
   options.services.deeplx = {
     enable = mkEnableOption "DeepLX service";
 
@@ -33,7 +31,9 @@ in
       backend = "docker";
       containers.deeplx = {
         image = cfg.image;
-        ports = [ "${toString cfg.port}:1188" ]; # Map host port to container port 1188
+        ports = [
+          "${toString cfg.port}:1188"
+        ]; # Map host port to container port 1188
         environment = {
           # Add any environment variables needed for the container
           # e.g., "ENV_VAR_NAME" = "value";

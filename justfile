@@ -55,8 +55,7 @@ rollback:
 
 # 格式化所有的nix文件
 fmt:
-    nixpkgs-fmt $(find . -name "*.nix")
-
+    nixfmt .
 # --- Agenix Secret Management (Python based, user-friendly) ---
 
 # 列出密钥或机密文件
