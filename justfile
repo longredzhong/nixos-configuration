@@ -57,65 +57,65 @@ rollback:
 fmt:
     nixpkgs-fmt $(find . -name "*.nix")
 
-# --- Agenix Secret Management ---
+# --- Agenix Secret Management (Python based, user-friendly) ---
 
-# Encrypt a file using age for specified hosts/users/keys
-# Usage: just encrypt <file> --host <h1> --user <u1> --key <age_key> ...
-# Example: just encrypt secrets/db-pass --host nuc --user longred
-# Example: just encrypt secrets/api-token --key age1...
-encrypt file *args:
+# 列出密钥或机密文件
+# Usage: just secret-list keys [--filter users|hosts|groups]
+# Usage: just secret-list secrets
+# Usage: just secret-list all
+secret-list type="all" filter="all":
+    ./scripts/secretctl.py list {{type}} --filter {{filter}}
+
+# 添加新密钥
+# Usage: just secret-add-key user <name> <ssh-pubkey> [--path <private-key-path>]
+# Usage: just secret-add-key host <name> <ssh-pubkey> [--path <private-key-path>]
+secret-add-key type name key path="":
+    ./scripts/secretctl.py add-key {{type}} {{name}} {{key}} --path {{path}}
+
+# 移除密钥
+# Usage: just secret-remove-key user <name>
+# Usage: just secret-remove-key host <name>
+secret-remove-key type name:
+    ./scripts/secretctl.py remove-key {{type}} {{name}}
+
+# 生成新密钥对 (age 格式)
+# Usage: just secret-generate user <name>
+# Usage: just secret-generate host <name>
+secret-generate type name:
+    ./scripts/secretctl.py generate {{type}} {{name}}
+
+# 添加新的机密映射到 secrets.nix
+# Usage: just secret-add-mapping <file.age> <recipients> <target-path> <owner> <group> [--mode <mode>]
+# Example: just secret-add-mapping api-key.age "keyGroups.nuc ++ keyGroups.longred" /etc/secrets/api-key root root --mode 600
+secret-add-mapping name recipients target owner group mode="600":
+    ./scripts/secretctl.py add-mapping {{name}} {{recipients}} {{target}} {{owner}} {{group}} --mode {{mode}}
+
+# 加密文件（支持密钥组名，自动展开）
+# Usage: just secret-encrypt <file> --recipients <key1> <keyGroup.name> ... [--output <outfile.age>]
+# Example: just secret-encrypt secrets/db-pass --recipients keyGroups.nuc keyGroups.longred
+secret-encrypt file *args:
+    ./scripts/secretctl.py encrypt {{file}} {{args}}
+
+# 编辑机密文件
+# Usage: just secret-edit <file.age> [--identity <private-key-path>]
+secret-edit file identity="":
     #!/usr/bin/env bash
-    set -euo pipefail
-    input_file="{{file}}"
-    # Ensure the input file exists
-    if [[ ! -f "$input_file" ]]; then
-        echo "Error: Input file '$input_file' not found."
-        exit 1
+    if [ -z "{{identity}}" ]; then
+        ./scripts/secretctl.py edit {{file}}
+    else
+        ./scripts/secretctl.py edit {{file}} --identity {{identity}}
     fi
 
-    # Default output file path (e.g., secrets/db-pass -> secrets/db-pass.age)
-    output_file="${input_file}.age"
+# 更改机密文件的接收者（支持密钥组名）
+# Usage: just secret-rekey <file.age> --recipients <key1> <keyGroup.name> ... [--identity <private-key-path>]
+secret-rekey file *args:
+    ./scripts/secretctl.py rekey {{file}} {{args}}
 
-    # Check if output file already exists
-    if [[ -e "$output_file" ]]; then
-        read -p "Output file '$output_file' already exists. Overwrite? (y/N): " confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            echo "Aborted."
-            exit 0
-        fi
-    fi
+# 检查密钥和机密文件一致性
+# Checks if all .age files have mappings and vice versa
+secret-check:
+    ./scripts/secretctl.py check
 
-    # 直接拿到一行带引号的 -r 参数
-    recipient_flags=$(./scripts/get-age-keys.sh {{args}})
-    if [[ -z "$recipient_flags" ]]; then
-        echo "Error: Failed to get recipient keys. No flags generated."
-        exit 1
-    fi
-
-    echo "Encrypting '$input_file' to '$output_file'..."
-    # 用 eval 让 shell 保留双引号
-    # Debug: print the age command before executing
-    echo "Debug: age $recipient_flags -o $output_file $input_file"
-    eval age $recipient_flags -o "$output_file" "$input_file"
-
-    echo "Encryption complete: $output_file"
-    echo ""
-    echo "IMPORTANT:"
-    echo "1. Add the definition for '$output_file' to 'secrets/secrets.nix'."
-    echo "2. Update the 'secretRecipients' map in 'secrets/secrets.nix' for '$output_file'."
-    echo "3. Delete the plaintext file '$input_file'."
-    echo "4. Commit '$output_file' and the changes to 'secrets.nix'."
-
-# Decrypt, edit-age, and re‑encrypt an existing .age file
-# Usage: just edit-age <file.age> [--identity <keyfile>]
-edit-age file_age *args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ./scripts/edit-age.sh "{{file_age}}" {{args}}
-
-# Rekey (change recipients) of an existing .age file
-# Usage: just rekey <file.age> [--identity <keyfile>] --host <h> --user <u> ...
-rekey-age file_age *args:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    ./scripts/rekey-age.sh "{{file_age}}" {{args}}
+# 安全切换 - 在切换前检查密钥一致性
+switch-safe host=DEFAULT_HOST:
+    just secret-check && just switch {{host}}
