@@ -29,7 +29,7 @@ let
         owner = info.owner;
         group = info.group;
         mode = info.mode;
-        path = info.targetPath;
+        path = info.targetPath or "/run/agenix/${lib.removeSuffix ".age" name}";
       };
     }) secretFiles;
   in mkSecrets;

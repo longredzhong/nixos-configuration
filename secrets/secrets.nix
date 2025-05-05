@@ -69,15 +69,14 @@ let
   secretMappings = {
     "tmp.age" = {
       recipients = keyGroups.allUsers ++ keyGroups.allHosts;
-      targetPath = "/home/longred/test";
+      targetPath = "/tmp/tmp";
       owner = "longred";
       group = "users";
       mode = "600";
     };
 
     "minio-credentials.age" = {
-      recipients = keyGroups.nuc;
-      targetPath = "/etc/nixos/minio-root-credentials";
+      recipients = keyGroups.longred ++ keyGroups.nuc;
       owner = "root";
       group = "root";
       mode = "600";
@@ -85,7 +84,6 @@ let
 
     "dufs-admin-credentials.age" = {
       recipients = keyGroups.longred ++ keyGroups.nuc;
-      targetPath = "/run/secrets/dufs-admin-credentials";
       owner = "root";
       group = "dufs";
       mode = "640";
