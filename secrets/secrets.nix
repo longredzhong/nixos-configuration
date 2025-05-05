@@ -22,7 +22,7 @@ let
 
   # --- Secret Recipient Mapping (Documentation) ---
   secretRecipients = {
-    "tmp.age" = definedUsers.longred ++ definedHosts.nuc;
+    "tmp.age" = definedUsers.longred ++ definedHosts.nuc ++ definedHosts.thinkbook-wsl;
     "minio-credentials.age" = definedHosts.nuc;
     "dufs-admin-credentials.age" = definedUsers.longred ++ definedHosts.nuc;
     # ... other mappings ...
