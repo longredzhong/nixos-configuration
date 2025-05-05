@@ -7,4 +7,7 @@
       };
     };
   };
+  home.packages = with pkgs; [
+    gh
+  ];
 }

@@ -7,8 +7,8 @@ input_file=""
 recipient_args=() # Store recipient args separately
 current_user=$(whoami)
 default_identities=(
-    "/etc/ssh/ssh_host_ed25519_key"
     "/home/${current_user}/.ssh/id_ed25519"
+    "/etc/ssh/ssh_host_ed25519_key"
 )
 
 while [[ $# -gt 0 ]]; do

@@ -3,16 +3,17 @@
 { lib ? { } }: # Only need lib for helper function potentially
 let
   # --- Key Definitions ---
-  user_longred_ssh = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICucQsD88/+YzMcFFKc7p8rxx489u/panXkKkOFpzrDG";
-  allUsers = [ user_longred_ssh ];
+  user_nuc_longred_ssh = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICucQsD88/+YzMcFFKc7p8rxx489u/panXkKkOFpzrDG";
+  user_thinkbook_longred_ssh = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJndrhj8hUnT6hKAtd2+jIzoAJV8oo0NoTjQ73rdgiOC";
+  allUsers = [ user_nuc_longred_ssh user_thinkbook_longred_ssh ];
 
   host_nuc_ssh = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO1dYCjl6iFU6sqTuk7PLl/Mn2CP8wVehoTv3+HzQwCb root@nixos";
-  host_thinkbook_ssh = "...";
+  host_thinkbook_ssh = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICXrz5suGCEP2Al0b8OHtSgsPJpZ93uAE4ieUu/so3Uc root@thinkbook-wsl";
   host_metacube_ssh = "...";
   allHosts = [ host_nuc_ssh host_thinkbook_ssh host_metacube_ssh ];
 
   # --- Key Name Mappings ---
-  definedUsers = { longred = [ user_longred_ssh ]; };
+  definedUsers = { longred = [ user_nuc_longred_ssh user_thinkbook_longred_ssh ]; };
   definedHosts = {
     nuc = [ host_nuc_ssh ];
     thinkbook-wsl = [ host_thinkbook_ssh ];
