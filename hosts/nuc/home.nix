@@ -20,6 +20,7 @@ in {
         noto-fonts-cjk-sans
         fira-code-nerdfont
         fontconfig
+        waybar
       ];
 
       unstable-packages = with pkgs.unstable; [
