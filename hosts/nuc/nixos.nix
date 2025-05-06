@@ -96,7 +96,6 @@
   services.xrdp.defaultWindowManager = "startplasma-x11";
   services.xrdp.openFirewall = true;
   services.xrdp.port = 3389;
-  services.xrdp.xorg.enable = true;
   programs.dconf.enable = true;
 
   # Configure keymap in X11
