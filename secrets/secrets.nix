@@ -91,8 +91,8 @@ let
 
     "cloudflare-tunnel-nuc.age" = {
       recipients = keyGroups.nuc;
-      owner = "root";
-      group = "root";
+      owner = "cloudflared";
+      group = "cloudflared";
       mode = "600";
     };
   };
