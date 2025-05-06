@@ -11,7 +11,7 @@
     ../../modules/services/dufs.nix
     ../../secrets/agenix-config.nix
   ];
-  # customize the system services
+  # customize the system services  
   services.deeplx.enable = true;
   services.dufs = {
     enable = true;
@@ -50,6 +50,21 @@
     startAt = "*-*-* 01:15:00";
     backupAll = true;
     location = "/data/backup/postgresql";
+  };
+  # use cloudflared as a DNS over HTTPS proxy
+  services.cloudflared = {
+    enable = true;
+    package = pkgs.unstable.cloudflared;
+    tunnels = {
+      "25fc2bee-86de-4b26-ab23-c7c25d2fd9f8" = {
+        credentialsFile = "${config.age.secrets."cloudflare-tunnel-nuc".path}";
+        default = "http_status:404";
+        ingress = {
+          "nuc-webdav.longred.work" = { service = "http://localhost:5000"; };
+          "nuc-minio.longred.work" = { service = "http://localhost:9000"; };
+        };
+      };
+    };
   };
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -91,7 +106,7 @@
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
   programs.hyprland.enable = true;
-  
+
   services.xrdp.enable = true;
   services.xrdp.audio.enable = true;
   services.xrdp.defaultWindowManager = "startplasma-x11";

@@ -88,6 +88,13 @@ let
       group = "dufs";
       mode = "640";
     };
+
+    "cloudflare-tunnel-nuc.age" = {
+      recipients = keyGroups.nuc;
+      owner = "root";
+      group = "root";
+      mode = "600";
+    };
   };
 
   # --- 辅助函数 ---
