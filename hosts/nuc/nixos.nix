@@ -59,10 +59,10 @@
       "25fc2bee-86de-4b26-ab23-c7c25d2fd9f8" = {
         credentialsFile = "${config.age.secrets."cloudflare-tunnel-nuc".path}";
         default = "http_status:404";
-        ingress = {
-          "nuc-webdav.longred.work" = { service = "http://localhost:5000"; };
-          "nuc-minio.longred.work" = { service = "http://localhost:9000"; };
-        };
+        # ingress = {
+        #   "nuc-webdav.longred.work" = { service = "http://localhost:5000"; };
+        #   "nuc-minio.longred.work" = { service = "http://localhost:9000"; };
+        # };
       };
     };
   };
