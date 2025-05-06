@@ -90,7 +90,8 @@
   services.displayManager.sddm.enable = true;
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
-
+  programs.hyprland.enable = true;
+  
   services.xrdp.enable = true;
   services.xrdp.audio.enable = true;
   services.xrdp.defaultWindowManager = "startplasma-x11";
