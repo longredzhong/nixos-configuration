@@ -158,15 +158,21 @@
   systemd.services."getty@tty1".enable = false;
   systemd.services."autovt@tty1".enable = false;
 
-  # Install firefox moved to home/nuc.nix
-  # programs.firefox.enable = true;
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  # Most packages moved to home/nuc.nix or modules/common.nix
-  environment.systemPackages = [ ];
+  # Customize the package set
+  environment.systemPackages = let
+      stable-packages = with pkgs; [
+        # 稳定版本的软件包 (仅保留此主机特有的)
+        qbittorrent_4_1_9_1
+      ];
+
+      unstable-packages = with pkgs.unstable;
+        [
+          # 不稳定版本的软件包 (仅保留此主机特有的)
+        ];
+    in stable-packages ++ unstable-packages;
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
