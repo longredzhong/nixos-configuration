@@ -91,6 +91,10 @@
   services.displayManager.sddm.wayland.enable = true;
   services.desktopManager.plasma6.enable = true;
 
+  services.xrdp.enable = true;
+  services.xrdp.defaultWindowManager = "startplasma-x11";
+  services.xrdp.openFirewall = true;
+
   programs.dconf.enable = true;
 
   # Configure keymap in X11
