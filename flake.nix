@@ -13,11 +13,14 @@
 
     agenix.url = "github:ryantm/agenix";
     agenix.inputs.nixpkgs.follows = "nixpkgs";
+
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs-unstable";
+
+    nixos-cosmic.url = "github:lilyinstarlight/nixos-cosmic";
   };
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, nixos-wsl
-    , agenix, nix-index-database, ... }: {
+    , agenix, nix-index-database, nixos-cosmic, ... }: {
       nixosConfigurations = {
         metacube-wsl = let
           username = "longred";

@@ -10,6 +10,8 @@
     ../../modules/services/deeplx.nix
     ../../modules/services/dufs.nix
     ../../secrets/agenix-config.nix
+
+    inputs.nixos-cosmic.nixosModules.default
   ];
   # customize the system services  
   services.deeplx.enable = true;
@@ -102,10 +104,14 @@
   services.xserver.enable = true;
 
   # Enable the KDE Desktop Environment.
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-  services.desktopManager.plasma6.enable = true;
-  programs.hyprland.enable = true;
+  # services.displayManager.sddm.enable = true;
+  # services.displayManager.sddm.wayland.enable = true;
+  # services.desktopManager.plasma6.enable = true;
+
+  # Enable the Cosmic Desktop Environment.
+  services.desktopManager.cosmic.enable = true;
+  services.displayManager.cosmic-greeter.enable = true;
+  services.flatpak.enable = true;
 
   services.xrdp.enable = true;
   services.xrdp.audio.enable = true;
@@ -163,17 +169,17 @@
 
   # Customize the package set
   environment.systemPackages = let
-      stable-packages = with pkgs; [
-        # 稳定版本的软件包 (仅保留此主机特有的)
-        qbittorrent_4_1_9_1
-        vlc
-      ];
+    stable-packages = with pkgs; [
+      # 稳定版本的软件包 (仅保留此主机特有的)
+      qbittorrent_4_1_9_1
+      vlc
+    ];
 
-      unstable-packages = with pkgs.unstable;
-        [
-          # 不稳定版本的软件包 (仅保留此主机特有的)
-        ];
-    in stable-packages ++ unstable-packages;
+    unstable-packages = with pkgs.unstable;
+      [
+        # 不稳定版本的软件包 (仅保留此主机特有的)
+      ];
+  in stable-packages ++ unstable-packages;
 
   # Some programs need SUID wrappers, can be configured further or are
   # started in user sessions.
