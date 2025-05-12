@@ -41,7 +41,6 @@
       fastfetch # 系统信息
       btop # 终端系统监控
       glances # 系统监控
-      dstat # 资源统计
       iotop # 磁盘IO监控
 
       # --- 网络工具 ---

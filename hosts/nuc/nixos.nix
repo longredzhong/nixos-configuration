@@ -11,7 +11,6 @@
     ../../modules/services/dufs.nix
     ../../secrets/agenix-config.nix
 
-    inputs.nixos-cosmic.nixosModules.default
   ];
   # customize the system services  
   services.deeplx.enable = true;
