@@ -105,6 +105,17 @@
   services.displayManager.cosmic-greeter.enable = true;
   services.flatpak.enable = true;
   environment.sessionVariables.NIXOS_OZONE_WL = "1";
+  i18n.inputMethod = {
+    enabled = "fcitx5";
+    fcitx5.addons = with pkgs; [
+      fcitx5-gtk
+      fcitx5-chinese-addons
+      fcitx5-nord
+      fcitx5-rime
+      rime-data
+    ];
+    fcitx5.waylandFrontend = true;
+  };
   # Enable sound with pipewire.
   hardware.pulseaudio.enable = false;
   security.rtkit.enable = true;
