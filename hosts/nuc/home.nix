@@ -47,6 +47,7 @@ in {
         fcitx5-rime
         rime-data
       ];
+      fcitx5.waylandFrontend = true;
     };
   };
 }

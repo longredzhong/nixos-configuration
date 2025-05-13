@@ -99,35 +99,12 @@
     LC_TIME = "zh_CN.UTF-8";
   };
 
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
-
-  # Enable the KDE Desktop Environment.
-  # services.displayManager.sddm.enable = true;
-  # services.displayManager.sddm.wayland.enable = true;
-  # services.desktopManager.plasma6.enable = true;
-
-  # Enable the Cosmic Desktop Environment.
+  # desktopManager
   services.desktopManager.cosmic.enable = true;
+  services.desktopManager.cosmic.xwayland.enable = true;
   services.displayManager.cosmic-greeter.enable = true;
   services.flatpak.enable = true;
-
-  services.xrdp.enable = true;
-  services.xrdp.audio.enable = true;
-  services.xrdp.defaultWindowManager = "startplasma-x11";
-  services.xrdp.openFirewall = true;
-  services.xrdp.port = 3389;
-  programs.dconf.enable = true;
-
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
+  environment.sessionVariables.NIXOS_OZONE_WL = "1";
   # Enable sound with pipewire.
   hardware.pulseaudio.enable = false;
   security.rtkit.enable = true;
@@ -159,10 +136,6 @@
   services.displayManager.autoLogin.enable = true;
   services.displayManager.autoLogin.user = "${username}";
 
-  # Workaround for GNOME autologin: https://github.com/NixOS/nixpkgs/issues/103746#issuecomment-945091229
-  systemd.services."getty@tty1".enable = false;
-  systemd.services."autovt@tty1".enable = false;
-
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
@@ -179,14 +152,6 @@
         # 不稳定版本的软件包 (仅保留此主机特有的)
       ];
   in stable-packages ++ unstable-packages;
-
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  programs.mtr.enable = true;
-  programs.gnupg.agent = {
-    enable = true;
-    enableSSHSupport = true;
-  };
 
   # List services that you want to enable:
 
