@@ -2,10 +2,10 @@
   description = "A NixOS configuration";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/staging-25.05";
+    nixpkgs.url = "github:nixos/nixpkgs/release-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
 
-    home-manager.url = "github:nix-community/home-manager/release-24.11";
+    home-manager.url = "github:nix-community/home-manager/release-25.05";
     home-manager.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     nixos-wsl.url = "github:nix-community/NixOS-WSL";

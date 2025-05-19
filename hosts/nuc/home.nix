@@ -35,7 +35,6 @@ in {
     in stable-packages ++ unstable-packages;
 
     programs = {
-      firefox.enable = true;
       kitty.enable = true;
     };
   };

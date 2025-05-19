@@ -31,7 +31,7 @@ let
   unstable-packages = with pkgs.unstable; [ ];
 in {
   # 系统状态版本（不要轻易改变）
-  system.stateVersion = "24.11";
+  system.stateVersion = "25.05";
   networking.hostName = "${hostname}";
   networking.networkmanager.enable = true;
   nixpkgs.config.allowUnfree = true;
@@ -42,6 +42,7 @@ in {
     daemon.settings = { "features" = { "buildkit" = true; }; };
 
   };
+  programs.fish.enable = true;
   users.users.${username} = {
     isNormalUser = true;
     shell = pkgs.unstable.fish;
