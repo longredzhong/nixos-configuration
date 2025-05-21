@@ -100,11 +100,14 @@
   };
 
   # desktopManager
-  services.desktopManager.cosmic.enable = true;
-  services.desktopManager.cosmic.xwayland.enable = true;
+  # Enable the login manager
   services.displayManager.cosmic-greeter.enable = true;
+  # Enable the COSMIC DE itself
+  services.desktopManager.cosmic.enable = true;
+  # Enable XWayland support in COSMIC
+  services.desktopManager.cosmic.xwayland.enable = true;
+
   services.flatpak.enable = true;
-  environment.sessionVariables.NIXOS_OZONE_WL = "1";
   i18n.inputMethod = {
     enabled = "fcitx5";
     fcitx5.addons = with pkgs; [
