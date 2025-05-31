@@ -13,6 +13,11 @@
 
   ];
   # customize the system services  
+  services.plex = {
+    enable = true;
+    openFirewall = true;
+    user = "${username}";
+  };
   services.deeplx.enable = true;
   services.dufs = {
     enable = true;
