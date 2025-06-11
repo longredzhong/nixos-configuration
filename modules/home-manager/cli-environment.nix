@@ -61,7 +61,6 @@
     unstablePackages = with pkgs.unstable; [
       # 添加不稳定的包（如果需要）
       pixi # 开发环境
-      micromamba
     ];
   in stablePackages ++ unstablePackages;
 
