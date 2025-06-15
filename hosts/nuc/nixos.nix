@@ -167,7 +167,7 @@
   environment.systemPackages = let
     stable-packages = with pkgs; [
       # 稳定版本的软件包 (仅保留此主机特有的)
-      qbittorrent_4_1_9_1
+      qbittorrent
       vlc
     ];
 
