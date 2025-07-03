@@ -57,6 +57,9 @@
       # --- Pixi 初始化 ---
       ${pkgs.unstable.pixi}/bin/pixi completion --shell fish | source
       fish_add_path $HOME/.pixi/bin
+
+      # -- go bin 路径设置 --
+      fish_add_path $HOME/go/bin
     '';
 
     # --- 自定义函数 ---
