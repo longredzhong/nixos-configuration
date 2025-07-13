@@ -7,7 +7,7 @@
     inputs.nix-index-database.nixosModules.nix-index
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
-    ../../secrets/agenix-config.nix
+    # ../../secrets/agenix-config.nix
 
   ];
   
