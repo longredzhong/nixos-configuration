@@ -12,66 +12,6 @@
     ../../secrets/agenix-config.nix
 
   ];
-  # customize the system services  
-  services.plex = {
-    enable = true;
-    openFirewall = true;
-    user = "${username}";
-  };
-  services.deeplx.enable = true;
-  services.dufs = {
-    enable = true;
-    servePath = "/data/dufs";
-    allowAll = true;
-    auth = [{
-      credentials =
-        "admin:$(cat ${config.age.secrets."dufs-admin-credentials".path})";
-      path = "/";
-      permissions = "rw";
-    }];
-  };
-  services.minio = {
-    enable = true;
-    listenAddress = ":9000";
-    consoleAddress = ":9001";
-    dataDir = [ "/data/minio" ];
-    rootCredentialsFile = "${config.age.secrets."minio-credentials".path}";
-  };
-  services.postgresql = {
-    enable = true;
-    package = pkgs.postgresql_17;
-    enableTCPIP = true;
-    ensureDatabases = [ "postgres" ];
-    authentication = pkgs.lib.mkOverride 10 ''
-      #type database  DBuser  auth-method
-      local all       all     trust
-      # ipv4
-      host  all      all     127.0.0.1/32   trust
-    '';
-    extensions = ps: with ps; [ postgis pgvector ];
-    settings.port = 5432;
-  };
-  services.postgresqlBackup = {
-    enable = true;
-    startAt = "*-*-* 01:15:00";
-    backupAll = true;
-    location = "/data/backup/postgresql";
-  };
-  # use cloudflared as a DNS over HTTPS proxy
-  services.cloudflared = {
-    enable = true;
-    package = pkgs.unstable.cloudflared;
-    tunnels = {
-      "25fc2bee-86de-4b26-ab23-c7c25d2fd9f8" = {
-        credentialsFile = "${config.age.secrets."cloudflare-tunnel-nuc".path}";
-        default = "http_status:404";
-        # ingress = {
-        #   "nuc-webdav.longred.work" = { service = "http://localhost:5000"; };
-        #   "nuc-minio.longred.work" = { service = "http://localhost:9000"; };
-        # };
-      };
-    };
-  };
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -188,4 +128,64 @@
   # Or disable the firewall altogether.
   networking.firewall.enable = false;
 
+  # customize the system services  
+  services.plex = {
+    enable = true;
+    openFirewall = true;
+    user = "${username}";
+  };
+  services.deeplx.enable = true;
+  services.dufs = {
+    enable = true;
+    servePath = "/data/dufs";
+    allowAll = true;
+    auth = [{
+      credentials =
+        "admin:$(cat ${config.age.secrets."dufs-admin-credentials".path})";
+      path = "/";
+      permissions = "rw";
+    }];
+  };
+  services.minio = {
+    enable = true;
+    listenAddress = ":9000";
+    consoleAddress = ":9001";
+    dataDir = [ "/data/minio" ];
+    rootCredentialsFile = "${config.age.secrets."minio-credentials".path}";
+  };
+  services.postgresql = {
+    enable = true;
+    package = pkgs.postgresql_17;
+    enableTCPIP = true;
+    ensureDatabases = [ "postgres" ];
+    authentication = pkgs.lib.mkOverride 10 ''
+      #type database  DBuser  auth-method
+      local all       all     trust
+      # ipv4
+      host  all      all     127.0.0.1/32   trust
+    '';
+    extensions = ps: with ps; [ postgis pgvector ];
+    settings.port = 5432;
+  };
+  services.postgresqlBackup = {
+    enable = true;
+    startAt = "*-*-* 01:15:00";
+    backupAll = true;
+    location = "/data/backup/postgresql";
+  };
+  # use cloudflared as a DNS over HTTPS proxy
+  services.cloudflared = {
+    enable = true;
+    package = pkgs.unstable.cloudflared;
+    tunnels = {
+      "25fc2bee-86de-4b26-ab23-c7c25d2fd9f8" = {
+        credentialsFile = "${config.age.secrets."cloudflare-tunnel-nuc".path}";
+        default = "http_status:404";
+        # ingress = {
+        #   "nuc-webdav.longred.work" = { service = "http://localhost:5000"; };
+        #   "nuc-minio.longred.work" = { service = "http://localhost:9000"; };
+        # };
+      };
+    };
+  };
 }
