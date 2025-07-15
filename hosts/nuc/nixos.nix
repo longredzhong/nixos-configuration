@@ -45,12 +45,23 @@
   };
 
   # desktopManager
-  # Enable the login manager
-  services.displayManager.cosmic-greeter.enable = true;
-  # Enable the COSMIC DE itself
-  services.desktopManager.cosmic.enable = true;
-  # Enable XWayland support in COSMIC
-  services.desktopManager.cosmic.xwayland.enable = true;
+  services.xserver.enable = true; # optional
+  services.displayManager.sddm.enable = true;
+  services.displayManager.sddm.wayland.enable = true;
+  services.desktopManager.plasma6.enable = true;
+  services.displayManager.sddm.settings.General.DisplayServer = "wayland";
+
+  environment.plasma6.excludePackages = with pkgs.kdePackages; [
+    plasma-browser-integration
+    konsole
+    elisa
+  ];
+
+  qt = {
+    enable = true;
+    platformTheme = "gnome";
+    style = "adwaita-dark";
+  };
 
   services.flatpak.enable = true;
   i18n.inputMethod = {
