@@ -10,7 +10,12 @@
     ../../modules/services/deeplx.nix
     ../../modules/services/dufs.nix
     ../../secrets/agenix-config.nix
-
+    ../../modules/kde.nix
+    ../../modules/flatpak.nix
+    ../../modules/pipewire.nix
+    ../../modules/flatpak.nix
+    ../../modules/intel.nix
+    ../../modules/wayland.nix
   ];
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -44,26 +49,6 @@
     LC_TIME = "zh_CN.UTF-8";
   };
 
-  # desktopManager
-  services.xserver.enable = true; # optional
-  services.displayManager.sddm.enable = true;
-  services.displayManager.sddm.wayland.enable = true;
-  services.desktopManager.plasma6.enable = true;
-  services.displayManager.sddm.settings.General.DisplayServer = "wayland";
-
-  environment.plasma6.excludePackages = with pkgs.kdePackages; [
-    plasma-browser-integration
-    konsole
-    elisa
-  ];
-
-  qt = {
-    enable = true;
-    platformTheme = "gnome";
-    style = "adwaita-dark";
-  };
-
-  services.flatpak.enable = true;
   i18n.inputMethod = {
     enable = true;
     type = "fcitx5";
@@ -120,6 +105,8 @@
       # 稳定版本的软件包 (仅保留此主机特有的)
       qbittorrent
       vlc
+      acpi
+      powertop
     ];
 
     unstable-packages = with pkgs.unstable;
