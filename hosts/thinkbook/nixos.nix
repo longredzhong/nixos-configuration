@@ -8,7 +8,12 @@
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
     # ../../secrets/agenix-config.nix
-
+    ../../modules/kde.nix
+    ../../modules/flatpak.nix
+    ../../modules/pipewire.nix
+    ../../modules/flatpak.nix
+    ../../modules/intel.nix
+    ../../modules/wayland.nix
   ];
   
   # Bootloader.
@@ -47,16 +52,16 @@
   services.xserver.enable = true;
 
   # Enable the Pantheon Desktop Environment.
-  services.xserver.displayManager.lightdm.enable = true;
-  services.xserver.desktopManager.pantheon.enable = true;
+  # services.xserver.displayManager.lightdm.enable = true;
+  # services.xserver.desktopManager.pantheon.enable = true;
 
   # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "cn";
-    variant = "";
-  };
+  #services.xserver.xkb = {
+  #  layout = "cn";
+  #  variant = "";
+  #};
 
-  services.flatpak.enable = true;
+  # services.flatpak.enable = true;
   i18n.inputMethod = {
     enable = true;
     type = "fcitx5";

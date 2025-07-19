@@ -5,10 +5,16 @@ let
   overlayModule = import ../../modules/overlays.nix { inherit inputs; };
   hmOverlays = overlayModule.nixpkgs.overlays;
 in {
+  imports = [
+    inputs.home-manager.nixosModules.home-manager
+  ];
   home-manager.backupFileExtension = "backup";
+  home-manager.sharedModules =
+    [ inputs.plasma-manager.homeManagerModules.plasma-manager ];
   home-manager.users.${username} = {
     imports = [
       ../../modules/home-manager/common.nix
+      ../../modules/home-manager/desktop/default.nix
       ../../modules/home-manager/cli-environment.nix
     ];
     nixpkgs.overlays = hmOverlays;
