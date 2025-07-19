@@ -15,7 +15,7 @@
     ../../modules/intel.nix
     ../../modules/wayland.nix
   ];
-  
+
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
@@ -51,34 +51,10 @@
   # Enable the X11 windowing system.
   services.xserver.enable = true;
 
-  # Enable the Pantheon Desktop Environment.
-  # services.xserver.displayManager.lightdm.enable = true;
-  # services.xserver.desktopManager.pantheon.enable = true;
-
-  # Configure keymap in X11
-  #services.xserver.xkb = {
-  #  layout = "cn";
-  #  variant = "";
-  #};
-
-  # services.flatpak.enable = true;
-  i18n.inputMethod = {
-    enable = true;
-    type = "fcitx5";
-    fcitx5.addons = with pkgs; [
-      fcitx5-gtk
-      fcitx5-chinese-addons
-      fcitx5-nord
-      fcitx5-rime
-      rime-data
-    ];
-    fcitx5.waylandFrontend = true;
-  };
   environment.sessionVariables = {
-    COSMIC_DATA_CONTROL_ENABLED = 1;
-    NIXOS_OZONE_WL = "1";
+
   };
-  
+
   # Enable CUPS to print documents.
   services.printing.enable = true;
 
@@ -118,10 +94,11 @@
 
   # Customize the package set
   environment.systemPackages = let
-    stable-packages = with pkgs; [
-      # 稳定版本的软件包 (仅保留此主机特有的)
-      vlc
-    ];
+    stable-packages = with pkgs;
+      [
+        # 稳定版本的软件包 (仅保留此主机特有的)
+        vlc
+      ];
 
     unstable-packages = with pkgs.unstable;
       [

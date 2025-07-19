@@ -1,20 +1,11 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   home.sessionVariables = {
     # fcitx5
     QT_IM_MODULE = "fcitx5";
     GTK_IM_MODULE = "fcitx5";
     SDL_IM_MODULE = "fcitx";
+    XMODIFIERS = "@im=fcitx";
   };
-
-  # environment.systemPackages = with pkgs; [
-  #   fcitx5
-  #   fcitx5-gtk
-  #   fcitx5-qt
-  #   fcitx5-unikey
-  #   fcitx5-anthy
-  #   fcitx5-configtool
-  # ];
 
   i18n.inputMethod = {
     type = "fcitx5";
@@ -31,6 +22,11 @@
         fcitx5-configtool
         qt5.qtbase
         qt5.qttools
+        fcitx5-gtk
+        fcitx5-chinese-addons
+        fcitx5-nord
+        fcitx5-rime
+        rime-data
       ];
     };
   };
