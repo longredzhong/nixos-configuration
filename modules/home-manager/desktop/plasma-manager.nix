@@ -1,5 +1,4 @@
-{ pkgs, ... }:
-{
+{ pkgs, ... }: {
   home.packages = with pkgs; [
     # Other useful packages
     bibata-cursors
@@ -62,8 +61,6 @@
           {
             iconTasks = {
               launchers = [
-                "applications:zen-beta.desktop"
-                "applications:vesktop.desktop"
                 "applications:org.kde.dolphin.desktop"
                 "applications:org.kde.konsole.desktop"
                 # "applications:pcsx2.desktop"
@@ -222,27 +219,25 @@
       # }
     ];
 
-    window-rules = [
-      {
-        description = "Dolphin";
-        match = {
-          window-class = {
-            value = "dolphin";
-            type = "substring";
-          };
-          window-types = [ "normal" ];
+    window-rules = [{
+      description = "Dolphin";
+      match = {
+        window-class = {
+          value = "dolphin";
+          type = "substring";
         };
-        apply = {
-          noborder = {
-            value = false;
-            apply = "force";
-          };
-          # `apply` defaults to "apply-initially"
-          maximizehoriz = true;
-          maximizevert = true;
+        window-types = [ "normal" ];
+      };
+      apply = {
+        noborder = {
+          value = false;
+          apply = "force";
         };
-      }
-    ];
+        # `apply` defaults to "apply-initially"
+        maximizehoriz = true;
+        maximizevert = true;
+      };
+    }];
 
     powerdevil = {
       AC = {
@@ -260,9 +255,7 @@
         powerButtonAction = "sleep";
         whenSleepingEnter = "standbyThenHibernate";
       };
-      lowBattery = {
-        whenLaptopLidClosed = "hibernate";
-      };
+      lowBattery = { whenLaptopLidClosed = "hibernate"; };
     };
 
     # kwin = {
@@ -281,12 +274,7 @@
     # Some mid-level settings:
     #
     shortcuts = {
-      ksmserver = {
-        "Lock Session" = [
-          "Screensaver"
-          "Meta+Ctrl+Alt+L"
-        ];
-      };
+      ksmserver = { "Lock Session" = [ "Screensaver" "Meta+Ctrl+Alt+L" ]; };
 
       kwin = {
         "Expose" = "Meta+,";

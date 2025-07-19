@@ -5,9 +5,7 @@ let
   overlayModule = import ../../modules/overlays.nix { inherit inputs; };
   hmOverlays = overlayModule.nixpkgs.overlays;
 in {
-  imports = [
-    inputs.home-manager.nixosModules.home-manager
-  ];
+  imports = [ inputs.home-manager.nixosModules.home-manager ];
   home-manager.backupFileExtension = "backup";
   home-manager.sharedModules =
     [ inputs.plasma-manager.homeManagerModules.plasma-manager ];
@@ -40,8 +38,6 @@ in {
       ];
     in stable-packages ++ unstable-packages;
 
-    programs = {
-      kitty.enable = true;
-    };
+    programs = { kitty.enable = true; };
   };
 }

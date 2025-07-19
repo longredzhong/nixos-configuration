@@ -7,7 +7,7 @@ let
       config = prev.config;
     };
   };
-  
+
   # 添加特定版本的 qBittorrent overlay
   qbittorrentLegacyOverlay = system: final: prev: {
     qbittorrent_4_1_9_1 = let

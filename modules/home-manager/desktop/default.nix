@@ -1,5 +1,4 @@
-{ inputs, ... }:
-{
+{ inputs, ... }: {
   imports = [
     ./cava.nix # audio visualizer
     ./fcitx5.nix # input method

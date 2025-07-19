@@ -58,10 +58,11 @@
       direnv # 环境变量管理
 
     ];
-    unstablePackages = with pkgs.unstable; [
-      # 添加不稳定的包（如果需要）
-      pixi # 开发环境
-    ];
+    unstablePackages = with pkgs.unstable;
+      [
+        # 添加不稳定的包（如果需要）
+        pixi # 开发环境
+      ];
   in stablePackages ++ unstablePackages;
 
   # 配置 bat (更好的 cat)

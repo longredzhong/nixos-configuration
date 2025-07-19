@@ -40,9 +40,7 @@ in {
     enable = true;
     enableOnBoot = true;
     autoPrune.enable = true;
-    daemon.settings = {
-      "features" = { "buildkit" = true; };
-    };
+    daemon.settings = { "features" = { "buildkit" = true; }; };
 
   };
   programs.fish.enable = true;
