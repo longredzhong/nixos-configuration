@@ -17,7 +17,14 @@
   ];
 
   # Bootloader.
-  boot.loader.systemd-boot.enable = true;
+  # 推荐仅启用 grub，自动检测 Windows 启动项
+  boot.loader.systemd-boot.enable = false;
+  boot.loader.grub = {
+    enable = true;
+    efiSupport = true;
+    useOSProber = true; # 允许自动检测 Windows
+    device = "nodev";
+  };
   boot.loader.efi.canTouchEfiVariables = true;
 
   networking.hostName = "${hostname}"; # Define your hostname.
