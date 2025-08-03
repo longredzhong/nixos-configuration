@@ -5,7 +5,15 @@
 
 {
   imports = [ (modulesPath + "/installer/scan/not-detected.nix") ];
-  hardware.bluetooth.enable = true;
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = true;
+    settings = {
+      General = {
+        Experimental = true; # Show battery charge of Bluetooth devices
+      };
+    };
+  };
   boot.initrd.availableKernelModules =
     [ "xhci_pci" "thunderbolt" "nvme" "usb_storage" "sd_mod" "rtsx_pci_sdmmc" ];
   boot.initrd.kernelModules = [ ];
