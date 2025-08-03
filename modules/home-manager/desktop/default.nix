@@ -1,7 +1,7 @@
 { inputs, ... }: {
   imports = [
     ./cava.nix # audio visualizer
-    ./fcitx5.nix # input method
+    ./rime.nix # rime input method configuration
     ./fonts.nix # fonts settings
     ./xorg.nix # xorg configuration
     ./plasma-manager.nix
