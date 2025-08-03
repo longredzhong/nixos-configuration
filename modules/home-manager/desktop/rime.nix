@@ -12,9 +12,10 @@
 
         patch:
           __include: rime_ice_suggestion:/
-          "menu/page_size": 9
-          "switcher/hotkeys":
-            - "F4"
+          __patch:
+            menu/page_size: 9
+            switcher/hotkeys:
+              - "F4"
       '';
   };
 }
