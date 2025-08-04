@@ -61,6 +61,7 @@
       waylandFrontend = false;
       plasma6Support = true;
       addons = with pkgs; [
+        rime-data
         fcitx5-rime
         fcitx5-gtk
         fcitx5-chinese-addons
