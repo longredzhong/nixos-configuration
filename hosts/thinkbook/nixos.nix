@@ -9,7 +9,7 @@
     # Import the new agenix config module, not the secrets data file
     # ../../secrets/agenix-config.nix
     ../../modules/kde.nix
-    ../../modules/flatpak.nix
+    ../../modules/nvidia.nix
     ../../modules/pipewire.nix
     ../../modules/flatpak.nix
     ../../modules/intel.nix
@@ -58,7 +58,7 @@
   i18n.inputMethod = {
     enabled = "fcitx5";
     fcitx5 = {
-      waylandFrontend = false;
+      waylandFrontend = true;
       plasma6Support = true;
       addons = with pkgs; [
         rime-data
@@ -139,6 +139,6 @@
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
-  networking.firewall.enable = false;
+  networking.firewall.enable = true;
 
 }
