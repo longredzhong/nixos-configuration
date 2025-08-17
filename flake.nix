@@ -102,5 +102,30 @@
         };
       };
 
+      # Standalone Home Manager configs (for non-NixOS hosts)
+      homeConfigurations = let
+        system = "x86_64-linux";
+        pkgsFor = nixpkgs: overlays: import nixpkgs {
+          inherit system;
+          config = { allowUnfree = true; };
+          overlays = overlays;
+        };
+        overlays = (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
+      in {
+        # Current machine detected as `thinkbook-fedora`
+        "longred@thinkbook-fedora" = home-manager.lib.homeManagerConfiguration {
+          pkgs = pkgsFor nixpkgs overlays;
+          extraSpecialArgs = {
+            username = "longred";
+            hostname = "thinkbook-fedora";
+            channels = { inherit nixpkgs nixpkgs-unstable; };
+            inherit inputs;
+          };
+          modules = [
+            ./users/longred/home-fedora.nix
+          ];
+        };
+      };
+
     };
 }

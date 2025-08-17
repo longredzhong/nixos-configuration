@@ -5,11 +5,13 @@
 本仓库是基于 Nix Flakes 和 Home Manager 的 NixOS 配置集合，支持多主机和多用户的模块化管理。
 
 ## Table of Contents
-- [Project Structure](#项目结构)
-- [Common Commands](#常用命令)
-- [Development Guide](#开发指南)
-- [Contributing](#contributing)
-- [License](#license)
+- [NixOS Configuration](#nixos-configuration)
+  - [Table of Contents](#table-of-contents)
+  - [项目结构](#项目结构)
+  - [常用命令](#常用命令)
+  - [开发指南](#开发指南)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## 项目结构
 
