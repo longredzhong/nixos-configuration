@@ -27,6 +27,13 @@
       enable = true;
       userName = "longred";
       userEmail = "longredzhong@outlook.com";
+      # Per-directory identity for adtiger projects
+      includes = [
+        {
+          path = "~/.gitconfig-adtiger";
+          condition = "gitdir:/home/longred/adtiger-project/";
+        }
+      ];
     };
     tmux.enable = true;
     direnv = {
@@ -47,7 +54,6 @@
       just
     ];
     unstable = with pkgs.unstable; [
-      vscode
       uv
       bun
       gh
@@ -66,4 +72,11 @@
       navigate = true;
     };
   };
+
+  # The included Git config file providing the adtiger identity
+  home.file.".gitconfig-adtiger".text = ''
+    [user]
+      name = zhongchanghong
+      email = zhongchanghong@adtiger.hk
+  '';
 }
