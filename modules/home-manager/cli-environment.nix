@@ -61,7 +61,8 @@
     unstablePackages = with pkgs.unstable;
       [
         # 添加不稳定的包（如果需要）
-        pixi # 开发环境
+        # pixi 的 Fish vendor 完成脚本当前存在语法问题，
+        # 在主机级配置中按需安装（或使用覆写版本）
       ];
   in stablePackages ++ unstablePackages;
 

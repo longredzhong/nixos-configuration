@@ -1,5 +1,12 @@
-# 获取当前主机名作为默认值
+# 获取默认用户与主机名
+DEFAULT_USER := `whoami`
 DEFAULT_HOST := `hostname`
+# 计算 user@host 作为默认 Home Manager 目标
+DEFAULT_TARGET := `printf '%s@%s' "$(whoami)" "$(hostname)"`
+
+# 常用命令前缀（启用 flakes 与 nix-command）
+NIXCMD := "nix --extra-experimental-features 'nix-command flakes'"
+HM := "github:nix-community/home-manager"
 
 # 默认显示所有可用命令列表
 default:
@@ -118,3 +125,45 @@ secret-check:
 # 安全切换 - 在切换前检查密钥一致性
 switch-safe host=DEFAULT_HOST:
     just secret-check && just switch {{host}}
+
+# --- Home Manager: Standalone (非 NixOS 主机) ---
+
+# 展示 flake 中的 Home Manager 配置
+hm-show:
+    {{NIXCMD}} flake show --json | jq '.homeConfigurations'
+
+# 构建 Home Manager 激活包（不应用）
+hm-build target=DEFAULT_TARGET:
+    {{NIXCMD}} build .#homeConfigurations."{{target}}".activationPackage -L
+
+# 干跑切换（仅预览变更）
+hm-dry-run target=DEFAULT_TARGET:
+    {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}} --dry-run
+
+# 切换并自动备份 HOME 中冲突文件
+hm-switch target=DEFAULT_TARGET:
+    {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}} -b backup
+
+# 无备份直接切换（谨慎使用）
+hm-switch-no-backup target=DEFAULT_TARGET:
+    {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}}
+
+# 查看 Home Manager news 提示
+hm-news:
+    {{NIXCMD}} run {{HM}} -- news
+
+# 列出 Home Manager generations
+hm-generations:
+    {{NIXCMD}} run {{HM}} -- generations
+
+# 回滚到上一个 Home Manager generation
+hm-rollback:
+    {{NIXCMD}} run {{HM}} -- rollback
+
+# 安装 home-manager CLI（可选）
+hm-install-cli:
+    {{NIXCMD}} profile install {{HM}}#home-manager
+
+# 查看 home-manager 版本（通过一次性运行）
+hm-version:
+    {{NIXCMD}} run {{HM}} -- --version

@@ -49,14 +49,14 @@
       # --- Micromamba 初始化 ---
       # >>> mamba initialize >>>
       # !! Contents within this block are managed by 'micromamba shell init' !!
-      set -gx MAMBA_EXE "/home/${config.home.username}/.pixi/bin/micromamba" # 使用 nix 安装的 micromamba
-      set -gx MAMBA_ROOT_PREFIX "/home/${config.home.username}/.local/share/mamba" # 保持用户目录
-      $MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source
+      # set -gx MAMBA_EXE "/home/${config.home.username}/.pixi/bin/micromamba" # 使用 nix 安装的 micromamba
+      # set -gx MAMBA_ROOT_PREFIX "/home/${config.home.username}/.local/share/mamba" # 保持用户目录
+      # $MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source
       # <<< mamba initialize <<<
 
       # --- Pixi 初始化 ---
-      ${pkgs.unstable.pixi}/bin/pixi completion --shell fish | source
-      fish_add_path $HOME/.pixi/bin
+      # ${pkgs.unstable.pixi}/bin/pixi completion --shell fish | source
+      # fish_add_path $HOME/.pixi/bin
       set -gx PIXI_CACHE_DIR "$HOME/.cache/rattler/cache" # 设置 PIXI 缓存目录
       # 设置 UV_CACHE_DIR 环境变量, UV 与 PIXI 复用 pip 缓存
       set -gx UV_CACHE_DIR "$HOME/.cache/rattler/cache/uv-cache"
