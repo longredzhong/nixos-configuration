@@ -8,7 +8,12 @@
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
     # ../../secrets/agenix-config.nix
-    ../../modules/gnome.nix
+    ../../modules/kde.nix
+    ../../modules/flatpak.nix
+    ../../modules/pipewire.nix
+    ../../modules/flatpak.nix
+    ../../modules/intel.nix
+    ../../modules/wayland.nix
   ];
 
   # Bootloader.
@@ -53,7 +58,8 @@
   i18n.inputMethod = {
     enabled = "fcitx5";
     fcitx5 = {
-      waylandFrontend = true;
+      waylandFrontend = false;
+      plasma6Support = true;
       addons = with pkgs; [
         rime-data
         fcitx5-rime
@@ -67,7 +73,7 @@
     };
   };
   # Enable the X11 windowing system.
-  # services.xserver.enable = true;
+  services.xserver.enable = true;
 
   environment.sessionVariables = {
 
