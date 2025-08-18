@@ -124,23 +124,61 @@ WSL 与 NixOS 主机步骤类似，但需要导入 WSL 专属模块：
 
 ## 常用命令
 
-本项目推荐使用 [`just`](https://github.com/casey/just) 作为任务运行器，常用命令如下：
+本项目使用 [`just`](https://github.com/casey/just) 作为任务运行器。未显式指定时，`host` 与 `target` 默认取当前 `hostname` 与 `whoami`。
 
-- `just`                  # 显示所有可用命令
-- `just check`            # 检查 flake 配置语法
-- `just fmt`              # 格式化所有 nix 文件
-- `just update`           # 更新 flake.lock 依赖
-- `just switch`           # 构建并切换当前主机系统配置
-- `just build`            # 仅构建当前主机系统配置
-- `just vm`               # 构建并测试 VM
-- `just gc`               # 清理 nix 存储
-- `just gc-old`           # 清理旧 generations
-- `just rollback`         # 回滚到上一个系统 generation
-- `just encrypt <file> --host <h> --user <u> ...` # 加密文件
-- `just edit-age <file.age> [--identity <key>]`       # 编辑加密文件
-- `just rekey-age <file.age> --host <h> --user <u> ...` # 更改加密文件的接收者
+### 评估/检查
 
-更多命令请查看 `justfile`。
+- `just`                        # 列出所有可用任务
+- `just check`                  # 完整检查 flake 配置
+- `just check-fast`             # 更快的仅评估（不构建）
+- `just eval-host host=<h>`     # 评估某 NixOS 主机 toplevel
+- `just eval-home target='<u@h>'` # 评估某 Home Manager 目标
+- `just show-systems`           # 查看 flake 中的 nixosConfigurations
+
+### NixOS 系统
+
+- `just build host=<h>`         # 构建系统
+- `just switch host=<h>`        # 构建并切换系统
+- `just boot host=<h>`          # 构建并切换为下次启动生效
+- `just vm host=<h>`            # 以 VM 测试该主机配置
+- `just list-generations`       # 列出系统 generations
+- `just rollback`               # 回滚到上一个系统 generation
+
+### Home Manager（可用于非 NixOS）
+
+- `just hm-show`                        # 展示 flake 中的 HM 配置
+- `just hm-build target='<u@h>'`        # 构建 HM 激活包
+- `just hm-dry-run target='<u@h>'`      # 干跑预览变更
+- `just hm-switch target='<u@h>'`       # 切换并备份冲突文件
+- `just hm-switch-no-backup target='<u@h>'` # 无备份直接切换
+- `just hm-generations`                 # 列出 HM generations
+- `just hm-rollback`                    # 回滚到上一个 HM generation
+- `just hm-news`                        # 查看 HM 提示/新闻
+- `just hm-install-cli`                 # 安装 home-manager CLI（可选）
+- `just hm-version`                     # 查看 home-manager 版本
+
+### 机密（agenix + scripts/secretctl.py）
+
+- `just secret-list type="all|keys|secrets" [filter="all|users|hosts|groups"]`
+- `just secret-add-key type [user|host] name <ssh-pubkey> [path="..."]`
+- `just secret-remove-key type [user|host] name`
+- `just secret-generate type [user|host] name`
+- `just secret-add-mapping <file.age> <recipients> <target> <owner> <group> [mode="600"]`
+- `just secret-encrypt <file> --recipients <k1> <kGroup.name> ... [--output <out.age>]`
+- `just secret-edit <file.age> [identity="/path/to/private.key"]`
+- `just secret-rekey <file.age> --recipients <...>`
+- `just secret-check`                     # 校验密钥与机密映射的一致性
+- `just switch-safe host=<h>`             # 校验通过后切换系统
+
+### 维护
+
+- `just fmt`               # 格式化所有 nix 文件
+- `just update`            # 更新 flake.lock
+- `just update-input <in>` # 更新特定 flake 输入
+- `just gc`                # 清理 nix 存储
+- `just gc-old`            # 清理旧 generations
+
+更多命令与参数细节请查看根目录 `justfile`。
 
 ## 开发指南
 
