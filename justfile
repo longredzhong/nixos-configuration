@@ -14,7 +14,19 @@ default:
 
 # 检查flake.nix语法
 check:
-    nix flake check
+    {{NIXCMD}} flake check --option eval-cache true --accept-flake-config
+
+# 更快的仅评估（推荐在开发时使用）
+check-fast:
+    nix flake check --no-build --no-update-lock-file --option eval-cache true --accept-flake-config
+
+# 仅评估单个主机（最快速的健康检查）
+eval-host host=DEFAULT_HOST:
+    nix eval .#nixosConfigurations.{{host}}.config.system.build.toplevel.drvPath
+
+# 仅评估单个 Home Manager 目标
+eval-home target=DEFAULT_TARGET:
+    nix eval .#homeConfigurations."{{target}}".activationPackage.drvPath
 
 # 更新flake.lock中的依赖
 update:

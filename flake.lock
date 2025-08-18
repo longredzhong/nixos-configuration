@@ -214,6 +214,23 @@
         "type": "github"
       }
     },
+    "qbittorrent-legacy": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1575137304,
+        "narHash": "sha256-fi5MaX214Sn3LKBZi5vCTQq4t89JNESkdlbb3YnukaM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "ee355d50a38e489e722fcbc7a7e6e45f7c74ce95",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "ee355d50a38e489e722fcbc7a7e6e45f7c74ce95",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "agenix": "agenix",
@@ -223,7 +240,8 @@
         "nixos-wsl": "nixos-wsl",
         "nixpkgs": "nixpkgs",
         "nixpkgs-unstable": "nixpkgs-unstable",
-        "plasma-manager": "plasma-manager"
+        "plasma-manager": "plasma-manager",
+        "qbittorrent-legacy": "qbittorrent-legacy"
       }
     },
     "systems": {
