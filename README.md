@@ -5,6 +5,7 @@
 本仓库是基于 Nix Flakes 和 Home Manager 的 NixOS 配置集合，支持多主机和多用户的模块化管理。
 
 ## Table of Contents
+
 - [NixOS Configuration](#nixos-configuration)
   - [Table of Contents](#table-of-contents)
   - [项目结构](#项目结构)
@@ -15,18 +16,19 @@
 
 ## 项目结构
 
-```
+```text
 .
 ├── flake.nix                # Flake 入口，定义 inputs/outputs
 ├── flake.lock               # Flake 锁定文件
 ├── hosts/                   # 各主机专属配置
 │   └── <hostname>/          # 某主机的配置目录
-│       ├── nixos.nix          # NixOS 系统配置
+│       ├── configuration.nix # NixOS 系统配置（原 nixos.nix）
 │       ├── home.nix           # Home Manager 用户配置
 │       └── hardware-configuration.nix # 硬件配置（自动生成）
 ├── modules/                 # 可复用模块
-│   ├── nixos/                 # NixOS 公共模块
+│   ├── system/                # NixOS 公共模块（原 modules/nixos）
 │   ├── home-manager/          # Home Manager 公共模块
+│   ├── services/              # 自定义服务模块（如 dufs、deeplx 等）
 │   └── overlays.nix           # overlay 配置（如引入 unstable 包）
 ├── users/                   # 用户专属配置
 │   └── <username>/            # 某用户的配置
@@ -36,6 +38,12 @@
 ├── justfile                 # 常用命令任务定义
 └── README.md                # 项目说明文档
 ```
+
+### 迁移说明（Breaking changes）
+
+- 主机入口文件从 `hosts/<name>/nixos.nix` 重命名为 `hosts/<name>/configuration.nix`。
+- 系统公共模块从 `modules/nixos/*` 迁移到 `modules/system/*`。
+- `flake.nix` 中每台主机的 `modules = [...]` 已指向新路径，无需额外操作。
 
 ## 常用命令
 
@@ -75,6 +83,7 @@
 ## Contributing
 
 We welcome contributions! Please:
+
 - Fork the repo and create a feature branch.
 - Follow Conventional Commits for commit messages.
 - Run `just fmt` and `just check` before submitting a PR.

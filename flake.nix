@@ -41,7 +41,7 @@
           system = "x86_64-linux";
           modules = [
             ./modules/overlays.nix
-            ./hosts/${hostname}/nixos.nix
+            ./hosts/${hostname}/configuration.nix
             ./hosts/${hostname}/home.nix
             ./users/${username}
           ];
@@ -59,7 +59,7 @@
           system = "x86_64-linux";
           modules = [
             ./modules/overlays.nix
-            ./hosts/${hostname}/nixos.nix
+            ./hosts/${hostname}/configuration.nix
             ./hosts/${hostname}/home.nix
             ./users/${username}
           ];
@@ -77,7 +77,7 @@
           system = "x86_64-linux";
           modules = [
             ./modules/overlays.nix
-            ./hosts/${hostname}/nixos.nix
+            ./hosts/${hostname}/configuration.nix
             ./hosts/${hostname}/home.nix
             ./users/${username}
           ];
@@ -95,7 +95,7 @@
           system = "x86_64-linux";
           modules = [
             ./modules/overlays.nix
-            ./hosts/${hostname}/nixos.nix
+            ./hosts/${hostname}/configuration.nix
             ./hosts/${hostname}/home.nix
             ./users/${username}
           ];

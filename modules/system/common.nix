@@ -70,7 +70,7 @@ in {
       auto-optimise-store = true;
       warn-dirty = false;
 
-      # 设置可信用户
+      # 设置信任用户
       trusted-users = [ "root" "@wheel" ];
       substituters = [
         # cache mirror located in China
