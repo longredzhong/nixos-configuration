@@ -3,8 +3,7 @@
 
   home = {
     username = "${username}";
-    homeDirectory = "/home/${username}";
-    stateVersion = "25.05";
+    # homeDirectory/stateVersion are defined in modules/home-manager/common.nix
   };
 
   # Reuse curated HM modules
@@ -13,29 +12,26 @@
     ../../modules/home-manager/cli-environment.nix
   ];
 
-  # User specific additions for dev environment
+  # User/host specific additions for dev environment (avoid duplicating shared modules)
   programs = {
-    # Shell & tools
-    fish.enable = true;
-    starship.enable = true;
+    # Provide identity and per-directory include; enable/delta come from shared git module
     git = {
-      enable = true;
       userName = "longred";
       userEmail = "longredzhong@outlook.com";
-      # Per-directory identity for adtiger projects
       includes = [{
         path = "~/.gitconfig-adtiger";
         condition = "gitdir:/home/longred/adtiger-project/";
       }];
     };
-    tmux.enable = true;
+
+    # direnv is not enabled in shared modules
     direnv = {
       enable = true;
       nix-direnv.enable = true;
     };
   };
 
-  # Packages for development (stable + unstable)
+  # Packages for development — keep host-specific tools; basics come from cli-environment
   home.packages = let
     stable = with pkgs; [
       gcc
@@ -52,23 +48,12 @@
       go
       rustup
       docker-compose
-      just
     ];
     unstable = with pkgs.unstable; [ uv bun gh ];
   in stable ++ unstable;
 
   # Basic editor variable
   home.sessionVariables.EDITOR = "nvim";
-
-  # Git delta pretty
-  programs.git.delta = {
-    enable = true;
-    options = {
-      line-numbers = true;
-      side-by-side = true;
-      navigate = true;
-    };
-  };
 
   # The included Git config file providing the adtiger identity
   home.file.".gitconfig-adtiger".text = ''
