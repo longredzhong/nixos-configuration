@@ -1,10 +1,5 @@
 { config, pkgs, inputs, username, hostname, channels, ... }: {
-  # Use unstable as an overlay namespace
-  nixpkgs = {
-    overlays =
-      (import ../../modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
-    config.allowUnfree = true;
-  };
+  # pkgs (with overlays/allowUnfree) is injected by flake via pkgsFor; don't redefine here
 
   home = {
     username = "${username}";
