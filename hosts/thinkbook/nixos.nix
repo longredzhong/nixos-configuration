@@ -2,17 +2,17 @@
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
-  ../../modules/system/common.nix
+    ../../modules/system/common.nix
     inputs.home-manager.nixosModules.home-manager
     inputs.nix-index-database.nixosModules.nix-index
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
     # ../../secrets/agenix-config.nix
-  ../../modules/kde.nix
-  ../../modules/flatpak.nix
-  ../../modules/pipewire.nix
-  ../../modules/intel.nix
-  ../../modules/wayland.nix
+    ../../modules/kde.nix
+    ../../modules/flatpak.nix
+    ../../modules/pipewire.nix
+    ../../modules/intel.nix
+    ../../modules/wayland.nix
   ];
 
   # Bootloader.

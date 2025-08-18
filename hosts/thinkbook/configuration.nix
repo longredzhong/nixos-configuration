@@ -8,11 +8,11 @@
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
     # ../../secrets/agenix-config.nix
-  ../../modules/system/desktop/kde.nix
-  ../../modules/system/apps/flatpak.nix
-  ../../modules/system/audio/pipewire.nix
-  ../../modules/system/hardware/intel.nix
-  ../../modules/system/desktop/wayland.nix
+    ../../modules/system/desktop/kde.nix
+    ../../modules/system/apps/flatpak.nix
+    ../../modules/system/audio/pipewire.nix
+    ../../modules/system/hardware/intel.nix
+    ../../modules/system/desktop/wayland.nix
   ];
 
   # Bootloader.
@@ -106,9 +106,7 @@
   nixpkgs.config.allowUnfree = true;
 
   environment.systemPackages = let
-    stable-packages = with pkgs; [
-      vlc
-    ];
+    stable-packages = with pkgs; [ vlc ];
     unstable-packages = with pkgs.unstable; [ ];
   in stable-packages ++ unstable-packages;
 

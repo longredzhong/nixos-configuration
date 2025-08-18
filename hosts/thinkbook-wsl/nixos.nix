@@ -3,8 +3,8 @@
     inputs.nixos-wsl.nixosModules.wsl
     inputs.home-manager.nixosModules.home-manager
     inputs.nix-index-database.nixosModules.nix-index
-  ../../modules/system/common.nix
-  ../../modules/system/wsl.nix
+    ../../modules/system/common.nix
+    ../../modules/system/wsl.nix
   ];
 
   environment.sessionVariables = {

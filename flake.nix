@@ -25,11 +25,11 @@
 
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
-  # Pinned nixpkgs for legacy qBittorrent (speeds up eval vs builtins.fetchGit)
-  qbittorrent-legacy = {
-    url = "github:NixOS/nixpkgs/ee355d50a38e489e722fcbc7a7e6e45f7c74ce95";
-    flake = false;
-  };
+    # Pinned nixpkgs for legacy qBittorrent (speeds up eval vs builtins.fetchGit)
+    qbittorrent-legacy = {
+      url = "github:NixOS/nixpkgs/ee355d50a38e489e722fcbc7a7e6e45f7c74ce95";
+      flake = false;
+    };
   };
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, nixos-wsl
     , agenix, nix-index-database, ... }: {
@@ -111,12 +111,14 @@
       # Standalone Home Manager configs (for non-NixOS hosts)
       homeConfigurations = let
         system = "x86_64-linux";
-        pkgsFor = nixpkgs: overlays: import nixpkgs {
-          inherit system;
-          config = { allowUnfree = true; };
-          overlays = overlays;
-        };
-        overlays = (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
+        pkgsFor = nixpkgs: overlays:
+          import nixpkgs {
+            inherit system;
+            config = { allowUnfree = true; };
+            overlays = overlays;
+          };
+        overlays =
+          (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
       in {
         # Current machine detected as `thinkbook-fedora`
         "longred@thinkbook-fedora" = home-manager.lib.homeManagerConfiguration {
@@ -127,9 +129,7 @@
             channels = { inherit nixpkgs nixpkgs-unstable; };
             inherit inputs;
           };
-          modules = [
-            ./users/longred/home-fedora.nix
-          ];
+          modules = [ ./users/longred/home-fedora.nix ];
         };
       };
 

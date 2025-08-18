@@ -7,14 +7,14 @@
     inputs.nix-index-database.nixosModules.nix-index
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
-  ../../modules/services/deeplx.nix
-  ../../modules/services/dufs.nix
+    ../../modules/services/deeplx.nix
+    ../../modules/services/dufs.nix
     ../../secrets/agenix-config.nix
-  ../../modules/system/desktop/kde.nix
-  ../../modules/system/apps/flatpak.nix
-  ../../modules/system/audio/pipewire.nix
-  ../../modules/system/hardware/intel.nix
-  ../../modules/system/desktop/wayland.nix
+    ../../modules/system/desktop/kde.nix
+    ../../modules/system/apps/flatpak.nix
+    ../../modules/system/audio/pipewire.nix
+    ../../modules/system/hardware/intel.nix
+    ../../modules/system/desktop/wayland.nix
   ];
   # Bootloader.
   boot.loader.systemd-boot.enable = true;
@@ -79,12 +79,7 @@
   nixpkgs.config.allowUnfree = true;
 
   environment.systemPackages = let
-    stable-packages = with pkgs; [
-      qbittorrent
-      vlc
-      acpi
-      powertop
-    ];
+    stable-packages = with pkgs; [ qbittorrent vlc acpi powertop ];
     unstable-packages = with pkgs.unstable; [ ];
   in stable-packages ++ unstable-packages;
 
