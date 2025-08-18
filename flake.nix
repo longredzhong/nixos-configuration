@@ -129,7 +129,7 @@
             channels = { inherit nixpkgs nixpkgs-unstable; };
             inherit inputs;
           };
-          modules = [ ./users/longred/home-fedora.nix ];
+          modules = [ ./users/longred/thinkbook-fedora.nix ];
         };
       };
 
