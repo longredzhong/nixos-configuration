@@ -69,6 +69,14 @@ in {
       experimental-features = [ "nix-command" "flakes" ];
       auto-optimise-store = true;
       warn-dirty = false;
+      # Parallelism and download concurrency
+      # Use all CPUs for individual builds
+      cores = 0; # 0 = auto-detect (all cores)
+      # Run as many parallel build jobs as available CPUs
+      max-jobs = "auto"; # or an integer like 4/8 for laptops
+      # Parallelize downloads/substitutions and increase HTTP connections
+      max-substitution-jobs = 16;
+      http-connections = 50;
 
       # 设置信任用户
       trusted-users = [ "root" "@wheel" ];
