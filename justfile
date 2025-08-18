@@ -22,11 +22,17 @@ check-fast:
 
 # 仅评估单个主机（最快速的健康检查）
 eval-host host=DEFAULT_HOST:
-    nix eval .#nixosConfigurations.{{host}}.config.system.build.toplevel.drvPath
+    #!/usr/bin/env sh
+    HOST="{{host}}"
+    HOST="${HOST#host=}"
+    nix eval ".#nixosConfigurations.${HOST}.config.system.build.toplevel.drvPath"
 
 # 仅评估单个 Home Manager 目标
 eval-home target=DEFAULT_TARGET:
-    nix eval .#homeConfigurations."{{target}}".activationPackage.drvPath
+    #!/usr/bin/env sh
+    TARGET="{{target}}"
+    TARGET="${TARGET#target=}"
+    nix eval ".#homeConfigurations.${TARGET}.activationPackage.drvPath"
 
 # 更新flake.lock中的依赖
 update:
@@ -38,15 +44,21 @@ update-input input:
 
 # 构建指定主机的系统配置
 build host=DEFAULT_HOST:
-    nixos-rebuild build --flake .#{{host}}
+    #!/usr/bin/env sh
+    HOST="{{host}}"; HOST="${HOST#host=}"
+    nixos-rebuild build --flake .#"${HOST}"
 
 # 构建并切换到指定主机的系统配置
 switch host=DEFAULT_HOST:
-    sudo -E nixos-rebuild switch --flake .#{{host}}
+    #!/usr/bin/env sh
+    HOST="{{host}}"; HOST="${HOST#host=}"
+    sudo -E nixos-rebuild switch --flake .#"${HOST}"
 
 # 构建并切换到指定主机的系统配置(以boot方式)
 boot host=DEFAULT_HOST:
-    sudo -E nixos-rebuild boot --flake .#{{host}}
+    #!/usr/bin/env sh
+    HOST="{{host}}"; HOST="${HOST#host=}"
+    sudo -E nixos-rebuild boot --flake .#"${HOST}"
 
 # 清理nix存储
 gc:
@@ -62,7 +74,9 @@ show-systems:
 
 # 虚拟机测试指定主机的配置
 vm host=DEFAULT_HOST:
-    nixos-rebuild build-vm --flake .#{{host}}
+    #!/usr/bin/env sh
+    HOST="{{host}}"; HOST="${HOST#host=}"
+    nixos-rebuild build-vm --flake .#"${HOST}"
 
 # 列出系统中所有的generations（世代）
 list-generations:
@@ -146,19 +160,27 @@ hm-show:
 
 # 构建 Home Manager 激活包（不应用）
 hm-build target=DEFAULT_TARGET:
-    {{NIXCMD}} build .#homeConfigurations."{{target}}".activationPackage -L
+    #!/usr/bin/env sh
+    TARGET="{{target}}"; TARGET="${TARGET#target=}"
+    {{NIXCMD}} build .#homeConfigurations."${TARGET}".activationPackage -L
 
 # 干跑切换（仅预览变更）
 hm-dry-run target=DEFAULT_TARGET:
-    {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}} --dry-run
+    #!/usr/bin/env sh
+    TARGET="{{target}}"; TARGET="${TARGET#target=}"
+    {{NIXCMD}} run {{HM}} -- switch --flake .#"${TARGET}" --dry-run
 
 # 切换并自动备份 HOME 中冲突文件
 hm-switch target=DEFAULT_TARGET:
-    {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}} -b backup
+    #!/usr/bin/env sh
+    TARGET="{{target}}"; TARGET="${TARGET#target=}"
+    {{NIXCMD}} run {{HM}} -- switch --flake .#"${TARGET}" -b backup
 
 # 无备份直接切换（谨慎使用）
 hm-switch-no-backup target=DEFAULT_TARGET:
-    {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}}
+    #!/usr/bin/env sh
+    TARGET="{{target}}"; TARGET="${TARGET#target=}"
+    {{NIXCMD}} run {{HM}} -- switch --flake .#"${TARGET}"
 
 # 查看 Home Manager news 提示
 hm-news:
