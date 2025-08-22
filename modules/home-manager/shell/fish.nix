@@ -50,8 +50,8 @@
       # >>> mamba initialize >>>
       # !! Contents within this block are managed by 'micromamba shell init' !!
       # set -gx MAMBA_EXE "/home/${config.home.username}/.pixi/bin/micromamba" # 使用 nix 安装的 micromamba
-      # set -gx MAMBA_ROOT_PREFIX "/home/${config.home.username}/.local/share/mamba" # 保持用户目录
-      # $MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source
+      set -gx MAMBA_ROOT_PREFIX "/home/${config.home.username}/.local/share/mamba" # 保持用户目录
+      $MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source
       # <<< mamba initialize <<<
 
       # --- Pixi 初始化 ---
