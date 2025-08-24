@@ -16,12 +16,13 @@ let
         config = { allowUnfree = true; };
       };
     in { qbittorrent_4_1_9_1 = oldPkgs.qbittorrent; };
-in { nixpkgs.overlays = [ unstableOverlay qbittorrentLegacyOverlay ]; }
-  // { nixpkgs.overlays = [
+in {
+  nixpkgs.overlays = [ unstableOverlay qbittorrentLegacyOverlay ];
+} // {
+  nixpkgs.overlays = [
     unstableOverlay
     qbittorrentLegacyOverlay
     # Custom local packages
-    (final: prev: {
-      pixi = prev.callPackage ../pkgs/pixi { };
-    })
-  ]; }
+    (final: prev: { pixi = prev.callPackage ../pkgs/pixi { }; })
+  ];
+}

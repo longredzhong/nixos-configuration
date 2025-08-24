@@ -1,15 +1,5 @@
-{ lib
-, stdenv
-, rustPlatform
-, fetchFromGitHub
-, pkg-config
-, installShellFiles
-, libgit2
-, openssl
-, buildPackages
-, versionCheckHook
-, nix-update-script
-}:
+{ lib, stdenv, rustPlatform, fetchFromGitHub, pkg-config, installShellFiles
+, libgit2, openssl, buildPackages, versionCheckHook, nix-update-script }:
 
 # Custom packaged pixi (pinned) – local override / addition
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -25,15 +15,9 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-FWjZiBMSUFBIi+Sx5FTp2UZa12b+pmtx1eqVETHQWEQ=";
 
-  nativeBuildInputs = [
-    pkg-config
-    installShellFiles
-  ];
+  nativeBuildInputs = [ pkg-config installShellFiles ];
 
-  buildInputs = [
-    libgit2
-    openssl
-  ];
+  buildInputs = [ libgit2 openssl ];
 
   env = {
     LIBGIT2_NO_VENDOR = 1;
@@ -43,17 +27,15 @@ rustPlatform.buildRustPackage (finalAttrs: {
   # Upstream test suite currently flaky / failing; disable for now.
   doCheck = false;
 
-  postInstall = lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) (
-    let
-      emulator = stdenv.hostPlatform.emulator buildPackages;
-    in
-    ''
+  postInstall =
+    lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages)
+    (let emulator = stdenv.hostPlatform.emulator buildPackages;
+    in ''
       installShellCompletion --cmd pixi \
         --bash <(${emulator} $out/bin/pixi completion --shell bash) \
         --fish <(${emulator} $out/bin/pixi completion --shell fish) \
         --zsh <(${emulator} $out/bin/pixi completion --shell zsh)
-    ''
-  );
+    '');
 
   nativeInstallCheckInputs = [ versionCheckHook ];
   versionCheckProgramArg = "--version";

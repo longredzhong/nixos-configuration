@@ -133,13 +133,16 @@
         };
       };
 
-        # Expose custom packages for convenience (nix build .#pixi)
-        packages.x86_64-linux = let
-          overlays = (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
-          pkgs = import nixpkgs { system = "x86_64-linux"; overlays = overlays; config.allowUnfree = true; };
-        in {
-          inherit (pkgs) pixi;
+      # Expose custom packages for convenience (nix build .#pixi)
+      packages.x86_64-linux = let
+        overlays =
+          (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
+        pkgs = import nixpkgs {
+          system = "x86_64-linux";
+          overlays = overlays;
+          config.allowUnfree = true;
         };
+      in { inherit (pkgs) pixi; };
 
     };
 }
