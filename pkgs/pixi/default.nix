@@ -4,19 +4,18 @@
 # Custom packaged pixi (pinned) – local override / addition
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "pixi";
-  version = "0.52.0"; # Update here when bumping
+  version = "0.53.0"; # Updated version
 
   src = fetchFromGitHub {
     owner = "prefix-dev";
     repo = "pixi";
     rev = "v${finalAttrs.version}"; # upstream tags are vX.Y.Z
-    hash = "sha256-zmFoIoyTYq/xqPNBuy90aK/Ao1DGx+3Jb1zzatNY7+Q=";
+    hash = "sha256-cWoepvnolVyUyDlYakxQLNkOOP9ZbBwe5EaWbYTz+Gs=";
   };
 
-  cargoHash = "sha256-FWjZiBMSUFBIi+Sx5FTp2UZa12b+pmtx1eqVETHQWEQ=";
+  cargoHash = "sha256-3Sd+EjpSYbexmnUAwLps/Hrj7anpyurbzZlVs2hZk4E=";
 
   nativeBuildInputs = [ pkg-config installShellFiles ];
-
   buildInputs = [ libgit2 openssl ];
 
   env = {
@@ -24,8 +23,7 @@ rustPlatform.buildRustPackage (finalAttrs: {
     OPENSSL_NO_VENDOR = 1;
   };
 
-  # Upstream test suite currently flaky / failing; disable for now.
-  doCheck = false;
+  doCheck = false; # upstream tests flaky currently
 
   postInstall =
     lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages)
