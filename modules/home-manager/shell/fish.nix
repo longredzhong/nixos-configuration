@@ -4,23 +4,27 @@
 
     # --- Shell 初始化脚本 ---
     shellInit = ''
-      # 设置 PATH 环境变量
+      # 基础 PATH
       fish_add_path $HOME/.local/bin
       fish_add_path $HOME/.cargo/bin
+      # -------- PIXI Global 路径 --------
+      if test -d "$HOME/.pixi/bin"; and not contains -- $HOME/.pixi/bin $fish_user_paths
+        fish_add_path $HOME/.pixi/bin
+      end
+      # -------- Go 路径 --------
+      fish_add_path $HOME/go/bin
     '';
 
     interactiveShellInit = ''
-      # 增加历史记录限制
+      # -------- 历史与提示 --------
       set -g fish_history_max_length 10000
-
-      # 启用 any-nix-shell 集成
-      ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
-
-      # 禁用默认的 fish 欢迎语
       set -U fish_greeting
 
-      # --- 颜色和样式配置 ---
-      # 基础颜色设置优化
+      if status --is-interactive
+        ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
+      end
+
+      # -------- 颜色主题 --------
       set -g fish_color_normal normal
       set -g fish_color_command cyan --bold
       set -g fish_color_param green
@@ -35,34 +39,16 @@
       set -g fish_color_valid_path cyan --underline
       set -g fish_color_cwd green --bold
       set -g fish_color_cwd_root red --bold
-
-      # 目录补全菜单样式优化
       set -g fish_pager_color_prefix magenta --bold
       set -g fish_pager_color_completion normal
       set -g fish_pager_color_progress white --background=cyan
-
-      # 选中项样式优化
       set -g fish_pager_color_selected_background --background=brblue
       set -g fish_pager_color_selected_prefix yellow --bold --background=brblue
       set -g fish_pager_color_selected_completion white --background=brblue
 
-      # --- Micromamba 初始化 ---
-      # >>> mamba initialize >>>
-      # !! Contents within this block are managed by 'micromamba shell init' !!
-      # set -gx MAMBA_EXE "/home/${config.home.username}/.pixi/bin/micromamba" # 使用 nix 安装的 micromamba
-      set -gx MAMBA_ROOT_PREFIX "/home/${config.home.username}/.local/share/mamba" # 保持用户目录
-      $MAMBA_EXE shell hook --shell fish --root-prefix $MAMBA_ROOT_PREFIX | source
-      # <<< mamba initialize <<<
-
-      # --- Pixi 初始化 ---
-      # ${pkgs.unstable.pixi}/bin/pixi completion --shell fish | source
-      # fish_add_path $HOME/.pixi/bin
-      set -gx PIXI_CACHE_DIR "$HOME/.cache/rattler/cache" # 设置 PIXI 缓存目录
-      # 设置 UV_CACHE_DIR 环境变量, UV 与 PIXI 复用 pip 缓存
-      set -gx UV_CACHE_DIR "$HOME/.cache/rattler/cache/uv-cache"
-
-      # -- go bin 路径设置 --
-      fish_add_path $HOME/go/bin
+      # -------- Pixi 优化 --------
+      set -gx PIXI_CACHE_DIR "$HOME/.cache/rattler/cache"
+      set -gx UV_CACHE_DIR "$PIXI_CACHE_DIR/uv-cache"
     '';
 
     # --- 自定义函数 ---
@@ -130,12 +116,7 @@
       '';
       # 取消代理设置
       unset_proxy = ''
-        set -e http_proxy
-        set -e https_proxy
-        set -e no_proxy
-        set -e HTTP_PROXY
-        set -e HTTPS_PROXY
-        set -e NO_PROXY
+        set -e http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
       '';
     };
 
