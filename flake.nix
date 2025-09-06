@@ -120,16 +120,16 @@
         overlays =
           (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
       in {
-        # Current machine detected as `thinkbook-fedora`
-        "longred@thinkbook-fedora" = home-manager.lib.homeManagerConfiguration {
+        # Current machine detected as `fedora-thinkbook`
+        "longred@fedora-thinkbook" = home-manager.lib.homeManagerConfiguration {
           pkgs = pkgsFor nixpkgs overlays;
           extraSpecialArgs = {
             username = "longred";
-            hostname = "thinkbook-fedora";
+            hostname = "fedora-thinkbook";
             channels = { inherit nixpkgs nixpkgs-unstable; };
             inherit inputs;
           };
-          modules = [ ./users/longred/thinkbook-fedora.nix ];
+          modules = [ ./users/longred/fedora-thinkbook.nix ];
         };
       };
 

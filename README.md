@@ -111,7 +111,7 @@ WSL 与 NixOS 主机步骤类似，但需要导入 WSL 专属模块：
 
 1. 新建用户配置模块，例如：`users/<username>/home-<host>.nix`。
    - 复用 `modules/home-manager/common.nix`、`shell/*`、`desktop/*` 等共享模块。
-2. 在 `flake.nix` 的 `homeConfigurations` 中复制现有条目（例如 `"longred@thinkbook-fedora"`），修改：
+2. 在 `flake.nix` 的 `homeConfigurations` 中复制现有条目（例如 `"longred@fedora-thinkbook"`），修改：
    - `pkgs`：保留 `pkgsFor nixpkgs overlays`（已包含 overlays 与 `allowUnfree`）。
    - `extraSpecialArgs`：设置你的 `username`、`hostname`。
    - `modules`：指向你在第 1 步创建的文件。
