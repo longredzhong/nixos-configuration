@@ -44,12 +44,21 @@
     type = "fcitx5";
     fcitx5.addons = with pkgs; [
       fcitx5-gtk
-      fcitx5-chinese-addons
-      fcitx5-nord
       fcitx5-rime
+      fcitx5-chinese-addons
+      fcitx5-configtool
+      fcitx5-nord
       rime-data
     ];
     fcitx5.waylandFrontend = true;
+  };
+  environment.variables = {
+    XIM = "fcitx";
+    GTK_IM_MODULE = "fcitx";
+    QT_IM_MODULE = "fcitx";
+    XMODIFIERS = "@im=fcitx";
+    INPUT_METHOD = "fcitx";
+    SDL_IM_MODULE = "fcitx";
   };
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";

@@ -4,7 +4,7 @@ let
   hmOverlays = overlayModule.nixpkgs.overlays;
 in {
   imports = [ inputs.home-manager.nixosModules.home-manager ];
-  home-manager.backupFileExtension = "backup";
+  home-manager.backupFileExtension = "backups";
   home-manager.sharedModules =
     [ inputs.plasma-manager.homeManagerModules.plasma-manager ];
   home-manager.users.${username} = {

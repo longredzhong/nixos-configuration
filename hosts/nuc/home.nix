@@ -4,9 +4,9 @@ let
   hmOverlays = overlayModule.nixpkgs.overlays;
 in {
   imports = [ inputs.home-manager.nixosModules.home-manager ];
-  home-manager.backupFileExtension = "backup";
+  home-manager.backupFileExtension = "backups";
   home-manager.sharedModules =
-    [ inputs.plasma-manager.homeManagerModules.plasma-manager ];
+    [ inputs.plasma-manager.homeModules.plasma-manager ];
   home-manager.users.${username} = {
     imports = [
       ../../modules/home-manager/common.nix
@@ -38,5 +38,13 @@ in {
     in stable-packages ++ unstable-packages;
 
     programs = { kitty.enable = true; };
+    home.sessionVariables = {
+      XIM = "fcitx";
+      GTK_IM_MODULE = "fcitx";
+      QT_IM_MODULE = "fcitx";
+      XMODIFIERS = "@im=fcitx";
+      INPUT_METHOD = "fcitx";
+      SDL_IM_MODULE = "fcitx";
+    };
   };
 }
