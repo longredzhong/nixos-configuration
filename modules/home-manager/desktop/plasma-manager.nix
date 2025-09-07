@@ -243,8 +243,8 @@
       AC = {
         powerButtonAction = "lockScreen";
         autoSuspend = {
-          action = "shutDown";
-          idleTimeout = 1000;
+          action = "nothing";
+          idleTimeout = null;
         };
         turnOffDisplay = {
           idleTimeout = 1000;
