@@ -7,23 +7,15 @@
     inputs.nix-index-database.nixosModules.nix-index
     inputs.agenix.nixosModules.default
     # Import the new agenix config module, not the secrets data file
-    # ../../secrets/agenix-config.nix
+    ../../secrets/agenix-config.nix
     ../../modules/kde.nix
     ../../modules/flatpak.nix
     ../../modules/pipewire.nix
     ../../modules/intel.nix
     ../../modules/wayland.nix
   ];
-
   # Bootloader.
-  # 推荐仅启用 grub，自动检测 Windows 启动项
-  boot.loader.systemd-boot.enable = false;
-  boot.loader.grub = {
-    enable = true;
-    efiSupport = true;
-    useOSProber = true; # 允许自动检测 Windows
-    device = "nodev";
-  };
+  boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
   networking.hostName = "${hostname}"; # Define your hostname.
@@ -55,32 +47,20 @@
   };
 
   i18n.inputMethod = {
-    enabled = "fcitx5";
-    fcitx5 = {
-      waylandFrontend = false;
-      plasma6Support = true;
-      addons = with pkgs; [
-        rime-data
-        fcitx5-rime
-        fcitx5-gtk
-        fcitx5-chinese-addons
-
-        # ColorScheme
-        fcitx5-nord
-        fcitx5-rose-pine
-      ];
-    };
+    enable = true;
+    type = "fcitx5";
+    fcitx5.addons = with pkgs; [
+      fcitx5-gtk
+      fcitx5-chinese-addons
+      fcitx5-nord
+      fcitx5-rime
+      rime-data
+    ];
+    fcitx5.waylandFrontend = true;
   };
-  # Enable the X11 windowing system.
-  services.xserver.enable = true;
-
   environment.sessionVariables = {
-
+    NIXOS_OZONE_WL = "1";
   };
-
-  # Enable CUPS to print documents.
-  services.printing.enable = true;
-
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;
   security.rtkit.enable = true;
@@ -139,5 +119,4 @@
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   networking.firewall.enable = false;
-
 }

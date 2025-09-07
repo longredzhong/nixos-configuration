@@ -61,7 +61,6 @@
     fcitx5.waylandFrontend = true;
   };
   environment.sessionVariables = {
-    COSMIC_DATA_CONTROL_ENABLED = 1;
     NIXOS_OZONE_WL = "1";
   };
   # Enable sound with pipewire.

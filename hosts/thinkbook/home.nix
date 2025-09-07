@@ -22,12 +22,12 @@ in {
         noto-fonts-cjk-sans
         nerd-fonts.fira-code
         fontconfig
-
+        mihomo-party
       ];
 
       unstable-packages = with pkgs.unstable; [
         # 不稳定版本的软件包 (仅保留此主机特有的)
-        mihomo-party
+        sparkle
         vscode
         google-chrome
         bitwarden-desktop

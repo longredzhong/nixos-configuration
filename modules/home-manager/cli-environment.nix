@@ -57,12 +57,10 @@
       just # 任务运行器
       direnv # 环境变量管理
 
-      # --- 包 / 环境管理 ---
-      pixi # 自定义 overlay 中的 pixi
-      mamba-cpp # mamba-cpp (替代 micromamba)，fish 中懒加载 hook
     ];
     unstablePackages = with pkgs.unstable; [
       # 需要不稳定源的包可放这里
+      pixi
     ];
   in stablePackages ++ unstablePackages;
 
