@@ -3,7 +3,7 @@
   xdg.dataFile = {
     "fcitx5/rime" = {
       source = "${pkgs.unstable.rime-ice}/share/rime-data";
-      # source = "${pkgs.rime-frost}/share/rime-data";
+      # source = "${pkgs.unstable.rime-frost}/share/rime-data";
       recursive = true;
     };
     "fcitx5/rime/default.custom.yaml".text = ''
@@ -11,10 +11,9 @@
 
       patch:
         __include: rime_ice_suggestion:/
-        __patch:
-          menu/page_size: 9
-          switcher/hotkeys:
-            - "F4"
+        menu/page_size: 9
+        switcher/hotkeys:
+          - "F4"
     '';
   };
 }

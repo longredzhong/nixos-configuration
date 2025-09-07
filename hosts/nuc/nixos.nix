@@ -58,7 +58,7 @@
       fcitx5-rime
       rime-data
     ];
-    fcitx5.waylandFrontend = true;
+    fcitx5.waylandFrontend = false;
   };
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
