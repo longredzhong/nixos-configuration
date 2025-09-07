@@ -62,6 +62,11 @@
   };
   environment.sessionVariables = {
     NIXOS_OZONE_WL = "1";
+    XIM = "fcitx";
+    GTK_IM_MODULE = "fcitx";
+    QT_IM_MODULE = "fcitx";
+    XMODIFIERS = "@im=fcitx";
+
   };
   # Enable sound with pipewire.
   services.pulseaudio.enable = false;
