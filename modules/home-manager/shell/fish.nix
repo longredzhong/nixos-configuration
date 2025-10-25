@@ -146,12 +146,12 @@
       la = "eza -la -g --icons";
       lt = "eza --tree --level=2 --icons";
       l = "eza -1 --icons";
-      cat = "bat"; # 使用 bat 替代 cat
-      grep = "rg"; # 使用 ripgrep 替代 grep
-      find = "fd"; # 使用 fd 替代 find
-      df = "duf"; # 使用 duf 替代 df
-      top = "btop"; # 使用 btop 替代 top/htop
-      dig = "dog"; # 使用 dog 替代 dig
+      # cat = "bat"; # 使用 bat 替代 cat
+      # grep = "rg"; # 使用 ripgrep 替代 grep
+      # find = "fd"; # 使用 fd 替代 find
+      # df = "duf"; # 使用 duf 替代 df
+      # top = "btop"; # 使用 btop 替代 top/htop
+      # dig = "dog"; # 使用 dog 替代 dig
     };
 
     # --- Shell 别名 ---
