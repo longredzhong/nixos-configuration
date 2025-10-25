@@ -125,6 +125,16 @@
           };
           modules = [ ./users/longred/fedora-thinkbook.nix ];
         };
+        "longred@nuc" = home-manager.lib.homeManagerConfiguration {
+          pkgs = pkgsFor nixpkgs overlays;
+          extraSpecialArgs = {
+            username = "longred";
+            hostname = "nuc";
+            channels = { inherit nixpkgs nixpkgs-unstable; };
+            inherit inputs;
+          };
+          modules = [ ./users/longred/nuc.nix ];
+        };
       };
 
       # Expose custom packages for convenience (nix build .#pixi)
