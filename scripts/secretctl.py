@@ -125,12 +125,12 @@ class SecretCtl:
     def check_consistency(self):
         """检查密钥映射与实际文件的一致性"""
         secret_mappings = self.get_secret_mappings()
-        actual_files = [f.name for f in self.secrets_dir.glob("*.age")]
+        actual_files = set(f.name for f in self.secrets_dir.glob("*.age"))
 
-        missing_in_mapping = [f for f in actual_files if f not in secret_mappings]
-        missing_files = [
+        missing_in_mapping = sorted(f for f in actual_files if f not in secret_mappings)
+        missing_files = sorted(
             f for f in secret_mappings if not (self.secrets_dir / f).exists()
-        ]
+        )
 
         if missing_in_mapping:
             print("错误: 存在但未在secretMappings中定义的.age文件:")
@@ -331,11 +331,13 @@ class SecretCtl:
     def expand_recipients(self, recipients):
         """将 keyGroups.xxx 自动展开为实际公钥列表"""
         expanded = []
+        secrets_import = "(import ./secrets/secrets.nix { lib = builtins // (import <nixpkgs/lib>); })"
+        
         for r in recipients:
             if r.startswith("keyGroups."):
                 group_name = r[len("keyGroups.") :]
                 # 获取该组所有公钥
-                expr = f"(import ./secrets/secrets.nix {{ lib = builtins // (import <nixpkgs/lib>); }}).groupToKeys (import ./secrets/secrets.nix {{ lib = builtins // (import <nixpkgs/lib>); }}).keyGroups.{group_name}"
+                expr = f"{secrets_import}.groupToKeys {secrets_import}.keyGroups.{group_name}"
                 try:
                     keys = self.run_nix_eval(expr)
                     expanded.extend(keys)
@@ -383,6 +385,44 @@ class SecretCtl:
             print(f"加密失败: {e}", file=sys.stderr)
             return False
 
+    def _try_decrypt(self, age_file, tmp_path, identity=None):
+        """尝试解密文件，返回是否成功"""
+        decrypt_cmd = ["age", "--decrypt"]
+        if identity:
+            decrypt_cmd.extend(["-i", identity])
+        decrypt_cmd.extend(["-o", tmp_path, age_file])
+        
+        try:
+            subprocess.run(decrypt_cmd, check=True, capture_output=True)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def _decrypt_with_fallback(self, age_file, tmp_path, identity=None):
+        """尝试解密文件，如果失败则尝试默认身份"""
+        if identity and self._try_decrypt(age_file, tmp_path, identity):
+            return True
+        
+        if not identity:
+            # 首次尝试不带身份参数
+            if self._try_decrypt(age_file, tmp_path):
+                return True
+        
+        # 尝试默认路径
+        print("尝试默认密钥路径...", file=sys.stderr)
+        default_identities = [
+            os.path.expanduser("~/.ssh/id_ed25519"),
+            "/etc/ssh/ssh_host_ed25519_key",
+        ]
+        for ident in default_identities:
+            if os.path.exists(ident):
+                if self._try_decrypt(age_file, tmp_path, ident):
+                    print(f"使用密钥 {ident} 解密成功")
+                    return True
+        
+        print("无法解密文件。请提供有效的私钥。", file=sys.stderr)
+        return False
+
     def decrypt_edit_reencrypt(self, age_file, identity=None):
         """解密、编辑并重新加密文件"""
         if not os.path.exists(age_file):
@@ -407,44 +447,9 @@ class SecretCtl:
 
         try:
             # 解密到临时文件
-            decrypt_cmd = ["age", "--decrypt"]
-            if identity:
-                decrypt_cmd.extend(["-i", identity])
-            decrypt_cmd.extend(["-o", tmp_path, age_file])
-
-            try:
-                subprocess.run(decrypt_cmd, check=True)
-            except subprocess.CalledProcessError:
-                print("解密失败。尝试其他私钥...", file=sys.stderr)
-                # 尝试默认路径
-                default_identities = [
-                    os.path.expanduser("~/.ssh/id_ed25519"),
-                    "/etc/ssh/ssh_host_ed25519_key",
-                ]
-                decrypted = False
-                for ident in default_identities:
-                    if os.path.exists(ident):
-                        try:
-                            decrypt_cmd = [
-                                "age",
-                                "--decrypt",
-                                "-i",
-                                ident,
-                                "-o",
-                                tmp_path,
-                                age_file,
-                            ]
-                            subprocess.run(decrypt_cmd, check=True)
-                            decrypted = True
-                            print(f"使用密钥 {ident} 解密成功")
-                            break
-                        except subprocess.CalledProcessError:
-                            continue
-
-                if not decrypted:
-                    print("无法解密文件。请提供有效的私钥。", file=sys.stderr)
-                    os.unlink(tmp_path)
-                    return False
+            if not self._decrypt_with_fallback(age_file, tmp_path, identity):
+                os.unlink(tmp_path)
+                return False
 
             # 获取文件修改时间以检测编辑
             initial_mtime = os.path.getmtime(tmp_path)
@@ -550,7 +555,6 @@ class SecretCtl:
 
     def rekey_age_file(self, age_file, new_recipients, identity=None):
         """更改机密文件的接收者，支持密钥组"""
-        # 类似于edit，但使用新的接收者
         if not os.path.exists(age_file):
             print(f"错误: 文件 '{age_file}' 不存在", file=sys.stderr)
             return False
@@ -566,44 +570,9 @@ class SecretCtl:
 
         try:
             # 解密到临时文件
-            decrypt_cmd = ["age", "--decrypt"]
-            if identity:
-                decrypt_cmd.extend(["-i", identity])
-            decrypt_cmd.extend(["-o", tmp_path, age_file])
-
-            try:
-                subprocess.run(decrypt_cmd, check=True)
-            except subprocess.CalledProcessError:
-                print("解密失败。尝试其他私钥...", file=sys.stderr)
-                # 尝试默认路径
-                default_identities = [
-                    os.path.expanduser("~/.ssh/id_ed25519"),
-                    "/etc/ssh/ssh_host_ed25519_key",
-                ]
-                decrypted = False
-                for ident in default_identities:
-                    if os.path.exists(ident):
-                        try:
-                            decrypt_cmd = [
-                                "age",
-                                "--decrypt",
-                                "-i",
-                                ident,
-                                "-o",
-                                tmp_path,
-                                age_file,
-                            ]
-                            subprocess.run(decrypt_cmd, check=True)
-                            decrypted = True
-                            print(f"使用密钥 {ident} 解密成功")
-                            break
-                        except subprocess.CalledProcessError:
-                            continue
-
-                if not decrypted:
-                    print("无法解密文件。请提供有效的私钥。", file=sys.stderr)
-                    os.unlink(tmp_path)
-                    return False
+            if not self._decrypt_with_fallback(age_file, tmp_path, identity):
+                os.unlink(tmp_path)
+                return False
 
             # 展开密钥组
             real_recipients = self.expand_recipients(new_recipients)
