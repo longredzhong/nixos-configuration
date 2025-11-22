@@ -26,114 +26,78 @@
     nix-flatpak.url = "github:gmodena/nix-flatpak";
   };
   outputs = inputs@{ self, nixpkgs, nixpkgs-unstable, home-manager, nixos-wsl
-    , agenix, nix-index-database, ... }: {
+    , agenix, nix-index-database, ... }:
+    let
+      # Helper function to create NixOS system configurations
+      mkNixosSystem = { username, hostname, system ? "x86_64-linux" }:
+        let
+          specialArgs = {
+            inherit username hostname;
+            channels = { inherit nixpkgs nixpkgs-unstable; };
+            inherit inputs;
+          };
+        in nixpkgs.lib.nixosSystem {
+          inherit specialArgs system;
+          modules = [
+            ./modules/overlays.nix
+            ./hosts/${hostname}/configuration.nix
+            ./hosts/${hostname}/home.nix
+            ./users/${username}
+          ];
+        };
+    in {
       nixosConfigurations = {
-        metacube-wsl = let
+        metacube-wsl = mkNixosSystem {
           username = "longred";
           hostname = "metacube-wsl";
-          specialArgs = {
-            inherit username hostname;
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
-          };
-        in nixpkgs.lib.nixosSystem {
-          inherit specialArgs;
-          system = "x86_64-linux";
-          modules = [
-            ./modules/overlays.nix
-            ./hosts/${hostname}/configuration.nix
-            ./hosts/${hostname}/home.nix
-            ./users/${username}
-          ];
         };
-        thinkbook-wsl = let
+        thinkbook-wsl = mkNixosSystem {
           username = "longred";
           hostname = "thinkbook-wsl";
-          specialArgs = {
-            inherit username hostname;
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
-          };
-        in nixpkgs.lib.nixosSystem {
-          inherit specialArgs;
-          system = "x86_64-linux";
-          modules = [
-            ./modules/overlays.nix
-            ./hosts/${hostname}/configuration.nix
-            ./hosts/${hostname}/home.nix
-            ./users/${username}
-          ];
         };
-        nuc = let
+        nuc = mkNixosSystem {
           username = "longred";
           hostname = "nuc";
-          specialArgs = {
-            inherit username hostname;
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
-          };
-        in nixpkgs.lib.nixosSystem {
-          inherit specialArgs;
-          system = "x86_64-linux";
-          modules = [
-            ./modules/overlays.nix
-            ./hosts/${hostname}/configuration.nix
-            ./hosts/${hostname}/home.nix
-            ./users/${username}
-          ];
         };
-        thinkbook = let
+        thinkbook = mkNixosSystem {
           username = "longred";
           hostname = "thinkbook";
-          specialArgs = {
-            inherit username hostname;
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
-          };
-        in nixpkgs.lib.nixosSystem {
-          inherit specialArgs;
-          system = "x86_64-linux";
-          modules = [
-            ./modules/overlays.nix
-            ./hosts/${hostname}/configuration.nix
-            ./hosts/${hostname}/home.nix
-            ./users/${username}
-          ];
         };
       };
 
       # Standalone Home Manager configs (for non-NixOS hosts)
       homeConfigurations = let
         system = "x86_64-linux";
-        pkgsFor = nixpkgs: overlays:
-          import nixpkgs {
-            inherit system;
-            config = { allowUnfree = true; };
-            overlays = overlays;
-          };
         overlays =
           (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
+        pkgs = import nixpkgs {
+          inherit system;
+          config = { allowUnfree = true; };
+          overlays = overlays;
+        };
+        
+        # Helper function to create Home Manager configurations
+        mkHomeConfig = { username, hostname, module }:
+          home-manager.lib.homeManagerConfiguration {
+            inherit pkgs;
+            extraSpecialArgs = {
+              inherit username hostname;
+              channels = { inherit nixpkgs nixpkgs-unstable; };
+              inherit inputs;
+            };
+            modules = [ module ];
+          };
       in {
         # Current machine detected as `fedora-thinkbook`
-        "longred@fedora-thinkbook" = home-manager.lib.homeManagerConfiguration {
-          pkgs = pkgsFor nixpkgs overlays;
-          extraSpecialArgs = {
-            username = "longred";
-            hostname = "fedora-thinkbook";
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
-          };
-          modules = [ ./users/longred/fedora-thinkbook.nix ];
+        "longred@fedora-thinkbook" = mkHomeConfig {
+          username = "longred";
+          hostname = "fedora-thinkbook";
+          module = ./users/longred/fedora-thinkbook.nix;
         };
-        "longred@nuc" = home-manager.lib.homeManagerConfiguration {
-          pkgs = pkgsFor nixpkgs overlays;
-          extraSpecialArgs = {
-            username = "longred";
-            hostname = "nuc";
-            channels = { inherit nixpkgs nixpkgs-unstable; };
-            inherit inputs;
-          };
-          modules = [ ./users/longred/nuc.nix ];
+        "longred@nuc" = mkHomeConfig {
+          username = "longred";
+          hostname = "nuc";
+          module = ./users/longred/nuc.nix;
         };
       };
 
@@ -143,10 +107,12 @@
           (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
         pkgs = import nixpkgs {
           system = "x86_64-linux";
-          overlays = overlays;
+          inherit overlays;
           config.allowUnfree = true;
         };
-      in { inherit (pkgs) pixi; };
+      in {
+        inherit (pkgs) pixi mamba-cpp;
+      };
 
     };
 }
