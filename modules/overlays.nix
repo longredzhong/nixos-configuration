@@ -17,8 +17,6 @@ let
       };
     in { qbittorrent_4_1_9_1 = oldPkgs.qbittorrent; };
 in {
-  nixpkgs.overlays = [ unstableOverlay qbittorrentLegacyOverlay ];
-} // {
   nixpkgs.overlays = [
     unstableOverlay
     qbittorrentLegacyOverlay
