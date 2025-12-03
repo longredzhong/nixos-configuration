@@ -10,7 +10,14 @@
   imports = [
     ../../modules/home-manager/common.nix
     ../../modules/home-manager/cli-environment.nix
+    inputs.try.homeModules.default
   ];
+
+  # try - fresh directories for every vibe
+  programs.try = {
+    enable = true;
+    path = "~/experimentals";
+  };
 
   # User/host specific additions for dev environment (avoid duplicating shared modules)
   programs = {
