@@ -59,12 +59,11 @@
     type = "fcitx5";
     fcitx5 = {
       waylandFrontend = false;
-      plasma6Support = true;
       addons = with pkgs; [
         rime-data
         fcitx5-rime
         fcitx5-gtk
-        fcitx5-chinese-addons
+        qt6Packages.fcitx5-chinese-addons
 
         # ColorScheme
         fcitx5-nord

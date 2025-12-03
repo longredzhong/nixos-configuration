@@ -2,8 +2,10 @@
   home-manager.users.longred = {
     programs = {
       git = {
-        userEmail = "longredzhong@outlook.com";
-        userName = "longred";
+        settings = {
+          user.email = "longredzhong@outlook.com";
+          user.name = "longred";
+        };
       };
     };
     home.packages = with pkgs; [ gh ];

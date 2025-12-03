@@ -6,7 +6,7 @@ in {
   imports = [ inputs.home-manager.nixosModules.home-manager ];
   home-manager.backupFileExtension = "backups";
   home-manager.sharedModules =
-    [ inputs.plasma-manager.homeManagerModules.plasma-manager ];
+    [ inputs.plasma-manager.homeModules.plasma-manager ];
   home-manager.users.${username} = {
     imports = [
       ../../modules/home-manager/common.nix
@@ -14,7 +14,6 @@ in {
       ../../modules/home-manager/cli-environment.nix
     ];
     nixpkgs.overlays = hmOverlays;
-    nixpkgs.config.permittedInsecurePackages = [ "mihomo-party-1.7.3" ];
     xdg.enable = true;
     home.packages = let
       stable-packages = with pkgs; [
@@ -22,7 +21,6 @@ in {
         noto-fonts-cjk-sans
         nerd-fonts.fira-code
         fontconfig
-        mihomo-party
       ];
 
       unstable-packages = with pkgs.unstable; [

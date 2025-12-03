@@ -14,14 +14,12 @@ in {
       ../../modules/home-manager/cli-environment.nix
     ];
     nixpkgs.overlays = hmOverlays;
-    nixpkgs.config.permittedInsecurePackages = [ "mihomo-party-1.7.3" ];
     home.packages = let
       stable-packages = with pkgs; [
         # 稳定版本的软件包 (仅保留此主机特有的)
         noto-fonts-cjk-sans
         nerd-fonts.fira-code
         fontconfig
-        mihomo-party
       ];
 
       unstable-packages = with pkgs.unstable; [
