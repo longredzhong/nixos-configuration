@@ -16,8 +16,10 @@
   programs = {
     # Provide identity and per-directory include; enable/delta come from shared git module
     git = {
-      userName = "longred";
-      userEmail = "longredzhong@outlook.com";
+      settings.user = {
+        name = "longred";
+        email = "longredzhong@outlook.com";
+      };
       includes = [{
         path = "~/.gitconfig-adtiger";
         condition = "gitdir:/home/longred/adtiger-project/";

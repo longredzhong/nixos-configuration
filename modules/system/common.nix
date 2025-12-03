@@ -32,7 +32,7 @@ let
   unstable-packages = with pkgs.unstable; [ ];
 in {
   # 系统状态版本（不要轻易改变）
-  system.stateVersion = "25.05";
+  system.stateVersion = "25.11";
   networking.hostName = "${hostname}";
   networking.networkmanager.enable = true;
   nixpkgs.config.allowUnfree = true;
