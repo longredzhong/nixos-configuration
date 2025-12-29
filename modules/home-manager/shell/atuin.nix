@@ -3,6 +3,7 @@
     enable = true;
     settings = {
       auto_sync = true;
+      record = true;
       sync_frequency = "5m";
       dotfiles.enabled = true;
     };
