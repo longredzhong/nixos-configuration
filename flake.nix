@@ -93,7 +93,10 @@
               inherit nixpkgs nixpkgs-unstable;
             };
           };
-          inherit modules;
+          modules = [
+            # Enable agenix for Home Manager
+            agenix.homeManagerModules.default
+          ] ++ modules;
         };
     in
     {
