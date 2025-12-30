@@ -4,7 +4,7 @@
     enable = true;
     settings = {
       auto_sync = true;
-      record = true;
+      sync.records = true;
       sync_frequency = "5m";
       dotfiles.enabled = true;
       search_mode = "fuzzy"; # 模糊搜索模式
