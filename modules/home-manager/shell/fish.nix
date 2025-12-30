@@ -4,15 +4,15 @@
 
     # --- Shell 初始化脚本 ---
     shellInit = ''
-      # 基础 PATH
-      fish_add_path $HOME/.local/bin
-      fish_add_path $HOME/.cargo/bin
-      # -------- PIXI Global 路径 --------
-      if test -d "$HOME/.pixi/bin"; and not contains -- $HOME/.pixi/bin $fish_user_paths
-        fish_add_path $HOME/.pixi/bin
+      set -l paths \
+        $HOME/.local/bin \
+        $HOME/.cargo/bin \
+        $HOME/.pixi/bin \
+        $HOME/go/bin
+      
+      for p in $paths
+        test -d $p; and fish_add_path $p
       end
-      # -------- Go 路径 --------
-      fish_add_path $HOME/go/bin
     '';
 
     interactiveShellInit = ''
@@ -225,7 +225,14 @@
         name = "colored-man-pages"; # 彩色 man 手册
         src = pkgs.fishPlugins.colored-man-pages.src;
       }
-
+      {
+        name = "done";  # 长时间任务完成时通知
+        src = pkgs.fishPlugins.done.src;
+      }
+      {
+        name = "bass";  # 运行 bash 脚本并导入环境
+        src = pkgs.fishPlugins.bass.src;
+      }
     ];
   };
 }

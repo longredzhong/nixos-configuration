@@ -20,10 +20,14 @@
       cmd_duration = {
         min_time = 500;
         format = "took [$duration](bold yellow)";
+        show_milliseconds = false;
       };
+      # 优化 nix-shell 显示
       nix_shell = {
-        symbol = " ";
-        format = "via [$symbol$state]($style) ";
+        disabled = false;
+        impure_msg = "[impure](bold red)";
+        pure_msg = "[pure](bold green)";
+        format = "via [$symbol$state( \\($name\\))]($style) ";
       };
       format = "$all";
       add_newline = true;
