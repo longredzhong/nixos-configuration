@@ -116,11 +116,11 @@ gc-old:
 
 # Show nixosConfigurations
 show-systems:
-    nix flake show --json | jq '.nixosConfigurations'
+    @nix eval .#nixosConfigurations --apply 'builtins.attrNames' --json | jq -r '.[]'
 
 # Show homeConfigurations
 show-homes:
-    nix flake show --json | jq '.homeConfigurations'
+    @nix eval .#homeConfigurations --apply 'builtins.attrNames' --json | jq -r '.[]'
 
 # ============================================================
 # Secrets (agenix)
