@@ -15,12 +15,12 @@ in
 {
   home-manager.users.${username} = {
     imports = [
-      ../../modules/home-manager/common.nix
-      ../../modules/home-manager/wsl.nix
-      ../../modules/home-manager/cli-environment.nix
+      # Use WSL profile (includes common + cli-environment + wsl)
+      ../../modules/home-manager/profiles/wsl.nix
     ];
     nixpkgs.overlays = hmOverlays;
 
+    # Host-specific packages
     home.packages =
       let
         stable-packages = with pkgs; [

@@ -18,36 +18,15 @@ in
   home-manager.sharedModules = [ inputs.plasma-manager.homeModules.plasma-manager ];
   home-manager.users.${username} = {
     imports = [
-      ../../modules/home-manager/common.nix
-      ../../modules/home-manager/desktop/default.nix
-      ../../modules/home-manager/cli-environment.nix
+      # Use desktop profile (includes common + cli-environment + desktop)
+      ../../modules/home-manager/profiles/desktop.nix
     ];
     nixpkgs.overlays = hmOverlays;
-    xdg.enable = true;
-    home.packages =
-      let
-        stable-packages = with pkgs; [
-          # 稳定版本的软件包 (仅保留此主机特有的)
-          noto-fonts-cjk-sans
-          nerd-fonts.fira-code
-          fontconfig
-        ];
 
-        unstable-packages = with pkgs.unstable; [
-          # 不稳定版本的软件包 (仅保留此主机特有的)
-          sparkle
-          vscode
-          google-chrome
-          bitwarden-desktop
-          cherry-studio
-          obsidian
-          navicat-premium
-        ];
-      in
-      stable-packages ++ unstable-packages;
-
-    programs = {
-      kitty.enable = true;
-    };
+    # Host-specific packages (only packages unique to this host)
+    home.packages = with pkgs.unstable; [
+      sparkle
+      navicat-premium
+    ];
   };
 }
