@@ -29,6 +29,18 @@
 
 ## 快速开始
 
+### 安装 Nix (非 NixOS 系统)
+
+在 macOS、Ubuntu、Fedora 等非 NixOS 系统上，先安装 Nix：
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
+
+> 使用 [Determinate Nix Installer](https://github.com/DeterminateSystems/nix-installer)，已默认启用 Flakes。
+
+### 常用命令
+
 ```bash
 # 查看所有命令
 just
