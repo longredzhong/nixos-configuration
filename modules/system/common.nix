@@ -9,33 +9,36 @@
   ...
 }:
 let
+  # 系统级基础包 - 仅包含系统管理必需的工具
+  # 用户级开发工具由 home-manager/cli-environment.nix 管理
   stable-packages = with pkgs; [
+    # 系统基础工具
     coreutils
     curl
     wget
     git
     vim
     htop
-    ripgrep
-    fd
     tree
     unzip
     zip
-    jq
-    fzf
-    btop
+
+    # 系统管理工具
     nvme-cli
     nmap
     inetutils
     dig
+
+    # Nix 相关
     nixpkgs-fmt
-    watchman
     nixfmt-classic
     nixfmt-rfc-style
+
+    # 密钥管理
     age
-    just
-    direnv
     ssh-to-age
+
+    # 开发语言（系统级需要）
     go
   ];
   unstable-packages = with pkgs.unstable; [ ];

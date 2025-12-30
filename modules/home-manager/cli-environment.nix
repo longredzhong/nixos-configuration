@@ -57,7 +57,6 @@
 
         # --- 开发工具 ---
         just # 任务运行器
-        direnv # 环境变量管理
         nixfmt # Nix 代码格式化工具
       ];
       unstablePackages = with pkgs.unstable; [

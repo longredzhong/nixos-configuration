@@ -43,12 +43,6 @@
         }
       ];
     };
-
-    # direnv is not enabled in shared modules
-    direnv = {
-      enable = true;
-      nix-direnv.enable = true;
-    };
   };
 
   # Packages for development — keep host-specific tools; basics come from cli-environment
