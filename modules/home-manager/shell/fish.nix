@@ -1,4 +1,5 @@
-{ pkgs, config, ... }: {
+{ pkgs, config, ... }:
+{
   programs.fish = {
     enable = true;
 
@@ -9,7 +10,7 @@
         $HOME/.cargo/bin \
         $HOME/.pixi/bin \
         $HOME/go/bin
-      
+
       for p in $paths
         test -d $p; and fish_add_path $p
       end
@@ -197,10 +198,8 @@
       nixgc = "sudo nix-collect-garbage -d";
       nixoptimize = "sudo nix-store --optimise";
       nixupdate = "cd ~/nixos-configuration && nix flake update && cd -"; # 修正路径
-      nixswitch =
-        "cd ~/nixos-configuration && sudo -E nixos-rebuild switch --flake .#$(hostname) && cd -"; # 修正路径
-      nixhome =
-        "cd ~/nixos-configuration && home-manager switch --flake .#${config.home.username}@$(hostname) && cd -"; # 修正路径
+      nixswitch = "cd ~/nixos-configuration && sudo -E nixos-rebuild switch --flake .#$(hostname) && cd -"; # 修正路径
+      nixhome = "cd ~/nixos-configuration && home-manager switch --flake .#${config.home.username}@$(hostname) && cd -"; # 修正路径
     };
 
     # --- Fish 插件 ---
@@ -226,11 +225,11 @@
         src = pkgs.fishPlugins.colored-man-pages.src;
       }
       {
-        name = "done";  # 长时间任务完成时通知
+        name = "done"; # 长时间任务完成时通知
         src = pkgs.fishPlugins.done.src;
       }
       {
-        name = "bass";  # 运行 bash 脚本并导入环境
+        name = "bass"; # 运行 bash 脚本并导入环境
         src = pkgs.fishPlugins.bass.src;
       }
     ];

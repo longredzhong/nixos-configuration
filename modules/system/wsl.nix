@@ -1,4 +1,5 @@
-{ pkgs, username, ... }: {
+{ pkgs, username, ... }:
+{
   wsl = {
     enable = true;
     wslConf.automount.root = "/mnt";

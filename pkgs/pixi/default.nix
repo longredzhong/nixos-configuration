@@ -1,5 +1,16 @@
-{ lib, stdenv, rustPlatform, fetchFromGitHub, pkg-config, installShellFiles
-, libgit2, openssl, buildPackages, versionCheckHook, nix-update-script }:
+{
+  lib,
+  stdenv,
+  rustPlatform,
+  fetchFromGitHub,
+  pkg-config,
+  installShellFiles,
+  libgit2,
+  openssl,
+  buildPackages,
+  versionCheckHook,
+  nix-update-script,
+}:
 
 # Custom packaged pixi (pinned) – local override / addition
 rustPlatform.buildRustPackage (finalAttrs: {
@@ -15,8 +26,14 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   cargoHash = "sha256-3Sd+EjpSYbexmnUAwLps/Hrj7anpyurbzZlVs2hZk4E=";
 
-  nativeBuildInputs = [ pkg-config installShellFiles ];
-  buildInputs = [ libgit2 openssl ];
+  nativeBuildInputs = [
+    pkg-config
+    installShellFiles
+  ];
+  buildInputs = [
+    libgit2
+    openssl
+  ];
 
   env = {
     LIBGIT2_NO_VENDOR = 1;
@@ -25,15 +42,17 @@ rustPlatform.buildRustPackage (finalAttrs: {
 
   doCheck = false; # upstream tests flaky currently
 
-  postInstall =
-    lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages)
-    (let emulator = stdenv.hostPlatform.emulator buildPackages;
-    in ''
+  postInstall = lib.optionalString (stdenv.hostPlatform.emulatorAvailable buildPackages) (
+    let
+      emulator = stdenv.hostPlatform.emulator buildPackages;
+    in
+    ''
       installShellCompletion --cmd pixi \
         --bash <(${emulator} $out/bin/pixi completion --shell bash) \
         --fish <(${emulator} $out/bin/pixi completion --shell fish) \
         --zsh <(${emulator} $out/bin/pixi completion --shell zsh)
-    '');
+    ''
+  );
 
   nativeInstallCheckInputs = [ versionCheckHook ];
   versionCheckProgramArg = "--version";
@@ -46,7 +65,10 @@ rustPlatform.buildRustPackage (finalAttrs: {
     homepage = "https://pixi.sh/";
     changelog = "https://pixi.sh/latest/CHANGELOG";
     license = licenses.bsd3;
-    maintainers = [ maintainers.edmundmiller maintainers.xiaoxiangmoe ];
+    maintainers = [
+      maintainers.edmundmiller
+      maintainers.xiaoxiangmoe
+    ];
     mainProgram = "pixi";
   };
 })

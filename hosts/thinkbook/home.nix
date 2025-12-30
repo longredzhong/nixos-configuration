@@ -1,12 +1,21 @@
-{ config, pkgs, lib, username, inputs, hostname, channels, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  username,
+  inputs,
+  hostname,
+  channels,
+  ...
+}:
 let
   overlayModule = import ../../modules/overlays.nix { inherit inputs; };
   hmOverlays = overlayModule.nixpkgs.overlays;
-in {
+in
+{
   imports = [ inputs.home-manager.nixosModules.home-manager ];
   home-manager.backupFileExtension = "backups";
-  home-manager.sharedModules =
-    [ inputs.plasma-manager.homeModules.plasma-manager ];
+  home-manager.sharedModules = [ inputs.plasma-manager.homeModules.plasma-manager ];
   home-manager.users.${username} = {
     imports = [
       ../../modules/home-manager/common.nix
@@ -15,26 +24,30 @@ in {
     ];
     nixpkgs.overlays = hmOverlays;
     xdg.enable = true;
-    home.packages = let
-      stable-packages = with pkgs; [
-        # 稳定版本的软件包 (仅保留此主机特有的)
-        noto-fonts-cjk-sans
-        nerd-fonts.fira-code
-        fontconfig
-      ];
+    home.packages =
+      let
+        stable-packages = with pkgs; [
+          # 稳定版本的软件包 (仅保留此主机特有的)
+          noto-fonts-cjk-sans
+          nerd-fonts.fira-code
+          fontconfig
+        ];
 
-      unstable-packages = with pkgs.unstable; [
-        # 不稳定版本的软件包 (仅保留此主机特有的)
-        sparkle
-        vscode
-        google-chrome
-        bitwarden-desktop
-        cherry-studio
-        obsidian
-        navicat-premium
-      ];
-    in stable-packages ++ unstable-packages;
+        unstable-packages = with pkgs.unstable; [
+          # 不稳定版本的软件包 (仅保留此主机特有的)
+          sparkle
+          vscode
+          google-chrome
+          bitwarden-desktop
+          cherry-studio
+          obsidian
+          navicat-premium
+        ];
+      in
+      stable-packages ++ unstable-packages;
 
-    programs = { kitty.enable = true; };
+    programs = {
+      kitty.enable = true;
+    };
   };
 }

@@ -196,7 +196,7 @@ hm-rollback:
 
 # 安装 home-manager CLI（可选）
 hm-install-cli:
-    {{NIXCMD}} profile install {{HM}}#home-manager
+    {{NIXCMD}} profile add {{HM}}#home-manager
 
 # 查看 home-manager 版本（通过一次性运行）
 hm-version:

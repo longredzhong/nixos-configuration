@@ -1,4 +1,15 @@
-{ username, hostname, pkgs, lib, inputs, config, options, nixpkgs, ... }: {
+{
+  username,
+  hostname,
+  pkgs,
+  lib,
+  inputs,
+  config,
+  options,
+  nixpkgs,
+  ...
+}:
+{
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
@@ -77,7 +88,11 @@
     enable = true;
     enableOnBoot = true;
     autoPrune.enable = true;
-    daemon.settings = { "features" = { "buildkit" = true; }; };
+    daemon.settings = {
+      "features" = {
+        "buildkit" = true;
+      };
+    };
     storageDriver = "btrfs";
   };
 
@@ -86,10 +101,17 @@
 
   nixpkgs.config.allowUnfree = true;
 
-  environment.systemPackages = let
-    stable-packages = with pkgs; [ qbittorrent vlc acpi powertop ];
-    unstable-packages = with pkgs.unstable; [ ];
-  in stable-packages ++ unstable-packages;
+  environment.systemPackages =
+    let
+      stable-packages = with pkgs; [
+        qbittorrent
+        vlc
+        acpi
+        powertop
+      ];
+      unstable-packages = with pkgs.unstable; [ ];
+    in
+    stable-packages ++ unstable-packages;
 
   services.openssh.enable = true;
   networking.firewall.enable = false;
@@ -105,12 +127,13 @@
     enable = true;
     servePath = "/data/dufs";
     allowAll = true;
-    auth = [{
-      credentials =
-        "admin:$(cat ${config.age.secrets."dufs-admin-credentials".path})";
-      path = "/";
-      permissions = "rw";
-    }];
+    auth = [
+      {
+        credentials = "admin:$(cat ${config.age.secrets."dufs-admin-credentials".path})";
+        path = "/";
+        permissions = "rw";
+      }
+    ];
   };
   services.minio = {
     enable = true;
@@ -130,7 +153,11 @@
       # ipv4
       host  all      all     127.0.0.1/32   trust
     '';
-    extensions = ps: with ps; [ postgis pgvector ];
+    extensions =
+      ps: with ps; [
+        postgis
+        pgvector
+      ];
     settings.port = 5432;
   };
   services.postgresqlBackup = {

@@ -1,5 +1,9 @@
-{ pkgs, ... }: {
-  home.packages = with pkgs; [ bibata-cursors whitesur-icon-theme ];
+{ pkgs, ... }:
+{
+  home.packages = with pkgs; [
+    bibata-cursors
+    whitesur-icon-theme
+  ];
 
   # Alternative xorg cursor configuration if needed
   home.pointerCursor = {

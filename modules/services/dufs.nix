@@ -1,4 +1,10 @@
-{ config, lib, pkgs, secrets, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  secrets,
+  ...
+}:
 
 with lib;
 
@@ -11,17 +17,17 @@ let
       -p ${toString cfg.port} \
       ${if cfg.allowAll then "-A" else ""} \
       ${
-        lib.concatMapStringsSep " " (auth:
-          "-a " + auth.credentials + "@" + auth.path + ":" + auth.permissions)
-        cfg.auth
+        lib.concatMapStringsSep " " (
+          auth: "-a " + auth.credentials + "@" + auth.path + ":" + auth.permissions
+        ) cfg.auth
       } \
       ${lib.concatStringsSep " " cfg.extraArgs} \
       ${cfg.servePath}
   '';
-in {
+in
+{
   options.services.dufs = {
-    enable = mkEnableOption
-      "dufs - A file server that supports static serving, uploading, searching, accessing control, webdav...";
+    enable = mkEnableOption "dufs - A file server that supports static serving, uploading, searching, accessing control, webdav...";
 
     package = mkOption {
       type = types.package;
@@ -57,18 +63,17 @@ in {
     allowAll = mkOption {
       type = types.bool;
       default = true;
-      description =
-        "Allow all operations (read, write, search). Corresponds to the -A flag.";
+      description = "Allow all operations (read, write, search). Corresponds to the -A flag.";
     };
 
     auth = mkOption {
-      type = with types;
+      type =
+        with types;
         listOf (submodule {
           options = {
             credentials = mkOption {
               type = str;
-              description =
-                "Credentials in the format 'username:password' or just 'token'.";
+              description = "Credentials in the format 'username:password' or just 'token'.";
               example = "user:pass";
             };
             path = mkOption {
@@ -78,10 +83,12 @@ in {
               example = "/private";
             };
             permissions = mkOption {
-              type = enum [ "r" "rw" ];
+              type = enum [
+                "r"
+                "rw"
+              ];
               default = "rw";
-              description =
-                "Permissions for the authenticated user ('r' for read, 'rw' for read-write).";
+              description = "Permissions for the authenticated user ('r' for read, 'rw' for read-write).";
             };
           };
         });
@@ -123,8 +130,7 @@ in {
     users.groups.${cfg.group} = { };
 
     # Ensure the serve path exists and has correct permissions
-    systemd.tmpfiles.rules =
-      [ "d ${cfg.servePath} 0750 ${cfg.user} ${cfg.group} - -" ];
+    systemd.tmpfiles.rules = [ "d ${cfg.servePath} 0750 ${cfg.user} ${cfg.group} - -" ];
 
     systemd.services.dufs = {
       description = "DUFS Service serving ${cfg.servePath}";
@@ -148,7 +154,6 @@ in {
     };
 
     # Open the firewall port if configured
-    networking.firewall.allowedTCPPorts =
-      lib.mkIf cfg.openFirewall [ cfg.port ];
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ cfg.port ];
   };
 }

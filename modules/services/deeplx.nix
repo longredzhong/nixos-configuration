@@ -1,9 +1,16 @@
-{ config, pkgs, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 
 with lib;
 
-let cfg = config.services.deeplx;
-in {
+let
+  cfg = config.services.deeplx;
+in
+{
   options.services.deeplx = {
     enable = mkEnableOption "DeepLX service";
 

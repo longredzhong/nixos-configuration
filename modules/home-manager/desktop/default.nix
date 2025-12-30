@@ -1,4 +1,5 @@
-{ inputs, ... }: {
+{ inputs, ... }:
+{
   imports = [
     ./cava.nix # audio visualizer
     ./rime.nix # rime input method configuration

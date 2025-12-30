@@ -1,4 +1,15 @@
-{ username, hostname, pkgs, lib, inputs, config, options, nixpkgs, ... }: {
+{
+  username,
+  hostname,
+  pkgs,
+  lib,
+  inputs,
+  config,
+  options,
+  nixpkgs,
+  ...
+}:
+{
   imports = [
     # Include the results of the hardware scan.
     ./hardware-configuration.nix
@@ -93,7 +104,11 @@
     enable = true;
     enableOnBoot = true;
     autoPrune.enable = true;
-    daemon.settings = { "features" = { "buildkit" = true; }; };
+    daemon.settings = {
+      "features" = {
+        "buildkit" = true;
+      };
+    };
     storageDriver = "btrfs";
   };
 
@@ -104,10 +119,12 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  environment.systemPackages = let
-    stable-packages = with pkgs; [ vlc ];
-    unstable-packages = with pkgs.unstable; [ ];
-  in stable-packages ++ unstable-packages;
+  environment.systemPackages =
+    let
+      stable-packages = with pkgs; [ vlc ];
+      unstable-packages = with pkgs.unstable; [ ];
+    in
+    stable-packages ++ unstable-packages;
 
   services.openssh.enable = true;
   networking.firewall.enable = false;

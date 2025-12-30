@@ -4,12 +4,12 @@ let
   vscodebinPath = "/mnt/c/Users/longred/scoop/apps/vscode/current/bin";
   commonShellAliases = {
     pbcopy = "/mnt/c/Windows/System32/clip.exe";
-    pbpaste =
-      "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -command 'Get-Clipboard'";
+    pbpaste = "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -command 'Get-Clipboard'";
     explorer = "/mnt/c/Windows/explorer.exe";
     code = "/mnt/c/Users/longred/scoop/apps/vscode/current/bin/code";
   };
-in {
+in
+{
   programs = {
     fish = {
       interactiveShellInit = ''

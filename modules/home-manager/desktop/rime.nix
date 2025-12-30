@@ -1,4 +1,5 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+{
   # Rime 输入法配置文件
   xdg.dataFile = {
     "fcitx5/rime" = {

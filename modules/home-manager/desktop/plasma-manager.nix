@@ -1,4 +1,5 @@
-{ pkgs, ... }: {
+{ pkgs, ... }:
+{
   home.packages = with pkgs; [
     # Other useful packages
     bibata-cursors
@@ -219,25 +220,27 @@
       # }
     ];
 
-    window-rules = [{
-      description = "Dolphin";
-      match = {
-        window-class = {
-          value = "dolphin";
-          type = "substring";
+    window-rules = [
+      {
+        description = "Dolphin";
+        match = {
+          window-class = {
+            value = "dolphin";
+            type = "substring";
+          };
+          window-types = [ "normal" ];
         };
-        window-types = [ "normal" ];
-      };
-      apply = {
-        noborder = {
-          value = false;
-          apply = "force";
+        apply = {
+          noborder = {
+            value = false;
+            apply = "force";
+          };
+          # `apply` defaults to "apply-initially"
+          maximizehoriz = true;
+          maximizevert = true;
         };
-        # `apply` defaults to "apply-initially"
-        maximizehoriz = true;
-        maximizevert = true;
-      };
-    }];
+      }
+    ];
 
     powerdevil = {
       AC = {
@@ -255,7 +258,9 @@
         powerButtonAction = "sleep";
         whenSleepingEnter = "standbyThenHibernate";
       };
-      lowBattery = { whenLaptopLidClosed = "hibernate"; };
+      lowBattery = {
+        whenLaptopLidClosed = "hibernate";
+      };
     };
 
     # kwin = {
@@ -274,7 +279,12 @@
     # Some mid-level settings:
     #
     shortcuts = {
-      ksmserver = { "Lock Session" = [ "Screensaver" "Meta+Ctrl+Alt+L" ]; };
+      ksmserver = {
+        "Lock Session" = [
+          "Screensaver"
+          "Meta+Ctrl+Alt+L"
+        ];
+      };
 
       kwin = {
         "Expose" = "Meta+,";

@@ -1,4 +1,15 @@
-{ username, hostname, pkgs, lib, inputs, config, options, nixpkgs, ... }: {
+{
+  username,
+  hostname,
+  pkgs,
+  lib,
+  inputs,
+  config,
+  options,
+  nixpkgs,
+  ...
+}:
+{
   imports = [
     inputs.nixos-wsl.nixosModules.wsl
     inputs.home-manager.nixosModules.home-manager
@@ -21,7 +32,11 @@
 
   hardware.graphics = {
     enable = true;
-    extraPackages = with pkgs; [ libGL mesa libglvnd ];
+    extraPackages = with pkgs; [
+      libGL
+      mesa
+      libglvnd
+    ];
   };
 
 }
