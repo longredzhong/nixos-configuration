@@ -213,10 +213,6 @@
         src = pkgs.fishPlugins.sponge.src;
       }
       {
-        name = "fzf-fish"; # FZF 集成插件
-        src = pkgs.fishPlugins.fzf-fish.src;
-      }
-      {
         name = "puffer-fish"; # 更好的 Buffer 编辑
         src = pkgs.fishPlugins.puffer.src;
       }
