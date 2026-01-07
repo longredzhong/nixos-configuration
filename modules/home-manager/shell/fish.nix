@@ -1,29 +1,56 @@
 { pkgs, config, ... }:
+let
+  cfg = config.shell;
+in
 {
+  imports = [ ./common.nix ];
+
+  # -------- FZF 配置 --------
+  programs.fzf = {
+    enable = true;
+    enableFishIntegration = true;
+    enableBashIntegration = true;
+    defaultCommand = "fd --type f --hidden --follow --exclude .git";
+    fileWidgetCommand = "fd --type f --hidden --follow --exclude .git";
+    changeDirWidgetCommand = "fd --type d --hidden --follow --exclude .git";
+    defaultOptions = [
+      "--height 40%"
+      "--layout=reverse"
+      "--border"
+      "--multi"
+      "--bind=ctrl-j:accept,ctrl-k:kill-line,ctrl-u:preview-half-page-up,ctrl-d:preview-half-page-down"
+      "--color=dark"
+      "--preview-window=right:50%:wrap"
+    ];
+  };
+
+  # -------- Fish Shell 配置 --------
   programs.fish = {
     enable = true;
 
     # --- Shell 初始化脚本 ---
     shellInit = ''
-      set -l paths \
-        $HOME/.local/bin \
-        $HOME/.cargo/bin \
-        $HOME/.pixi/bin \
-        $HOME/go/bin
-
-      for p in $paths
+      # 设置 PATH
+      for p in ${builtins.concatStringsSep " " cfg.extraPaths}
         test -d $p; and fish_add_path $p
       end
     '';
 
     interactiveShellInit = ''
-      # -------- 历史与提示 --------
+      # -------- 历史与欢迎 --------
       set -g fish_history_max_length 10000
       set -U fish_greeting
 
+      # -------- Nix Shell 支持 --------
       if status --is-interactive
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
       end
+
+      # -------- 环境变量 --------
+      set -gx PIXI_CACHE_DIR "${cfg.envVars.PIXI_CACHE_DIR}"
+      set -gx UV_CACHE_DIR "${cfg.envVars.UV_CACHE_DIR}"
+      set -gx EDITOR "${cfg.envVars.EDITOR}"
+      set -gx VISUAL "${cfg.envVars.VISUAL}"
 
       # -------- 颜色主题 --------
       set -g fish_color_normal normal
@@ -46,160 +73,95 @@
       set -g fish_pager_color_selected_background --background=brblue
       set -g fish_pager_color_selected_prefix yellow --bold --background=brblue
       set -g fish_pager_color_selected_completion white --background=brblue
-
-      # -------- Pixi 优化 --------
-      set -gx PIXI_CACHE_DIR "$HOME/.cache/rattler/cache"
-      set -gx UV_CACHE_DIR "$PIXI_CACHE_DIR/uv-cache"
     '';
 
     # --- 自定义函数 ---
     functions = {
-      # 重新加载 fish 配置
+      # -------- 基础工具 --------
       refresh = "source $HOME/.config/fish/config.fish";
-      # 创建目录并进入
-      take = ''mkdir -p -- "$1" && cd -- "$1"'';
-      # 进入临时目录
+      take = ''mkdir -p -- "$argv[1]" && cd -- "$argv[1]"'';
       ttake = "cd (mktemp -d)";
-      # 显示 PATH 变量（每行一个）
-      show_path = "string split ' ' $PATH";
-      # 从文件加载 POSIX 环境变量
+      show_path = "string split : $PATH";
       posix-source = ''
-        for i in (cat $argv)
-          set arr (string split = $i)
-          set -gx $arr[1] $arr[2]
+        for line in (cat $argv)
+          set -l arr (string split -m 1 = $line)
+          test (count $arr) -eq 2; and set -gx $arr[1] $arr[2]
         end
       '';
 
-      # --- FZF 集成函数 ---
-      # 使用 fzf 搜索历史记录
-      fzf_history = ''
-        history | fzf --tiebreak=index --no-sort | read -l cmd
-        and commandline -rb $cmd
-      '';
-      # 使用 fzf 查找并编辑文件
+      # -------- FZF 集成 --------
       fe = ''
-        set -l file (fd --type f --hidden --exclude .git | fzf --preview "bat --color=always {}")
-        if test -n "$file"
-          $EDITOR $file # 使用 $EDITOR 环境变量指定的编辑器
-        end
+        set -l file (fd --type f --hidden --exclude .git | fzf --preview "bat --color=always --style=numbers {}")
+        test -n "$file"; and $EDITOR $file
       '';
-      # 使用 fzf 快速进入目录 (使用 zoxide 后可能较少使用)
       fcd = ''
-        set -l dir (fd --type d --hidden --exclude .git | fzf --preview "eza --tree --level=1 --color=always {}") # 使用 eza 预览
-        if test -n "$dir"
-          cd $dir
-        end
+        set -l dir (fd --type d --hidden --exclude .git | fzf --preview "eza --tree --level=2 --color=always --icons {}")
+        test -n "$dir"; and cd $dir
       '';
-      # 使用 fzf 查看并杀死进程
       fkill = ''
-        ps -ef | sed 1d | fzf -m | awk '{print $2}' | xargs -r kill -9
+        set -l pids (ps -ef | sed 1d | fzf -m --header="Select process(es) to kill" | awk '{print $2}')
+        test -n "$pids"; and echo $pids | xargs kill -9
       '';
-      # 使用 fzf 切换 git 分支
-      gb = ''
-        git branch | fzf --preview "git log --oneline --graph --date=short --color=always --pretty='%C(auto)%h %s %C(blue)%cr' {1}" | sed 's/^..//' | cut -d' ' -f1 | tr -d '\n' | read -l branch
-        and git checkout $branch
+      fenv = ''
+        env | fzf --preview "echo {}" --header="Environment Variables"
       '';
 
-      # --- 代理设置函数 ---
-      # 设置代理 (默认 127.0.0.1:7890)
-      set_proxy = ''
-        if test (count $argv) -eq 1
-          set proxy $argv[1]
-        else
-          set proxy "127.0.0.1:7890"
-        end
-        set -gx http_proxy http://$proxy
-        set -gx https_proxy http://$proxy
-        set -gx no_proxy "localhost,127.0.0.1,::1,100.64.0.0/10,172.16.100.10" # 添加 127.0.0.1 和 ::1
-        set -gx HTTP_PROXY http://$proxy
-        set -gx HTTPS_PROXY http://$proxy
-        set -gx NO_PROXY "localhost,127.0.0.1,::1,100.64.0.0/10,172.16.100.10" # 添加 127.0.0.1 和 ::1
+      # -------- Git 增强 --------
+      gb = ''
+        set -l branch (git branch -a --color=always | fzf --ansi --preview "git log --oneline --graph --color=always {1}" | sed 's/^[* ]*//' | sed 's#remotes/origin/##')
+        test -n "$branch"; and git checkout $branch
       '';
-      # 取消代理设置
+      gbc = ''
+        set -l commit (git log --oneline --color=always | fzf --ansi --preview "git show --color=always {1}" | awk '{print $1}')
+        test -n "$commit"; and git checkout $commit
+      '';
+      gshow = ''
+        set -l commit (git log --oneline --color=always | fzf --ansi --preview "git show --color=always {1}" | awk '{print $1}')
+        test -n "$commit"; and git show $commit
+      '';
+
+      # -------- 代理管理 --------
+      set_proxy = ''
+        set -l proxy (test (count $argv) -ge 1; and echo $argv[1]; or echo "${cfg.defaultProxy}")
+        set -gx http_proxy "http://$proxy"
+        set -gx https_proxy "http://$proxy"
+        set -gx HTTP_PROXY "http://$proxy"
+        set -gx HTTPS_PROXY "http://$proxy"
+        set -gx no_proxy "${cfg.noProxyList}"
+        set -gx NO_PROXY "${cfg.noProxyList}"
+        echo "Proxy set to: $proxy"
+      '';
       unset_proxy = ''
-        set -e http_proxy https_proxy no_proxy HTTP_PROXY HTTPS_PROXY NO_PROXY
+        set -e http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy NO_PROXY
+        echo "Proxy unset"
+      '';
+      show_proxy = ''
+        echo "http_proxy:  $http_proxy"
+        echo "https_proxy: $https_proxy"
+        echo "no_proxy:    $no_proxy"
       '';
     };
 
-    # --- Shell 缩写 ---
+    # --- Shell 缩写（Fish 专属，输入后自动展开）---
     shellAbbrs = {
       # Git 缩写
       gapa = "git add --patch";
       grpa = "git reset --patch";
-      gst = "git status";
-      gdh = "git diff HEAD";
-      gp = "git push";
-      gph = "git push -u origin HEAD";
-      gco = "git checkout";
-      gcob = "git checkout -b";
-      gcm = "git checkout master"; # 根据需要调整为 main 或其他默认分支
-      gcd = "git checkout develop"; # 根据需要调整
-      gsp = "git stash push -m";
-      gsa = "git stash apply stash^{/";
-      gsl = "git stash list";
-
-      # 其他常用缩写
-      ".." = "cd ..";
-      "..." = "cd ../..";
-      "...." = "cd ../../..";
-      "....." = "cd ../../../..";
-      ll = "eza -l -g --icons"; # 使用 eza 替代 ls
-      la = "eza -la -g --icons";
-      lt = "eza --tree --level=2 --icons";
-      l = "eza -1 --icons";
-      # cat = "bat"; # 使用 bat 替代 cat
-      # grep = "rg"; # 使用 ripgrep 替代 grep
-      # find = "fd"; # 使用 fd 替代 find
-      # df = "duf"; # 使用 duf 替代 df
-      # top = "btop"; # 使用 btop 替代 top/htop
-      # dig = "dog"; # 使用 dog 替代 dig
+      gcp = "git cherry-pick";
+      grb = "git rebase";
+      grbc = "git rebase --continue";
+      grba = "git rebase --abort";
+      gm = "git merge";
+      gf = "git fetch";
+      gfa = "git fetch --all";
     };
 
-    # --- Shell 别名 ---
-    shellAliases = {
-      # 系统信息
-      sysfetch = "fastfetch";
-      sysinfo = "btop";
-      diskspace = "duf";
-      dirsize = "ncdu"; # 使用 ncdu 替代 du -sh
-
-      # 快速编辑配置
-      conf = "cd ~/nixos-configuration"; # 修正路径
+    # --- Shell 别名（使用共享配置）---
+    shellAliases = cfg.commonAliases // {
+      # Fish 专属别名
       editfish = "$EDITOR ~/.config/fish/config.fish";
-      edithosts = "sudo $EDITOR /etc/hosts";
-      editflake = "$EDITOR ~/nixos-configuration/flake.nix"; # 修正路径
-
-      # Git 快捷命令 (部分已通过缩写实现)
-      gs = "git status -sb";
-      ga = "git add";
-      gc = "git commit";
-      gl = "git log --oneline --graph --decorate --all"; # 更详细的 log
-      glog = "lazygit"; # 使用 lazygit
-
-      # Docker 快捷命令
-      dps = "docker ps";
-      dpsa = "docker ps -a";
-      dls = "docker container ls";
-      dimg = "docker images";
-      drun = "docker run -it --rm"; # 默认添加 --rm
-      dexec = "docker exec -it";
-      dlogs = "docker logs -f";
-      dstop = "docker stop";
-      drm = "docker rm";
-      drmi = "docker rmi";
-      dprune = "docker system prune -af --volumes"; # 清理 docker
-
-      # 网络工具
-      myip = "curl -s ifconfig.me/ip"; # 只显示 IP
-      myipinfo = "curl -s ifconfig.me/all.json | jq"; # 显示详细信息
-      ports = "ss -tulnp"; # 查看监听端口
-
-      # Nix 相关
-      nixgc = "sudo nix-collect-garbage -d";
-      nixoptimize = "sudo nix-store --optimise";
-      nixupdate = "cd ~/nixos-configuration && nix flake update && cd -"; # 修正路径
-      nixswitch = "cd ~/nixos-configuration && sudo -E nixos-rebuild switch --flake .#$(hostname) && cd -"; # 修正路径
-      nixhome = "cd ~/nixos-configuration && home-manager switch --flake .#${config.home.username}@$(hostname) && cd -"; # 修正路径
+      nixswitch = "cd ~/nixos-configuration && sudo -E nixos-rebuild switch --flake .#(hostname) && cd -";
+      nixhome = "cd ~/nixos-configuration && home-manager switch --flake .#${config.home.username}@(hostname) && cd -";
     };
 
     # --- Fish 插件 ---

@@ -1,6 +1,7 @@
 { pkgs, ... }:
 {
   imports = [
+    ./shell/bash.nix
     ./shell/fish.nix
     ./shell/starship.nix
     ./shell/atuin.nix
@@ -16,21 +17,19 @@
         eza # 更好的 ls
         ncdu # 磁盘使用分析
         duf # 更好的 df
-        starship # shell 提示符
         zoxide # cd 增强
-        atuin # shell 历史记录管理
+        # starship, atuin, fzf - 通过 programs.* 启用
 
         # --- 搜索 & 过滤 ---
         fd # 更好的 find
         ripgrep # 更好的 grep
         silver-searcher # ag 搜索工具
-        fzf # 模糊搜索
         jq # JSON 处理
         yq # YAML/XML 处理
 
         # --- 查看 & 编辑 ---
         bat # 更好的 cat，带语法高亮
-        delta # git 美化差异查看
+        # delta - 通过 programs.delta 启用
         difftastic # 结构化差异比较
         tldr # 简化版 man 页面
 
