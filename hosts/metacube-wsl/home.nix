@@ -35,5 +35,28 @@ in
         ];
       in
       stable-packages ++ unstable-packages;
+    programs = {
+      # Provide identity and per-directory include; enable/delta come from shared git module
+      git = {
+        settings.user = {
+          name = "longred";
+          email = "longredzhong@outlook.com";
+        };
+        includes = [
+          {
+            path = "~/.gitconfig-adtiger";
+            condition = "gitdir:/home/longred/adtiger-project/";
+          }
+        ];
+      };
+    };
+    # The included Git config file providing the adtiger identity
+    home.file.".gitconfig-adtiger".text = ''
+      [user]
+        name = zhongchanghong
+        email = zhongchanghong@adtiger.hk
+    '';
+
   };
+
 }

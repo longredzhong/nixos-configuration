@@ -152,8 +152,8 @@ in
       package = pkgs.unstable.tailscale;
       extraUpFlags = "--ssh";
     };
-    # 时间同步
-    timesyncd.enable = true;
+    # 时间同步 (WSL 上会被禁用)
+    timesyncd.enable = lib.mkDefault true;
   };
   # 常用软件包
   # 这里的包会被安装到系统中
