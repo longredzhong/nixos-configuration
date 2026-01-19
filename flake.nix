@@ -25,7 +25,7 @@
 
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
-    try.url = "github:tobi/try";
+    try.url = "github:tobi/try-cli";
   };
   outputs =
     inputs@{
