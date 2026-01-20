@@ -24,8 +24,6 @@
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
     nix-flatpak.url = "github:gmodena/nix-flatpak";
-
-    try.url = "github:tobi/try-cli";
   };
   outputs =
     inputs@{
