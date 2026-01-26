@@ -6,7 +6,7 @@ in
   imports = [ ./common.nix ];
 
   programs.bash = {
-    enable = true;
+    enable = false; # Disable the default bash program module
 
     # --- Bash 初始化脚本 ---
     profileExtra = ''
