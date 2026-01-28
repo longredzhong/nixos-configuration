@@ -14,8 +14,11 @@ let
   envVars = {
     PIXI_CACHE_DIR = "$HOME/.cache/rattler/cache";
     UV_CACHE_DIR = "$HOME/.cache/rattler/cache/uv-cache";
-    EDITOR = "vim";
-    VISUAL = "vim";
+    # 让 micromamba / conda 使用与 pixi/rattler 同一缓存根目录（但使用独立子目录以避免布局冲突）
+    CONDA_PKGS_DIRS = "$HOME/.cache/rattler/cache/conda-pkgs";
+    MAMBA_ROOT_PREFIX = "$HOME/.cache/rattler/cache/micromamba";
+    EDITOR = "nano";
+    VISUAL = "nano";
   };
 
   # -------- 代理配置 --------
