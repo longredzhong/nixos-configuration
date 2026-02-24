@@ -7,32 +7,10 @@ let
       config = prev.config;
     };
   };
-
-  # Pin qbittorrent from a specific nixpkgs rev via non-flake input; import to get pkgs
-  qbittorrentLegacyOverlay =
-    final: prev:
-    let
-      oldPkgs = import inputs.qbittorrent-legacy {
-        system = prev.stdenv.hostPlatform.system;
-        config = {
-          allowUnfree = true;
-        };
-      };
-    in
-    {
-      qbittorrent_4_1_9_1 = oldPkgs.qbittorrent;
-    };
 in
 {
   nixpkgs.overlays = [
     unstableOverlay
-    qbittorrentLegacyOverlay
-  ];
-}
-// {
-  nixpkgs.overlays = [
-    unstableOverlay
-    qbittorrentLegacyOverlay
     # Custom local packages
     (final: prev: {
       pixi = prev.callPackage ../pkgs/pixi { };

@@ -3,6 +3,10 @@
   home = {
     homeDirectory = "/home/${config.home.username}";
     stateVersion = "25.11";
+    sessionVariables = {
+      EDITOR = lib.mkDefault "nano";
+      VISUAL = lib.mkDefault "nano";
+    };
   };
 
   # 启用 XDG 目录规范

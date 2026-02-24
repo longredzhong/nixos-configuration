@@ -49,8 +49,6 @@ in
       # -------- 环境变量 --------
       set -gx PIXI_CACHE_DIR "${cfg.envVars.PIXI_CACHE_DIR}"
       set -gx UV_CACHE_DIR "${cfg.envVars.UV_CACHE_DIR}"
-      set -gx EDITOR "${cfg.envVars.EDITOR}"
-      set -gx VISUAL "${cfg.envVars.VISUAL}"
 
       # -------- 颜色主题 --------
       set -g fish_color_normal normal

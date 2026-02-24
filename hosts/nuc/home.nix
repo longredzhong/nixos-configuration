@@ -25,7 +25,6 @@ in
 
     # Host-specific packages (only packages unique to this host)
     home.packages = with pkgs.unstable; [
-      sparkle
       vivaldi
       navicat-premium
     ];

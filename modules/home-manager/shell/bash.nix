@@ -18,8 +18,6 @@ in
       # 环境变量
       export PIXI_CACHE_DIR="${cfg.envVars.PIXI_CACHE_DIR}"
       export UV_CACHE_DIR="${cfg.envVars.UV_CACHE_DIR}"
-      export EDITOR="${cfg.envVars.EDITOR}"
-      export VISUAL="${cfg.envVars.VISUAL}"
 
       # 代理设置函数
       set_proxy() {
