@@ -20,7 +20,4 @@
     # AI 工具
     unstable.cherry-studio
   ];
-
-  # 终端模拟器
-  programs.kitty.enable = lib.mkDefault true;
 }

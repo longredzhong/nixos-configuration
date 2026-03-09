@@ -5,6 +5,7 @@
 
   imports = [
     ../../modules/home-manager/profiles/minimal.nix
+    ../../modules/home-manager/desktop/ghostty.nix
   ];
 
   programs.git = {
@@ -46,8 +47,6 @@
         docker-compose
       ];
       unstable = with pkgs.unstable; [
-        uv
-        bun
         gh
       ];
     in
