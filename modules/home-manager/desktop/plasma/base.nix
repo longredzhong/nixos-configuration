@@ -210,7 +210,9 @@ in
           opacity = cfg.panels.top.opacity;
           height = cfg.panels.top.height;
           widgets = [
-            "org.kde.plasma.panelspacer"  # 左侧留白
+            # 虚拟桌面 Pager：直观切换 N 个桌面，避免只能靠快捷键盲切。
+            "org.kde.plasma.pager"
+            "org.kde.plasma.panelspacer"  # 将托盘和时钟推向右侧
             {
               systemTray = {
                 items = {
@@ -228,6 +230,9 @@ in
               digitalClock = {
                 calendar.firstDayOfWeek = "monday";
                 time.format = "24h";
+                # date.enable = false 可以完全去掉日期，节省顶栏宽度。
+                # 若需保留日期建议去掉年份：使用 date.format = "custom" 配合 customDateFormat = "M/d"。
+                date.enable = false;
               };
             }
           ];
@@ -251,12 +256,21 @@ in
                 };
               };
             }
+            # kickoff 与任务栏之间的视觉分隔线，避免启动器图标和运行任务混淆。
+            "org.kde.plasma.marginsseparator"
             {
               iconTasks = {
                 launchers = cfg.dock.launchers;
-                behavior.showTasks = {
-                  onlyInCurrentActivity = false;
-                  onlyInCurrentDesktop = false;
+                behavior = {
+                  showTasks = {
+                    onlyInCurrentActivity = false;
+                    onlyInCurrentDesktop = false;
+                  };
+                  # byProgramName：相同程序的窗口合并为一个图标，dock 更整洁。
+                  # doNotGroup = 不合并；byProgramName = 按程序名合并。
+                  grouping.method = "byProgramName";
+                  # manually = 按 pin 顺序排序，不自动重排。
+                  sortingMethod = "manually";
                 };
               };
             }

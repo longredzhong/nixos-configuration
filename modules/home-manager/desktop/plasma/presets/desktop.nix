@@ -13,7 +13,7 @@ in
       panels.top.height = lib.mkDefault 32;
       panels.top.opacity = lib.mkDefault "translucent";
 
-      panels.bottom.height = lib.mkDefault 42;
+      panels.bottom.height = lib.mkDefault 52;
       panels.bottom.minLength = lib.mkDefault 600;
       panels.bottom.maxLength = lib.mkDefault 1100;
       panels.bottom.opacity = lib.mkDefault "translucent";
