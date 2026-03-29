@@ -3,15 +3,15 @@ with lib;
 let
   defaultApps = {
     browser = [ "zen-beta.desktop" ];
-    text = [ "kate.desktop" ];
+    text = [ "org.kde.kate.desktop" ];
     image = [ "imv-dir.desktop" ];
     audio = [ "mpv.desktop" ];
     video = [ "mpv.desktop" ];
-    directory = [ "nautilus.desktop" ];
+    directory = [ "org.kde.dolphin.desktop" ];
     office = [ "libreoffice.desktop" ];
-    pdf = [ "org.gnome.Evince.desktop" ];
+    pdf = [ "org.kde.okular.desktop" ];
     terminal = [ "ghostty.desktop" ];
-    archive = [ "org.gnome.FileRoller.desktop" ];
+    archive = [ "org.kde.ark.desktop" ];
     discord = [ "vesktop.desktop" ];
   };
 

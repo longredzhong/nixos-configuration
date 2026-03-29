@@ -94,6 +94,8 @@
           modules = [
             # Enable agenix for Home Manager
             agenix.homeManagerModules.default
+            # Enable Plasma configuration for standalone Home Manager targets
+            inputs.plasma-manager.homeModules.plasma-manager
           ] ++ modules;
         };
     in

@@ -23,6 +23,8 @@ in
     ];
     nixpkgs.overlays = hmOverlays;
 
+    desktop.plasma.preset = "desktop";
+
     # Host-specific packages (only packages unique to this host)
     home.packages = with pkgs.unstable; [
       vivaldi

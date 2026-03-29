@@ -1,7 +1,15 @@
 # Standalone Home Manager config for Fedora ThinkBook
 { ... }:
 {
-  imports = [ ./common.nix ];
+  imports = [
+    ./common.nix
+    ../../modules/home-manager/desktop/default.nix
+  ];
 
-  # Add Fedora-specific overrides below
+  desktop.plasma = {
+    preset = "laptop";
+    virtualDesktopCount = 6;
+    virtualDesktopImmutable = false;
+    lockTimeout = 5;
+  };
 }

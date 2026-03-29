@@ -4,7 +4,8 @@
   home.username = username;
 
   imports = [
-    ../../modules/home-manager/profiles/minimal.nix
+    ../../modules/home-manager/common.nix
+    ../../modules/home-manager/cli-environment.nix
     ../../modules/home-manager/desktop/ghostty.nix
   ];
 
