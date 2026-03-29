@@ -1,4 +1,9 @@
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   cfg = config.desktop.plasma;
 in
@@ -11,7 +16,10 @@ in
     };
 
     preset = lib.mkOption {
-      type = lib.types.enum [ "desktop" "laptop" ];
+      type = lib.types.enum [
+        "desktop"
+        "laptop"
+      ];
       default = "desktop";
       description = "High-level Plasma preset to apply before host-specific overrides.";
     };
@@ -75,24 +83,109 @@ in
       default = false;
       description = "Apply the shared laptop-friendly PowerDevil settings.";
     };
+
+    overrideConfig.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Whether to enforce declarative Plasma config (reset unmanaged KDE options on activation).";
+    };
+
+    panels.top.height = lib.mkOption {
+      type = lib.types.int;
+      default = 32;
+      description = "Top panel height in pixels.";
+    };
+
+    panels.top.opacity = lib.mkOption {
+      type = lib.types.enum [
+        "translucent"
+        "opaque"
+        "adaptive"
+      ];
+      default = "translucent";
+      description = "Top panel opacity mode.";
+    };
+
+    panels.bottom.height = lib.mkOption {
+      type = lib.types.int;
+      default = 42;
+      description = "Bottom dock panel height in pixels.";
+    };
+
+    panels.bottom.minLength = lib.mkOption {
+      type = lib.types.int;
+      default = 300;
+      description = "Bottom dock minimum length.";
+    };
+
+    panels.bottom.maxLength = lib.mkOption {
+      type = lib.types.int;
+      default = 1000;
+      description = "Bottom dock maximum length.";
+    };
+
+    panels.bottom.opacity = lib.mkOption {
+      type = lib.types.enum [
+        "translucent"
+        "opaque"
+        "adaptive"
+      ];
+      default = "translucent";
+      description = "Bottom dock opacity mode.";
+    };
+
+    panels.bottom.floating = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether bottom dock uses floating style.";
+    };
+
+    panels.bottom.alignment = lib.mkOption {
+      type = lib.types.enum [
+        "left"
+        "center"
+        "right"
+      ];
+      default = "center";
+      description = "Bottom dock alignment on screen edge.";
+    };
+
+    dock.launchers = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [
+        "applications:org.kde.dolphin.desktop"
+        "applications:org.kde.konsole.desktop"
+        "applications:google-chrome.desktop"
+      ];
+      description = "Pinned launcher entries for icon tasks in the bottom dock.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
     home.packages = with pkgs; [
       bibata-cursors
-      whitesur-icon-theme
+      dracula-icon-theme
+      dracula-theme
     ];
 
     programs.plasma = {
       enable = true;
+      overrideConfig = cfg.overrideConfig.enable;
 
       workspace = {
-        lookAndFeel = "org.kde.breezedark.desktop";
+        # 全局主题：决定 Plasma 的整体外观。
+        # 可选方向："Dracula"、"org.kde.breezedark.desktop"，或你系统里已安装的其他 Global Theme。
+        lookAndFeel = "Dracula";
         cursor = {
+          # 鼠标光标主题和大小，适合按视觉风格统一调整。
           theme = "Bibata-Modern-Ice";
           size = cfg.cursorSize;
         };
-        iconTheme = "WhiteSur";
+        # 桌面风格 / 配色 / 图标主题。
+        # theme = Plasma 桌面样式；colorScheme = 配色方案；iconTheme = 图标主题。
+        theme = "Dracula";
+        colorScheme = "Dracula";
+        iconTheme = "Dracula";
         wallpaper = cfg.wallpaper;
       };
 
@@ -104,6 +197,7 @@ in
 
       fonts = {
         general = {
+          # Plasma 界面字体。需要更 macOS 风格时可以换成更圆润或更紧凑的字体。
           family = "Noto Sans";
           pointSize = cfg.fontSize;
         };
@@ -111,8 +205,43 @@ in
 
       panels = [
         {
+          # 顶部状态栏：保留系统托盘和时间，减少视觉干扰。
           location = "top";
+          opacity = cfg.panels.top.opacity;
+          height = cfg.panels.top.height;
           widgets = [
+            "org.kde.plasma.panelspacer"  # 左侧留白
+            {
+              systemTray = {
+                items = {
+                  shown =
+                    (lib.optionals cfg.tray.showBattery [ "org.kde.plasma.battery" ])
+                    ++ (lib.optionals cfg.tray.showBluetooth [ "org.kde.plasma.bluetooth" ])
+                    ++ [
+                      "org.kde.plasma.networkmanagement"
+                      "org.kde.plasma.volume"
+                    ];
+                };
+              };
+            }
+            {
+              digitalClock = {
+                calendar.firstDayOfWeek = "monday";
+                time.format = "24h";
+              };
+            }
+          ];
+        }
+        {
+          location = "bottom";
+          floating = cfg.panels.bottom.floating;
+          alignment = cfg.panels.bottom.alignment;
+          height = cfg.panels.bottom.height;
+          minLength = cfg.panels.bottom.minLength;
+          maxLength = cfg.panels.bottom.maxLength;
+          opacity = cfg.panels.bottom.opacity;
+          widgets = [
+            "org.kde.plasma.panelspacer" # 左留白
             {
               name = "org.kde.plasma.kickoff";
               config = {
@@ -122,57 +251,17 @@ in
                 };
               };
             }
-            "org.kde.plasma.marginsseparator"
             {
               iconTasks = {
-                launchers = [
-                  "applications:org.kde.dolphin.desktop"
-                  "applications:org.kde.konsole.desktop"
-                ];
+                launchers = cfg.dock.launchers;
                 behavior.showTasks = {
                   onlyInCurrentActivity = false;
                   onlyInCurrentDesktop = false;
                 };
               };
             }
-            "org.kde.plasma.panelspacer"
-            {
-              plasmusicToolbar = {
-                panelIcon = {
-                  albumCover = {
-                    useAsIcon = false;
-                    radius = 8;
-                  };
-                  icon = "view-media-track";
-                };
-                playbackSource = "auto";
-                musicControls.showPlaybackControls = true;
-                songText = {
-                  displayInSeparateLines = true;
-                  maximumWidth = 480;
-                  scrolling = {
-                    behavior = "alwaysScroll";
-                    speed = 3;
-                  };
-                };
-              };
-            }
-            "org.kde.plasma.panelspacer"
-            {
-              systemTray.items.shown =
-                (lib.optionals cfg.tray.showBattery [ "org.kde.plasma.battery" ])
-                ++ (lib.optionals cfg.tray.showBluetooth [ "org.kde.plasma.bluetooth" ])
-                ++ [
-                  "org.kde.plasma.networkmanagement"
-                  "org.kde.plasma.volume"
-                ];
-            }
-            {
-              digitalClock = {
-                calendar.firstDayOfWeek = "monday";
-                time.format = "24h";
-              };
-            }
+            "org.kde.plasma.panelspacer" # 右留白
+
           ];
         }
       ];
@@ -217,6 +306,7 @@ in
         lowBattery = {
           whenLaptopLidClosed = "hibernate";
         };
+        # 24 小时制时间显示。
       };
 
       kscreenlocker = {
@@ -224,42 +314,7 @@ in
         timeout = cfg.lockTimeout;
       };
 
-      shortcuts = {
-        ksmserver = {
-          "Lock Session" = [
-            "Screensaver"
-            "Meta+Ctrl+Alt+L"
-          ];
-        };
-
-        kwin = {
-          "Expose" = "Meta+,";
-          "Switch Window Down" = "Meta+J";
-          "Switch Window Left" = "Meta+H";
-          "Switch Window Right" = "Meta+L";
-          "Switch Window Up" = "Meta+K";
-          "Switch to Desktop 1" = "Meta+1";
-          "Switch to Desktop 2" = "Meta+2";
-          "Switch to Desktop 3" = "Meta+3";
-          "Switch to Desktop 4" = "Meta+4";
-          "Switch to Desktop 5" = "Meta+5";
-          "Switch to Desktop 6" = "Meta+6";
-          "Switch to Desktop 7" = "Meta+7";
-          "Switch to Desktop 8" = "Meta+8";
-          "Switch to Desktop 9" = "Meta+9";
-          "Switch Window to Desktop 1" = "Meta+Shift+1";
-          "Switch Window to Desktop 2" = "Meta+Shift+2";
-          "Switch Window to Desktop 3" = "Meta+Shift+3";
-          "Switch Window to Desktop 4" = "Meta+Shift+4";
-          "Switch Window to Desktop 5" = "Meta+Shift+5";
-          "Switch Window to Desktop 6" = "Meta+Shift+6";
-          "Switch Window to Desktop 7" = "Meta+Shift+7";
-          "Switch Window to Desktop 8" = "Meta+Shift+8";
-          "Switch Window to Desktop 9" = "Meta+Shift+9";
-          "Toggle Overview" = "Meta+Tab";
-          "Quit" = "Meta+W";
-        };
-      };
+      shortcuts = import ./shortcuts.nix;
 
       configFile = {
         baloofilerc."Basic Settings"."Indexing-Enabled" = cfg.baloo.enable;
