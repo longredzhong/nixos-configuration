@@ -159,18 +159,86 @@ in
       ];
       description = "Pinned launcher entries for icon tasks in the bottom dock.";
     };
+
+    virtualKeyboard.desktopFile = lib.mkOption {
+      type = lib.types.str;
+      default = "/usr/share/applications/fcitx5-wayland-launcher.desktop";
+      description = "Desktop file used by Plasma Wayland as the virtual keyboard / input method entrypoint.";
+    };
+
+    krunner.position = lib.mkOption {
+      type = lib.types.enum [
+        "top"
+        "center"
+      ];
+      default = "center";
+      description = "KRunner position on screen.";
+    };
+
+    krunner.activateWhenTypingOnDesktop = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Whether typing on desktop should trigger KRunner.";
+    };
+
+    krunner.historyBehavior = lib.mkOption {
+      type = lib.types.enum [
+        "disabled"
+        "enableSuggestions"
+        "enableAutoComplete"
+      ];
+      default = "enableSuggestions";
+      description = "How KRunner history behaves.";
+    };
+
+    krunner.shortcuts.launch = lib.mkOption {
+      type = lib.types.either lib.types.str (lib.types.listOf lib.types.str);
+      default = "Alt+Space";
+      description = "Shortcut to launch KRunner.";
+    };
+
+    krunner.shortcuts.runCommandOnClipboard = lib.mkOption {
+      type = lib.types.either lib.types.str (lib.types.listOf lib.types.str);
+      default = "Alt+Shift+F2";
+      description = "Shortcut to run command on clipboard contents via KRunner.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = with pkgs; [
-      bibata-cursors
-      dracula-icon-theme
-      dracula-theme
-    ];
+    home.packages =
+      (with pkgs; [
+        bibata-cursors
+        dracula-icon-theme
+        dracula-theme
+        fcitx5
+        qt6Packages.fcitx5-configtool
+      ])
+      ++ (lib.optionals (builtins.hasAttr "fcitx5-rime" pkgs.qt6Packages) [ pkgs.qt6Packages."fcitx5-rime" ])
+      ++ (lib.optionals (builtins.hasAttr "fcitx5-chinese-addons" pkgs.qt6Packages) [ pkgs.qt6Packages."fcitx5-chinese-addons" ])
+      ++ (lib.optionals (builtins.hasAttr "fcitx5-gtk" pkgs) [ pkgs."fcitx5-gtk" ])
+      ++ (lib.optionals (builtins.hasAttr "fcitx5-qt" pkgs.qt6Packages) [ pkgs.qt6Packages."fcitx5-qt" ]);
+
+    home.sessionVariables = {
+      INPUT_METHOD = "fcitx";
+      GTK_IM_MODULE = "fcitx";
+      QT_IM_MODULE = "fcitx";
+      XMODIFIERS = "@im=fcitx";
+      SDL_IM_MODULE = "fcitx";
+      GLFW_IM_MODULE = "ibus";
+    };
 
     programs.plasma = {
       enable = true;
       overrideConfig = cfg.overrideConfig.enable;
+      krunner = {
+        position = cfg.krunner.position;
+        activateWhenTypingOnDesktop = cfg.krunner.activateWhenTypingOnDesktop;
+        historyBehavior = cfg.krunner.historyBehavior;
+        shortcuts = {
+          launch = cfg.krunner.shortcuts.launch;
+          runCommandOnClipboard = cfg.krunner.shortcuts.runCommandOnClipboard;
+        };
+      };
 
       workspace = {
         # 全局主题：决定 Plasma 的整体外观。
@@ -212,6 +280,18 @@ in
           widgets = [
             # 虚拟桌面 Pager：直观切换 N 个桌面，避免只能靠快捷键盲切。
             "org.kde.plasma.pager"
+            # 窗口设置切换器 Task Manager：显示当前活动窗口，支持窗口预览和快速切换。
+            {
+              name = "org.kde.plasma.taskmanager";
+              config = {
+                General = {
+                  showOnlyCurrentActivity = false;
+                  showOnlyCurrentDesktop = false;
+                  grouping = "byProgramName"; # 相同程序的窗口合并为一个图标，状态栏更整洁。
+                  sortingMethod = "byTime"; # 任务图标按最近使用排序，常用窗口更快访问。
+                };
+              };
+            }
             "org.kde.plasma.panelspacer"  # 将托盘和时钟推向右侧
             {
               systemTray = {
@@ -264,7 +344,7 @@ in
                 behavior = {
                   showTasks = {
                     onlyInCurrentActivity = false;
-                    onlyInCurrentDesktop = false;
+                    onlyInCurrentDesktop = true;
                   };
                   # byProgramName：相同程序的窗口合并为一个图标，dock 更整洁。
                   # doNotGroup = 不合并；byProgramName = 按程序名合并。
@@ -333,6 +413,7 @@ in
       configFile = {
         baloofilerc."Basic Settings"."Indexing-Enabled" = cfg.baloo.enable;
         kwinrc."org.kde.kdecoration2".ButtonsOnLeft = "SF";
+        kwinrc.Wayland."InputMethod[$e]" = cfg.virtualKeyboard.desktopFile;
         kwinrc.Desktops.Number = {
           value = cfg.virtualDesktopCount;
           immutable = cfg.virtualDesktopImmutable;
