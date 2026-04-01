@@ -8,12 +8,6 @@
     home-manager.url = "github:nix-community/home-manager/release-25.11";
     home-manager.inputs.nixpkgs.follows = "nixpkgs-unstable";
 
-    plasma-manager = {
-      url = "github:nix-community/plasma-manager";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.home-manager.follows = "home-manager";
-    };
-
     nixos-wsl.url = "github:nix-community/NixOS-WSL";
     nixos-wsl.inputs.nixpkgs.follows = "nixpkgs";
 
@@ -94,8 +88,6 @@
           modules = [
             # Enable agenix for Home Manager
             agenix.homeManagerModules.default
-            # Enable Plasma configuration for standalone Home Manager targets
-            inputs.plasma-manager.homeModules.plasma-manager
           ] ++ modules;
         };
     in
