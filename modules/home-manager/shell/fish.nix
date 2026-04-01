@@ -5,7 +5,6 @@ in
 {
   imports = [ ./common.nix ];
 
-  # -------- FZF 配置 --------
   programs.fzf = {
     enable = true;
     enableFishIntegration = true;
@@ -24,33 +23,17 @@ in
     ];
   };
 
-  # -------- Fish Shell 配置 --------
   programs.fish = {
     enable = true;
 
-    # --- Shell 初始化脚本 ---
-    shellInit = ''
-      # 设置 PATH
-      for p in ${builtins.concatStringsSep " " cfg.extraPaths}
-        test -d $p; and fish_add_path $p
-      end
-    '';
-
     interactiveShellInit = ''
-      # -------- 历史与欢迎 --------
       set -g fish_history_max_length 10000
       set -U fish_greeting
 
-      # -------- Nix Shell 支持 --------
       if status --is-interactive
         ${pkgs.any-nix-shell}/bin/any-nix-shell fish --info-right | source
       end
 
-      # -------- 环境变量 --------
-      set -gx PIXI_CACHE_DIR "${cfg.envVars.PIXI_CACHE_DIR}"
-      set -gx UV_CACHE_DIR "${cfg.envVars.UV_CACHE_DIR}"
-
-      # -------- 颜色主题 --------
       set -g fish_color_normal normal
       set -g fish_color_command cyan --bold
       set -g fish_color_param green
@@ -73,9 +56,7 @@ in
       set -g fish_pager_color_selected_completion white --background=brblue
     '';
 
-    # --- 自定义函数 ---
     functions = {
-      # -------- 基础工具 --------
       refresh = "source $HOME/.config/fish/config.fish";
       take = ''mkdir -p -- "$argv[1]" && cd -- "$argv[1]"'';
       ttake = "cd (mktemp -d)";
@@ -87,7 +68,6 @@ in
         end
       '';
 
-      # -------- FZF 集成 --------
       fe = ''
         set -l file (fd --type f --hidden --exclude .git | fzf --preview "bat --color=always --style=numbers {}")
         test -n "$file"; and $EDITOR $file
@@ -104,7 +84,6 @@ in
         env | fzf --preview "echo {}" --header="Environment Variables"
       '';
 
-      # -------- Git 增强 --------
       gb = ''
         set -l branch (git branch -a --color=always | fzf --ansi --preview "git log --oneline --graph --color=always {1}" | sed 's/^[* ]*//' | sed 's#remotes/origin/##')
         test -n "$branch"; and git checkout $branch
@@ -118,7 +97,6 @@ in
         test -n "$commit"; and git show $commit
       '';
 
-      # -------- 代理管理 --------
       set_proxy = ''
         set -l proxy (test (count $argv) -ge 1; and echo $argv[1]; or echo "${cfg.defaultProxy}")
         set -gx http_proxy "http://$proxy"
@@ -140,9 +118,7 @@ in
       '';
     };
 
-    # --- Shell 缩写（Fish 专属，输入后自动展开）---
     shellAbbrs = {
-      # Git 缩写
       gapa = "git add --patch";
       grpa = "git reset --patch";
       gcp = "git cherry-pick";
@@ -154,15 +130,12 @@ in
       gfa = "git fetch --all";
     };
 
-    # --- Shell 别名（使用共享配置）---
     shellAliases = cfg.commonAliases // {
-      # Fish 专属别名
       editfish = "$EDITOR ~/.config/fish/config.fish";
       nixswitch = "cd ~/nixos-configuration && sudo -E nixos-rebuild switch --flake .#(hostname) && cd -";
       nixhome = "cd ~/nixos-configuration && home-manager switch --flake .#${config.home.username}@(hostname) && cd -";
     };
 
-    # --- Fish 插件 ---
     plugins = [
       {
         name = "autopair";
@@ -173,19 +146,19 @@ in
         src = pkgs.fishPlugins.sponge.src;
       }
       {
-        name = "puffer-fish"; # 更好的 Buffer 编辑
+        name = "puffer-fish";
         src = pkgs.fishPlugins.puffer.src;
       }
       {
-        name = "colored-man-pages"; # 彩色 man 手册
+        name = "colored-man-pages";
         src = pkgs.fishPlugins.colored-man-pages.src;
       }
       {
-        name = "done"; # 长时间任务完成时通知
+        name = "done";
         src = pkgs.fishPlugins.done.src;
       }
       {
-        name = "bass"; # 运行 bash 脚本并导入环境
+        name = "bass";
         src = pkgs.fishPlugins.bass.src;
       }
     ];

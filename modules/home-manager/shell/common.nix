@@ -144,4 +144,14 @@ in
       description = "Common shell aliases";
     };
   };
+
+  config = {
+    home.sessionPath = lib.mkDefault extraPaths;
+    home.sessionVariables = {
+      PIXI_CACHE_DIR = lib.mkDefault envVars.PIXI_CACHE_DIR;
+      UV_CACHE_DIR = lib.mkDefault envVars.UV_CACHE_DIR;
+      CONDA_PKGS_DIRS = lib.mkDefault envVars.CONDA_PKGS_DIRS;
+      MAMBA_ROOT_PREFIX = lib.mkDefault envVars.MAMBA_ROOT_PREFIX;
+    };
+  };
 }

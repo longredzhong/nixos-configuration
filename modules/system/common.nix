@@ -158,6 +158,7 @@ in
   # 常用软件包
   # 这里的包会被安装到系统中
   environment.systemPackages = stable-packages ++ unstable-packages ++ [ ];
+  environment.pathsToLink = [ "/share/bash-completion" ];
 
   # 确保 .ssh 目录存在并有正确权限
   system.activationScripts.sshUserDir = ''

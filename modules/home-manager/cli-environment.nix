@@ -77,6 +77,7 @@
   # 配置 zoxide (cd 增强)
   programs.zoxide = {
     enable = true;
+    enableBashIntegration = true;
     enableFishIntegration = true;
     options = [ "--cmd cd" ];
   };
