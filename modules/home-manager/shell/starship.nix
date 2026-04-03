@@ -3,7 +3,7 @@
   programs.starship = {
     enable = true;
     enableFishIntegration = true;
-    enableBashIntegration = true;
+    enableBashIntegration = false;
 
     settings = {
       # -------- 全局设置 --------

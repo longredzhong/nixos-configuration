@@ -34,9 +34,35 @@ in
     ];
 
     initExtra = ''
-      set -o vi
-      bind 'set show-all-if-ambiguous on'
-      bind 'set completion-ignore-case on'
+      is_human_interactive_shell() {
+        [[ "$-" == *i* ]] && [[ -t 0 ]] && [[ -t 1 ]]
+      }
+
+      if is_human_interactive_shell; then
+        set -o vi
+        bind 'set show-all-if-ambiguous on'
+        bind 'set completion-ignore-case on'
+
+        if command -v any-nix-shell &> /dev/null; then
+          eval "$(any-nix-shell bash --info-right)"
+        fi
+
+        if command -v direnv &> /dev/null; then
+          eval "$(direnv hook bash)"
+        fi
+
+        if command -v zoxide &> /dev/null; then
+          eval "$(zoxide init bash --cmd cd)"
+        fi
+
+        if command -v atuin &> /dev/null; then
+          eval "$(atuin init bash)"
+        fi
+
+        if command -v starship &> /dev/null; then
+          eval "$(starship init bash)"
+        fi
+      fi
 
       ttake() { cd "$(mktemp -d)" || return; }
       take() { mkdir -p -- "$1" && cd -- "$1" || return; }
@@ -101,9 +127,6 @@ in
         [[ -n "$commit" ]] && git show "$commit"
       }
 
-      if command -v any-nix-shell &> /dev/null; then
-        eval "$(any-nix-shell bash --info-right)"
-      fi
     '';
 
     shellAliases = cfg.commonAliases // {

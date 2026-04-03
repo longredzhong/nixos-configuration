@@ -3,7 +3,7 @@
   programs.atuin = {
     enable = true;
     enableFishIntegration = true;
-    enableBashIntegration = true;
+    enableBashIntegration = false;
 
     settings = {
       # -------- 同步设置 --------

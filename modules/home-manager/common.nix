@@ -20,6 +20,7 @@
     # direnv - 目录级环境变量
     direnv = {
       enable = lib.mkDefault true;
+      enableBashIntegration = false;
       nix-direnv.enable = true;
     };
   };
