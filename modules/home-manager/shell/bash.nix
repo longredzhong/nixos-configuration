@@ -81,7 +81,15 @@ in
         export HTTPS_PROXY="http://$proxy"
         export no_proxy="${cfg.noProxyList}"
         export NO_PROXY="${cfg.noProxyList}"
-        echo "Proxy set to: $proxy"
+        printf '\n'
+        printf '  %-12s  %s\n' "http_proxy" "$http_proxy"
+        printf '  %-12s  %s\n' "https_proxy" "$https_proxy"
+        printf '  %-12s  %s\n' "HTTP_PROXY" "$HTTP_PROXY"
+        printf '  %-12s  %s\n' "HTTPS_PROXY" "$HTTPS_PROXY"
+        printf '  %-12s  %s\n' "no_proxy" "$no_proxy"
+        printf '  %-12s  %s\n' "NO_PROXY" "$NO_PROXY"
+        printf '\n'
+        echo "Proxy environment variables set"
       }
 
       unset_proxy() {

@@ -44,7 +44,7 @@ in
         environment = {
           # Add any environment variables needed for the container
           # e.g., "ENV_VAR_NAME" = "value";
-          https_proxy = "http://127.0.1:7890";
+          https_proxy = "http://127.0.0.1:7890";
         };
         # Optional: Add extra arguments if needed, e.g., environment variables
         # extraOptions = [ "--env" "SOME_VAR=value" ];

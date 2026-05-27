@@ -105,7 +105,15 @@ in
         set -gx HTTPS_PROXY "http://$proxy"
         set -gx no_proxy "${cfg.noProxyList}"
         set -gx NO_PROXY "${cfg.noProxyList}"
-        echo "Proxy set to: $proxy"
+        printf '\n'
+        printf '  %-12s  %s\n' "http_proxy" "$http_proxy"
+        printf '  %-12s  %s\n' "https_proxy" "$https_proxy"
+        printf '  %-12s  %s\n' "HTTP_PROXY" "$HTTP_PROXY"
+        printf '  %-12s  %s\n' "HTTPS_PROXY" "$HTTPS_PROXY"
+        printf '  %-12s  %s\n' "no_proxy" "$no_proxy"
+        printf '  %-12s  %s\n' "NO_PROXY" "$NO_PROXY"
+        printf '\n'
+        echo "Proxy environment variables set"
       '';
       unset_proxy = ''
         set -e http_proxy https_proxy HTTP_PROXY HTTPS_PROXY no_proxy NO_PROXY
