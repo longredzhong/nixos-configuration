@@ -73,7 +73,10 @@
           overlays = (import ./modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
           pkgs = import nixpkgs {
             inherit system;
-            config.allowUnfree = true;
+            config = {
+              allowUnfree = true;
+              permittedInsecurePackages = [ "electron-39.8.10" ];
+            };
             overlays = overlays;
           };
         in
