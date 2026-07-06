@@ -31,8 +31,7 @@ let
 
     # Nix 相关
     nixpkgs-fmt
-    nixfmt-classic
-    nixfmt-rfc-style
+    nixfmt
 
     # 密钥管理
     age
@@ -45,7 +44,7 @@ let
 in
 {
   # 系统状态版本（不要轻易改变）
-  system.stateVersion = "25.11";
+  system.stateVersion = "26.05";
   networking.hostName = "${hostname}";
   networking.networkmanager.enable = true;
   nixpkgs.config.allowUnfree = true;
@@ -171,5 +170,11 @@ in
     package = pkgs.nix-ld;
     libraries = options.programs.nix-ld.libraries.default ++ (with pkgs; [ glib ]);
   };
+
+  # 允许不安全的包（EOL 版本但仍需使用）
+  nixpkgs.config.permittedInsecurePackages = [
+    "electron-39.8.10"
+    "minio-2025-10-15T17-29-55Z"
+  ];
 
 }

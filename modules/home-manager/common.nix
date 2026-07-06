@@ -1,8 +1,14 @@
 { pkgs, config, lib, ... }:
 {
+  # 允许不安全的包（EOL 版本但仍需使用）
+  nixpkgs.config.permittedInsecurePackages = [
+    "electron-39.8.10"
+    "minio-2025-10-15T17-29-55Z"
+  ];
+
   home = {
     homeDirectory = "/home/${config.home.username}";
-    stateVersion = "25.11";
+    stateVersion = "26.05";
     sessionVariables = {
       EDITOR = lib.mkDefault "nano";
       VISUAL = lib.mkDefault "nano";

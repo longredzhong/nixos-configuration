@@ -46,7 +46,7 @@
 
         # --- 网络工具 ---
         httpie # 友好的 HTTP 客户端
-        dogdns # 更好的 dig
+        doggo # 更好的 dig（替代已移除的 dogdns）
         bandwhich # 终端带宽使用监控
         iftop # 网络带宽监控
         mtr # 网络诊断
