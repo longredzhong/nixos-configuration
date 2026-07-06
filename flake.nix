@@ -109,6 +109,11 @@
       # Standalone Home Manager Configurations (for non-NixOS hosts)
       # ============================================================
       homeConfigurations = {
+        "longred@metacube-wsl" = mkHome {
+          username = "longred";
+          hostname = "metacube-wsl";
+          modules = [ ./users/longred/metacube-wsl.nix ];
+        };
         "longred@fedora-thinkbook" = mkHome {
           username = "longred";
           hostname = "fedora-thinkbook";

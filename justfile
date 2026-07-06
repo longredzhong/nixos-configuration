@@ -39,9 +39,22 @@ eval-home target=DEFAULT_TARGET:
 build host=DEFAULT_HOST:
     nixos-rebuild build --flake .#{{host}}
 
-# Build and switch system
-switch host=DEFAULT_HOST:
+# Build and switch NixOS system (explicit)
+switch-nixos host=DEFAULT_HOST:
     sudo -E nixos-rebuild switch --flake .#{{host}}
+
+# Build and switch (auto-detect NixOS or standalone Home Manager)
+switch host=DEFAULT_HOST target=DEFAULT_TARGET:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if nix eval ".#nixosConfigurations.{{host}}" --apply '_: true' --option eval-cache true &>/dev/null; then
+        sudo -E nixos-rebuild switch --flake .#{{host}}
+    elif nix eval ".#homeConfigurations.{{target}}" --apply '_: true' --option eval-cache true &>/dev/null; then
+        {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}} -b backup
+    else
+        echo "Error: no configuration found for host '{{host}}' or target '{{target}}'" >&2
+        exit 1
+    fi
 
 # Build and switch on next boot
 boot host=DEFAULT_HOST:
