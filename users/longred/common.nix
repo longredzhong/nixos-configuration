@@ -32,19 +32,19 @@
   home.packages =
     let
       stable = with pkgs; [
-        gcc
-        gnumake
-        pkg-config
-        curl
-        wget
-        unzip
-        zip
-        openssl
+        # gcc
+        # gnumake
+        # pkg-config
+        # curl
+        # wget
+        # unzip
+        # zip
+        # openssl
         neovim
-        nodejs_22
-        python3
-        go
-        rustup
+        # nodejs_22
+        # python3
+        # go
+        # rustup
         docker-compose
       ];
       unstable = with pkgs.unstable; [
