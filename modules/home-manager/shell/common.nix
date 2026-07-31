@@ -5,6 +5,7 @@ let
   # -------- 共享路径 --------
   extraPaths = [
     "$HOME/.local/bin"
+    "$HOME/.local/share/pnpm/bin"
     "$HOME/.cargo/bin"
     "$HOME/.pixi/bin"
     "$HOME/go/bin"
