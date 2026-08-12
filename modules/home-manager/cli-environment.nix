@@ -6,7 +6,9 @@
     ./shell/starship.nix
     ./shell/atuin.nix
     ./shell/git.nix
+    ./shell/helix.nix
     ./shell/tmux.nix
+    ./shell/zellij.nix
   ];
   home.packages =
     let
@@ -34,6 +36,7 @@
         tldr # 简化版 man 页面
 
         # --- 开发工具 ---
+        # helix and zellij - 通过 programs.* 启用
         lazygit # git TUI 界面
         wezterm # 终端模拟器
         ffmpeg # 多媒体处理

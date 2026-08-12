@@ -10,7 +10,7 @@
     settings = {
       # -------- 核心设置 --------
       core = {
-        editor = "vim";
+        editor = "hx";
         autocrlf = "input";
         whitespace = "trailing-space,space-before-tab";
         preloadindex = true;

@@ -53,5 +53,6 @@
     in
     stable ++ unstable;
 
-  home.sessionVariables.EDITOR = "nvim";
+  home.sessionVariables.EDITOR = "hx";
+  home.sessionVariables.VISUAL = "hx";
 }

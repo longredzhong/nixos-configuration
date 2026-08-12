@@ -93,6 +93,8 @@ let
     pingg = "ping -c 5 google.com";
 
     # 快速编辑配置
+    hx = "hx";
+    zellij = "zellij";
     conf = "cd ~/nixos-configuration";
     edithosts = "sudo $EDITOR /etc/hosts";
     editflake = "$EDITOR ~/nixos-configuration/flake.nix";
