@@ -68,11 +68,12 @@
       language = [
         {
           name = "python";
+          roots = [ "pixi.toml" "pyproject.toml" "uv.lock" ".git" ];
           language-servers = [ "pyright" "ruff" ];
           auto-format = true;
           formatter = {
             command = "${pkgs.ruff}/bin/ruff";
-            args = [ "format" "--stdin-filename" "file.py" "-" ];
+            args = [ "format" "--stdin-filename" "%{buffer_name}" "-" ];
           };
           indent = {
             tab-width = 4;
@@ -81,11 +82,12 @@
         }
         {
           name = "javascript";
+          roots = [ "package.json" "jsconfig.json" "yarn.lock" "pnpm-lock.yaml" "package-lock.json" ".git" ];
           language-servers = [ "typescript-language-server" ];
           auto-format = true;
           formatter = {
             command = "${pkgs.prettier}/bin/prettier";
-            args = [ "--parser" "babel" ];
+            args = [ "--stdin-filepath" "%{buffer_name}" ];
           };
           indent = {
             tab-width = 2;
@@ -94,11 +96,12 @@
         }
         {
           name = "typescript";
+          roots = [ "package.json" "tsconfig.json" "yarn.lock" "pnpm-lock.yaml" "package-lock.json" ".git" ];
           language-servers = [ "typescript-language-server" ];
           auto-format = true;
           formatter = {
             command = "${pkgs.prettier}/bin/prettier";
-            args = [ "--parser" "typescript" ];
+            args = [ "--stdin-filepath" "%{buffer_name}" ];
           };
           indent = {
             tab-width = 2;
@@ -107,11 +110,12 @@
         }
         {
           name = "tsx";
+          roots = [ "package.json" "tsconfig.json" "yarn.lock" "pnpm-lock.yaml" "package-lock.json" ".git" ];
           language-servers = [ "typescript-language-server" ];
           auto-format = true;
           formatter = {
             command = "${pkgs.prettier}/bin/prettier";
-            args = [ "--parser" "typescript" ];
+            args = [ "--stdin-filepath" "%{buffer_name}" ];
           };
           indent = {
             tab-width = 2;
@@ -120,11 +124,12 @@
         }
         {
           name = "markdown";
+          roots = [ "pixi.toml" "pyproject.toml" "package.json" ".git" ];
           language-servers = [ "marksman" ];
           auto-format = true;
           formatter = {
             command = "${pkgs.prettier}/bin/prettier";
-            args = [ "--parser" "markdown" ];
+            args = [ "--stdin-filepath" "%{buffer_name}" ];
           };
           indent = {
             tab-width = 2;
