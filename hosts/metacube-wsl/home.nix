@@ -13,6 +13,7 @@ let
   hmOverlays = overlayModule.nixpkgs.overlays;
 in
 {
+  home-manager.backupFileExtension = "backups";
   home-manager.users.${username} = {
     imports = [
       # Use WSL profile (includes common + cli-environment + wsl)
