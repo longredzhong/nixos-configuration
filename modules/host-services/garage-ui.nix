@@ -32,6 +32,7 @@ in
           --env GARAGE_UI_GARAGE_ENDPOINT=http://127.0.0.1:3900 \
           --env GARAGE_UI_GARAGE_ADMIN_ENDPOINT=http://127.0.0.1:3903 \
           --env GARAGE_UI_GARAGE_ADMIN_TOKEN_FILE=/run/secrets/garage-admin-token \
+          --env GARAGE_UI_AUTH_TOKEN_ENABLED=true \
           --volume ${garageUiSecretPath}:/run/secrets/garage-admin-token:ro \
           ${garageUiImage}
       '';
