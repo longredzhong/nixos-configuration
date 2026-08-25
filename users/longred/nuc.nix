@@ -16,7 +16,6 @@
   # Host-specific packages (parity with old NixOS hosts/nuc/home.nix)
   home.packages = with pkgs.unstable; [
     vivaldi
-    navicat-premium
   ];
 
   # Input method environment (system-side fcitx5 installed via dnf)
