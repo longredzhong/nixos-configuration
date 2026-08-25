@@ -43,6 +43,12 @@ in
         [[ "$-" == *i* ]] && [[ -t 0 ]] && [[ -t 1 ]]
       }
 
+      if is_human_interactive_shell && [[ -z "$FISH_VERSION" ]] && [[ -z "$BASH_NO_EXEC_FISH" ]]; then
+        if command -v fish &> /dev/null; then
+          exec fish
+        fi
+      fi
+
       if is_human_interactive_shell; then
         set -o vi
         bind 'set show-all-if-ambiguous on'
