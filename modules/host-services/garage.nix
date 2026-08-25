@@ -50,7 +50,7 @@ in
         "${pkgs.coreutils}/bin/mkdir -p ${garageDataDir} ${garageMetaDir}"
       ];
       ExecStart = pkgs.writeShellScript "garage-start" ''
-        exec ${pkgs.garage}/bin/garage \
+        exec ${pkgs.garage_2}/bin/garage \
           -c ${garageCfgDir}/garage.toml \
           --rpc-secret-file "${config.age.secrets.garage-rpc-secret.path}" \
           server
