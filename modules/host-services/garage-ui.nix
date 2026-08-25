@@ -26,6 +26,7 @@ in
           --network host \
           --pull missing \
           --security-opt label=disable \
+          --user 0:0 \
           --env GARAGE_UI_SERVER_HOST=100.100.10.1 \
           --env GARAGE_UI_SERVER_PORT=8080 \
           --env GARAGE_UI_GARAGE_ENDPOINT=http://127.0.0.1:3900 \
