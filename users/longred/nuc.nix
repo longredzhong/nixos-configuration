@@ -14,7 +14,7 @@
     ../../modules/host-services/dufs-webdav.nix
   ];
 
-  # Host-specific packages (parity with old NixOS hosts/nuc/home.nix)
+  # Fedora NUC-specific packages
   home.packages = with pkgs.unstable; [
     vivaldi
   ];

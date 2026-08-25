@@ -20,7 +20,7 @@
 - 各主机的 NixOS 模块已导入 `inputs.agenix.nixosModules.default`：
   
   ```nix
-  # 例如在 hosts/nuc/nixos.nix 中
+  # 例如在某个 NixOS 主机配置中
   imports = [
     # ... other imports
     inputs.agenix.nixosModules.default
@@ -241,7 +241,7 @@ in
 根据机密的预期用途，在 NixOS 模块或 Home Manager 配置中引用解密后文件的路径 `config.age.secrets.<secret_name>.path`。
 
 ```nix
-# 在 hosts/nuc/nixos.nix 或其他 NixOS 模块中
+# 在某个 NixOS 模块或 Home Manager 配置中
 { config, pkgs, username, ... }: {
   imports = [
     # ... other imports
