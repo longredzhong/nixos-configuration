@@ -101,7 +101,6 @@
       nixosConfigurations = {
         metacube-wsl = mkHost { hostname = "metacube-wsl"; };
         thinkbook-wsl = mkHost { hostname = "thinkbook-wsl"; };
-        nuc = mkHost { hostname = "nuc"; };
         thinkbook = mkHost { hostname = "thinkbook"; };
       };
 
