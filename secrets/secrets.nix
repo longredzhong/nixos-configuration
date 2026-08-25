@@ -10,7 +10,7 @@ let
       longred = {
         nuc = {
           type = "ssh-ed25519";
-          key = "AAAAC3NzaC1lZDI1NTE5AAAAICucQsD88/+YzMcFFKc7p8rxx489u/panXkKkOFpzrDG";
+          key = "AAAAC3NzaC1lZDI1NTE5AAAAIBFpBt+r7xL1vyE1A2pUn72DEQy7wQ4hW6qhqYnZz2Fi";
           identityPath = "/home/longred/.ssh/id_ed25519";
         };
         thinkbook-wsl = {
@@ -30,7 +30,7 @@ let
       # 主机密钥
       nuc = {
         type = "ssh-ed25519";
-        key = "AAAAC3NzaC1lZDI1NTE5AAAAIO1dYCjl6iFU6sqTuk7PLl/Mn2CP8wVehoTv3+HzQwCb";
+        key = "AAAAC3NzaC1lZDI1NTE5AAAAIGuM7T6aOCr2MNS3Js7uP+t5rEpAjjxK4+SlAdGQueUv";
         identityPath = "/etc/ssh/ssh_host_ed25519_key";
       };
       thinkbook-wsl = {
@@ -90,9 +90,16 @@ let
     };
 
     "cloudflare-tunnel-nuc.age" = {
-      recipients = keyGroups.nuc;
+      recipients = keyGroups.longred ++ keyGroups.nuc;
       owner = "root";
       group = "root";
+      mode = "600";
+    };
+
+    "garage-rpc-secret.age" = {
+      recipients = keyGroups.longred ++ keyGroups.nuc;
+      owner = "longred";
+      group = "users";
       mode = "600";
     };
   };

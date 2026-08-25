@@ -47,12 +47,12 @@ switch-nixos host=DEFAULT_HOST:
 switch host=DEFAULT_HOST target=DEFAULT_TARGET:
     #!/usr/bin/env bash
     set -euo pipefail
-    if nix eval ".#nixosConfigurations.{{host}}" --apply '_: true' --option eval-cache true &>/dev/null; then
+    if [[ -e /etc/NIXOS ]]; then
         sudo -E nixos-rebuild switch --flake .#{{host}}
     elif nix eval ".#homeConfigurations.{{target}}" --apply '_: true' --option eval-cache true &>/dev/null; then
         {{NIXCMD}} run {{HM}} -- switch --flake .#{{target}} -b backup
     else
-        echo "Error: no configuration found for host '{{host}}' or target '{{target}}'" >&2
+        echo "Error: no NixOS system or home-manager target found for '{{host}}'/'{{target}}'" >&2
         exit 1
     fi
 
