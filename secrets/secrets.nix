@@ -13,7 +13,7 @@ let
           key = "AAAAC3NzaC1lZDI1NTE5AAAAIBFpBt+r7xL1vyE1A2pUn72DEQy7wQ4hW6qhqYnZz2Fi";
           identityPath = "/home/longred/.ssh/id_ed25519";
         };
-        thinkbook-wsl = {
+        fedora-thinkbook = {
           type = "ssh-ed25519";
           key = "AAAAC3NzaC1lZDI1NTE5AAAAICw0USk2+Qy2+RJjNTinq8R293JmEpKJT1FUIKn0GWTf";
           identityPath = "/home/longred/.ssh/id_ed25519";
@@ -33,7 +33,7 @@ let
         key = "AAAAC3NzaC1lZDI1NTE5AAAAIGuM7T6aOCr2MNS3Js7uP+t5rEpAjjxK4+SlAdGQueUv";
         identityPath = "/etc/ssh/ssh_host_ed25519_key";
       };
-      thinkbook-wsl = {
+      fedora-thinkbook = {
         type = "ssh-ed25519";
         key = "AAAAC3NzaC1lZDI1NTE5AAAAIFrhflLIvpEW9r3AiH45tt93FBjyg+B8U4afJcUic2Nh";
         identityPath = "/etc/ssh/ssh_host_ed25519_key";
@@ -50,18 +50,18 @@ let
   keyGroups = {
     allUsers = [
       publicKeys.users.longred.nuc
-      publicKeys.users.longred.thinkbook-wsl
+      publicKeys.users.longred.fedora-thinkbook
     ];
     allHosts = [
       publicKeys.hosts.nuc
-      publicKeys.hosts.thinkbook-wsl
+      publicKeys.hosts.fedora-thinkbook
       publicKeys.hosts.metacube-wsl
     ];
     # 指定机器需要的密钥组
     nuc = [ publicKeys.hosts.nuc ];
     longred = [
       publicKeys.users.longred.nuc
-      publicKeys.users.longred.thinkbook-wsl
+      publicKeys.users.longred.fedora-thinkbook
     ];
   };
 
