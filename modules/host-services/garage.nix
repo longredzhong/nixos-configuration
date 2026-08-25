@@ -14,6 +14,7 @@ in
 {
   # RPC secret shared by cluster nodes (single node here), decrypted via agenix
   age.secrets.garage-rpc-secret.file = ../../secrets/garage-rpc-secret.age;
+  age.secrets.garage-admin-token.file = ../../secrets/garage-admin-token.age;
   age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
 
   home.file."${garageCfgDir}/garage.toml".text = ''
@@ -52,6 +53,7 @@ in
       ExecStart = pkgs.writeShellScript "garage-start" ''
         exec ${pkgs.garage_2}/bin/garage \
           -c ${garageCfgDir}/garage.toml \
+          --admin-token-file "${config.age.secrets.garage-admin-token.path}" \
           --rpc-secret-file "${config.age.secrets.garage-rpc-secret.path}" \
           server
       '';

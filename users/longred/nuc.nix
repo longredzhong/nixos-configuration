@@ -10,6 +10,7 @@
     ../../modules/home-manager/profiles/desktop.nix
     # Services running as HM user-level systemd units
     ../../modules/host-services/garage.nix
+    ../../modules/host-services/garage-ui.nix
     ../../modules/host-services/dufs-webdav.nix
   ];
 

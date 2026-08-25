@@ -102,6 +102,13 @@ let
       group = "users";
       mode = "600";
     };
+
+    "garage-admin-token.age" = {
+      recipients = keyGroups.longred ++ keyGroups.nuc;
+      owner = "longred";
+      group = "users";
+      mode = "600";
+    };
   };
 
   # --- 辅助函数 ---
