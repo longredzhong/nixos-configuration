@@ -49,7 +49,12 @@ in
       ExecStartPre = [
         "${pkgs.coreutils}/bin/mkdir -p ${garageDataDir} ${garageMetaDir}"
       ];
-      ExecStart = "${pkgs.garage}/bin/garage -c ${garageCfgDir}/garage.toml server";
+      ExecStart = pkgs.writeShellScript "garage-start" ''
+        exec ${pkgs.garage}/bin/garage \
+          -c ${garageCfgDir}/garage.toml \
+          --rpc-secret-file "${config.age.secrets.garage-rpc-secret.path}" \
+          server
+      '';
       Restart = "always";
       RestartSec = "5s";
     };
