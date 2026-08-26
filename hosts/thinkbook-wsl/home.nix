@@ -1,16 +1,11 @@
 {
-  config,
   pkgs,
-  lib,
   username,
   inputs,
-  hostname,
-  channels,
   ...
 }:
 let
-  overlayModule = import ../../modules/overlays.nix { inherit inputs; };
-  hmOverlays = overlayModule.nixpkgs.overlays;
+  hmOverlays = (import ../../modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
 in
 {
   home-manager.users.${username} = {

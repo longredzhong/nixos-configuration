@@ -6,6 +6,7 @@
 }:
 let
   cfg = config.shell;
+  shellFns = import ./functions.nix { inherit lib; };
 in
 {
   imports = [ ./common.nix ];
@@ -75,14 +76,7 @@ in
         fi
       fi
 
-      ttake() { cd "$(mktemp -d)" || return; }
-      take() { mkdir -p -- "$1" && cd -- "$1" || return; }
-      show_path() { tr ':' '\n' <<< "$PATH"; }
-      posix-source() {
-        while IFS= read -r line; do
-          [[ "$line" =~ ^([^=]+)=(.*)$ ]] && export "''${BASH_REMATCH[1]}"="''${BASH_REMATCH[2]}"
-        done < "$1"
-      }
+      ${shellFns.bash}
 
       _proxy_url() {
         local proxy="''${1:-${cfg.defaultProxy}}"
@@ -208,38 +202,6 @@ in
         fi
         proxy_env+=(no_proxy="${cfg.noProxyList}" NO_PROXY="${cfg.noProxyList}")
         "''${proxy_env[@]}" "$@"
-      }
-
-      fe() {
-        local file
-        file=$(fd --type f --hidden --exclude .git | fzf --preview "bat --color=always --style=numbers {}")
-        [[ -n "$file" ]] && ''${EDITOR:-vim} "$file"
-      }
-
-      fcd() {
-        local dir
-        dir=$(fd --type d --hidden --exclude .git | fzf --preview "eza --tree --level=2 --color=always --icons {}")
-        [[ -n "$dir" ]] && cd "$dir"
-      }
-
-      fkill() {
-        local pids
-        pids=$(ps -ef | sed 1d | fzf -m --header="Select process(es) to kill" | awk '{print $2}')
-        [[ -n "$pids" ]] && echo "$pids" | xargs kill -9
-      }
-
-      fenv() { env | fzf --preview "echo {}"; }
-
-      gb() {
-        local branch
-        branch=$(git branch -a --color=always | fzf --ansi --preview "git log --oneline --graph --color=always {1}" | sed 's/^[* ]*//' | sed 's#remotes/origin/##')
-        [[ -n "$branch" ]] && git checkout "$branch"
-      }
-
-      gshow() {
-        local commit
-        commit=$(git log --oneline --color=always | fzf --ansi --preview "git show --color=always {1}" | awk '{print $1}')
-        [[ -n "$commit" ]] && git show "$commit"
       }
 
     '';

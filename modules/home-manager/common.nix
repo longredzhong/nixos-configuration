@@ -4,10 +4,7 @@
   nixpkgs.config = {
     allowUnfree = true;
     # 允许不安全的包（EOL 版本但仍需使用）
-    permittedInsecurePackages = [
-      "electron-39.8.10"
-      "minio-2025-10-15T17-29-55Z"
-    ];
+    permittedInsecurePackages = [ "electron-39.8.10" ];
   };
 
   home = {

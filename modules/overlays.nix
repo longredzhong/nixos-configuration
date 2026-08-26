@@ -14,7 +14,6 @@ in
     # Custom local packages
     (final: prev: {
       pixi = prev.callPackage ../pkgs/pixi { };
-      mamba-cpp = prev.callPackage ../pkgs/mamba-cpp { };
     })
   ];
 }

@@ -1,6 +1,7 @@
 { pkgs, config, ... }:
 let
   cfg = config.shell;
+  shellFns = import ./functions.nix { };
 in
 {
   imports = [ ./common.nix ];
@@ -56,46 +57,8 @@ in
       set -g fish_pager_color_selected_completion white --background=brblue
     '';
 
-    functions = {
+    functions = shellFns.fish.functions // {
       refresh = "source $HOME/.config/fish/config.fish";
-      take = ''mkdir -p -- "$argv[1]" && cd -- "$argv[1]"'';
-      ttake = "cd (mktemp -d)";
-      show_path = "string split : $PATH";
-      posix-source = ''
-        for line in (cat $argv)
-          set -l arr (string split -m 1 = $line)
-          test (count $arr) -eq 2; and set -gx $arr[1] $arr[2]
-        end
-      '';
-
-      fe = ''
-        set -l file (fd --type f --hidden --exclude .git | fzf --preview "bat --color=always --style=numbers {}")
-        test -n "$file"; and $EDITOR $file
-      '';
-      fcd = ''
-        set -l dir (fd --type d --hidden --exclude .git | fzf --preview "eza --tree --level=2 --color=always --icons {}")
-        test -n "$dir"; and cd $dir
-      '';
-      fkill = ''
-        set -l pids (ps -ef | sed 1d | fzf -m --header="Select process(es) to kill" | awk '{print $2}')
-        test -n "$pids"; and echo $pids | xargs kill -9
-      '';
-      fenv = ''
-        env | fzf --preview "echo {}" --header="Environment Variables"
-      '';
-
-      gb = ''
-        set -l branch (git branch -a --color=always | fzf --ansi --preview "git log --oneline --graph --color=always {1}" | sed 's/^[* ]*//' | sed 's#remotes/origin/##')
-        test -n "$branch"; and git checkout $branch
-      '';
-      gbc = ''
-        set -l commit (git log --oneline --color=always | fzf --ansi --preview "git show --color=always {1}" | awk '{print $1}')
-        test -n "$commit"; and git checkout $commit
-      '';
-      gshow = ''
-        set -l commit (git log --oneline --color=always | fzf --ansi --preview "git show --color=always {1}" | awk '{print $1}')
-        test -n "$commit"; and git show $commit
-      '';
 
       set_proxy = ''
         switch "$argv[1]"

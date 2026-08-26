@@ -4,29 +4,11 @@
   home.username = username;
 
   imports = [
+    ./git-identity.nix
     ../../modules/home-manager/common.nix
     ../../modules/home-manager/cli-environment.nix
     ../../modules/home-manager/desktop/ghostty.nix
   ];
-
-  programs.git = {
-    settings.user = {
-      name = "longred";
-      email = "longredzhong@outlook.com";
-    };
-    includes = [
-      {
-        path = "~/.gitconfig-adtiger";
-        condition = "gitdir:/home/longred/adtiger-project/";
-      }
-    ];
-  };
-
-  home.file.".gitconfig-adtiger".text = ''
-    [user]
-      name = zhongchanghong
-      email = zhongchanghong@adtiger.hk
-  '';
 
   # Development packages shared across all standalone HM targets
   home.packages =
@@ -52,7 +34,4 @@
       ];
     in
     stable ++ unstable;
-
-  home.sessionVariables.EDITOR = "hx";
-  home.sessionVariables.VISUAL = "hx";
 }

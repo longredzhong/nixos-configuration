@@ -1,16 +1,11 @@
 {
-  config,
   pkgs,
-  lib,
   username,
   inputs,
-  hostname,
-  channels,
   ...
 }:
 let
-  overlayModule = import ../../modules/overlays.nix { inherit inputs; };
-  hmOverlays = overlayModule.nixpkgs.overlays;
+  hmOverlays = (import ../../modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
 in
 {
   imports = [ inputs.home-manager.nixosModules.home-manager ];
@@ -21,10 +16,5 @@ in
       ../../modules/home-manager/profiles/desktop.nix
     ];
     nixpkgs.overlays = hmOverlays;
-
-    # Host-specific packages (only packages unique to this host)
-    home.packages = with pkgs.unstable; [
-      
-    ];
   };
 }

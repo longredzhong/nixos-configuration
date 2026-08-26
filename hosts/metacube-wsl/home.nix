@@ -1,22 +1,19 @@
 {
-  config,
   pkgs,
-  lib,
   username,
   inputs,
-  hostname,
-  channels,
   ...
 }:
 let
-  overlayModule = import ../../modules/overlays.nix { inherit inputs; };
-  hmOverlays = overlayModule.nixpkgs.overlays;
+  hmOverlays = (import ../../modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
 in
 {
   home-manager.backupFileExtension = "backups";
   home-manager.users.${username} = {
     imports = [
       # Use WSL profile (includes common + cli-environment + wsl)
+      # Shared Git identity (longred + adtiger)
+      ../../users/longred/git-identity.nix
       ../../modules/home-manager/profiles/wsl.nix
     ];
     nixpkgs.overlays = hmOverlays;
@@ -36,28 +33,5 @@ in
         ];
       in
       stable-packages ++ unstable-packages;
-    programs = {
-      # Provide identity and per-directory include; enable/delta come from shared git module
-      git = {
-        settings.user = {
-          name = "longred";
-          email = "longredzhong@outlook.com";
-        };
-        includes = [
-          {
-            path = "~/.gitconfig-adtiger";
-            condition = "gitdir:/home/longred/adtiger-project/";
-          }
-        ];
-      };
-    };
-    # The included Git config file providing the adtiger identity
-    home.file.".gitconfig-adtiger".text = ''
-      [user]
-        name = zhongchanghong
-        email = zhongchanghong@adtiger.hk
-    '';
-
   };
-
 }

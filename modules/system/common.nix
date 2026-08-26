@@ -40,7 +40,6 @@ let
     # 开发语言（系统级需要）
     go
   ];
-  unstable-packages = with pkgs.unstable; [ ];
 in
 {
   # 系统状态版本（不要轻易改变）
@@ -156,7 +155,7 @@ in
   };
   # 常用软件包
   # 这里的包会被安装到系统中
-  environment.systemPackages = stable-packages ++ unstable-packages ++ [ ];
+  environment.systemPackages = stable-packages;
   environment.pathsToLink = [ "/share/bash-completion" ];
 
   # 确保 .ssh 目录存在并有正确权限
@@ -174,7 +173,6 @@ in
   # 允许不安全的包（EOL 版本但仍需使用）
   nixpkgs.config.permittedInsecurePackages = [
     "electron-39.8.10"
-    "minio-2025-10-15T17-29-55Z"
   ];
 
 }
