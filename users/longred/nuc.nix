@@ -13,6 +13,7 @@
     ../../modules/host-services/garage-ui.nix
     ../../modules/host-services/dufs-webdav.nix
     ../../modules/host-services/cloudflared.nix
+    ../../modules/host-services/opencode.nix
   ];
 
   # Fedora NUC-specific packages
