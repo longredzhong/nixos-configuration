@@ -5,8 +5,9 @@
 #
 # Stack: postgres (pgvector) + redis + one-shot migration + affine server.
 # Web UI is published on the Tailscale IP only: http://100.100.10.1:3010
-# Data lives in /data/affine/{data,config}; config/config.json is created on
-# first start and afterwards owned by the admin panel (never overwritten).
+# Data lives in /data/affine/{data,config}; config/config.json is owned by the
+# nix template (overwritten on every start for a single source of truth —
+# Admin Panel settings live in the database and are unaffected).
 { config, pkgs, ... }:
 let
   inherit (config.hostServices) proxyEnvironment;
@@ -20,7 +21,12 @@ let
   port = 3010;
 
   podman = "${pkgs.podman}/bin/podman";
-  commonFlags = "--rm --replace --security-opt label=disable --network affine";
+  # --http-proxy=false: keep the proxy env on the podman client (needed for
+  # image pulls) but do not inject it into the containers, so server-side
+  # requests to LAN/tailnet AI endpoints stay direct.
+  # DEPLOYMENT_TYPE=selfhosted is what makes the server treat the instance as
+  # self-hosted (AI BYOK entitlement); SELF_HOSTED is kept for compatibility.
+  commonFlags = "--rm --replace --security-opt label=disable --http-proxy=false --network affine";
 
   configTemplate = pkgs.writeText "affine-config.json" ''
     {
@@ -31,7 +37,10 @@ let
       },
       "copilot": {
         "enabled": true,
-        "byok": { "enabled": true }
+        "byok": {
+          "enabled": true,
+          "allowCustomEndpoint": true
+        }
       }
     }
   '';
@@ -112,6 +121,8 @@ in
         exec ${podman} run ${commonFlags} \
           --name affine-migration \
           --pull newer \
+          --env SELF_HOSTED=true \
+          --env DEPLOYMENT_TYPE=selfhosted \
           --env REDIS_SERVER_HOST=redis \
           --env DATABASE_URL=postgresql://affine@postgres:5432/affine \
           --env AFFINE_INDEXER_ENABLED=false \
@@ -132,12 +143,14 @@ in
       Environment = proxyEnvironment; # podman image pull
       ExecStartPre = pkgs.writeShellScript "affine-init-config" ''
         mkdir -p ${dataDir}/config
-        test -e ${dataDir}/config/config.json || cp ${configTemplate} ${dataDir}/config/config.json
+        install -m 644 ${configTemplate} ${dataDir}/config/config.json
       '';
       ExecStart = pkgs.writeShellScript "affine-server-start" ''
         exec ${podman} run ${commonFlags}:alias=affine \
           --name affine-server \
           --pull newer \
+          --env SELF_HOSTED=true \
+          --env DEPLOYMENT_TYPE=selfhosted \
           --publish ${listenAddress}:${toString port}:3010 \
           --env REDIS_SERVER_HOST=redis \
           --env DATABASE_URL=postgresql://affine@postgres:5432/affine \
