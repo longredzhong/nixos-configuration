@@ -14,6 +14,7 @@ in
     # Custom local packages
     (final: prev: {
       pixi = prev.callPackage ../pkgs/pixi { };
+      anytype-cli = prev.callPackage ../pkgs/anytype-cli { };
     })
   ];
 }

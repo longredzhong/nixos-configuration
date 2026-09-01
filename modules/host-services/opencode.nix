@@ -10,6 +10,8 @@ let
   opencodeBin = "${config.home.homeDirectory}/.pixi/envs/opencode/bin/opencode";
 in
 {
+  imports = [ ./proxy.nix ];
+
   systemd.user.services.opencode = {
     Unit = {
       Description = "opencode headless server (port 4096)";
@@ -19,6 +21,8 @@ in
       ExecStart = pkgs.writeShellScript "opencode-start" ''
         exec ${opencodeBin} serve --hostname 0.0.0.0 --port 4096
       '';
+      # Route LLM/API traffic through the metacube proxy (see ~/.bashrc set_proxy)
+      Environment = config.hostServices.proxyEnvironment;
       Restart = "always";
       RestartSec = "5s";
     };
