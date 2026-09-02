@@ -3,7 +3,8 @@
 # user-level systemd units (same pattern as garage-ui; the plain
 # docker-compose CLI needs a Docker API socket we do not run).
 #
-# Stack: postgres (pgvector) + redis + one-shot migration + affine server.
+# Stack: postgres (pgvector) + redis + manticore indexer + one-shot migration
+# + affine server.
 # Web UI is published on the Tailscale IP only: http://100.100.10.1:3010
 # Data lives in /data/affine/{data,config}; config/config.json is owned by the
 # nix template (overwritten on every start for a single source of truth —
@@ -15,10 +16,13 @@ let
   affineImage = "ghcr.io/toeverything/affine:stable";
   postgresImage = "docker.io/pgvector/pgvector:pg16";
   redisImage = "docker.io/library/redis:7";
+  indexerImage = "docker.io/manticoresearch/manticore:10.1.0";
 
   dataDir = "/data/affine";
   listenAddress = "100.100.10.1";
   port = 3010;
+  indexerPort = 9308;
+  indexerEndpoint = "http://indexer:${toString indexerPort}";
 
   podman = "${pkgs.podman}/bin/podman";
   # --http-proxy=false: keep the proxy env on the podman client (needed for
@@ -91,16 +95,42 @@ in
     Install.WantedBy = [ "default.target" ];
   };
 
+  systemd.user.services.affine-indexer = {
+    Unit.Description = "AFFiNE Manticore full-text indexer";
+    Service = {
+      Environment = proxyEnvironment; # podman image pull
+      ExecStartPre = pkgs.writeShellScript "affine-indexer-dirs" ''
+        mkdir -p ${dataDir}/data/manticore
+      '';
+      # memlock ulimit is left out: rootless podman cannot raise it
+      ExecStart = pkgs.writeShellScript "affine-indexer-start" ''
+        exec ${podman} run ${commonFlags}:alias=indexer \
+          --name affine-indexer \
+          --pull missing \
+          --ulimit nproc=65535 \
+          --ulimit nofile=65535:65535 \
+          --volume ${dataDir}/data/manticore:/var/lib/manticore \
+          ${indexerImage}
+      '';
+      ExecStop = "${podman} stop -t 10 affine-indexer";
+      Restart = "always";
+      RestartSec = "5s";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
   systemd.user.services.affine-migration = {
     Unit = {
       Description = "AFFiNE one-shot schema migration";
       After = [
         "affine-postgres.service"
         "affine-redis.service"
+        "affine-indexer.service"
       ];
       Requires = [
         "affine-postgres.service"
         "affine-redis.service"
+        "affine-indexer.service"
       ];
     };
     Service = {
@@ -111,10 +141,11 @@ in
         mkdir -p ${dataDir}/data/storage ${dataDir}/config
         for i in $(seq 1 60); do
           ${podman} exec affine-postgres pg_isready -U affine -d affine >/dev/null 2>&1 \
-            && ${podman} exec affine-redis redis-cli ping >/dev/null 2>&1 && exit 0
+            && ${podman} exec affine-redis redis-cli ping >/dev/null 2>&1 \
+            && ${podman} exec affine-indexer wget -q -O- http://127.0.0.1:${toString indexerPort} >/dev/null 2>&1 && exit 0
           sleep 2
         done
-        echo "affine: postgres/redis not ready in time" >&2
+        echo "affine: postgres/redis/indexer not ready in time" >&2
         exit 1
       '';
       ExecStart = pkgs.writeShellScript "affine-migration-start" ''
@@ -125,7 +156,8 @@ in
           --env DEPLOYMENT_TYPE=selfhosted \
           --env REDIS_SERVER_HOST=redis \
           --env DATABASE_URL=postgresql://affine@postgres:5432/affine \
-          --env AFFINE_INDEXER_ENABLED=false \
+          --env AFFINE_INDEXER_ENABLED=true \
+          --env AFFINE_INDEXER_SEARCH_ENDPOINT=${indexerEndpoint} \
           --volume ${dataDir}/data/storage:/root/.affine/storage \
           --volume ${dataDir}/config:/root/.affine/config \
           ${affineImage} sh -c 'node ./scripts/self-host-predeploy.js'
@@ -154,7 +186,8 @@ in
           --publish ${listenAddress}:${toString port}:3010 \
           --env REDIS_SERVER_HOST=redis \
           --env DATABASE_URL=postgresql://affine@postgres:5432/affine \
-          --env AFFINE_INDEXER_ENABLED=false \
+          --env AFFINE_INDEXER_ENABLED=true \
+          --env AFFINE_INDEXER_SEARCH_ENDPOINT=${indexerEndpoint} \
           --volume ${dataDir}/data/storage:/root/.affine/storage \
           --volume ${dataDir}/config:/root/.affine/config \
           ${affineImage}
