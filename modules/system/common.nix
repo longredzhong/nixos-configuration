@@ -46,6 +46,13 @@ in
   system.stateVersion = "26.05";
   networking.hostName = "${hostname}";
   networking.networkmanager.enable = true;
+
+  # 网络代理配置
+  networking.proxy = {
+    default = "http://127.0.0.1:7890";
+    noProxy = "127.0.0.1,localhost,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,.local";
+  };
+
   nixpkgs.config.allowUnfree = true;
   virtualisation.docker = {
     enable = true;

@@ -1,5 +1,5 @@
 {
-  description = "A NixOS configuration";
+  description = "A NixOS & Home Manager configuration";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
@@ -30,7 +30,7 @@
     }:
     let
       # ============================================================
-      # Helper function to create NixOS configurations
+      # Helper function to create NixOS configurations (WSL hosts)
       # ============================================================
       mkHost =
         {
@@ -58,7 +58,7 @@
         };
 
       # ============================================================
-      # Helper function to create standalone Home Manager configurations
+      # Helper function to create standalone Home Manager configurations (Fedora hosts)
       # ============================================================
       mkHome =
         {
@@ -94,16 +94,15 @@
     in
     {
       # ============================================================
-      # NixOS System Configurations
+      # NixOS System Configurations (WSL)
       # ============================================================
       nixosConfigurations = {
         metacube-wsl = mkHost { hostname = "metacube-wsl"; };
         thinkbook-wsl = mkHost { hostname = "thinkbook-wsl"; };
-        thinkbook = mkHost { hostname = "thinkbook"; };
       };
 
       # ============================================================
-      # Standalone Home Manager Configurations (for non-NixOS hosts)
+      # Standalone Home Manager Configurations (Fedora / Non-NixOS hosts)
       # ============================================================
       homeConfigurations = {
         "longred@metacube-wsl" = mkHome {
