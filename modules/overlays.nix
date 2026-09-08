@@ -15,6 +15,8 @@ in
     (final: prev: {
       pixi = prev.callPackage ../pkgs/pixi { };
       anytype-cli = prev.callPackage ../pkgs/anytype-cli { };
+      mamba-cpp = prev.callPackage ../pkgs/mamba-cpp { };
+      micromamba = prev.micromamba.override { mamba-cpp = final.mamba-cpp; };
     })
   ];
 }
