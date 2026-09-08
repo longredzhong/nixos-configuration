@@ -15,16 +15,16 @@
 # Custom packaged pixi (pinned) – local override / addition
 rustPlatform.buildRustPackage (finalAttrs: {
   pname = "pixi";
-  version = "0.53.0"; # Updated version
+  version = "0.80.0"; # Updated version
 
   src = fetchFromGitHub {
     owner = "prefix-dev";
     repo = "pixi";
     rev = "v${finalAttrs.version}"; # upstream tags are vX.Y.Z
-    hash = "sha256-cWoepvnolVyUyDlYakxQLNkOOP9ZbBwe5EaWbYTz+Gs=";
+    hash = "sha256-PeTSCk6b8GaEXlMWmHMGczIXpj72twXRd3vb8Sb0ZWs=";
   };
 
-  cargoHash = "sha256-3Sd+EjpSYbexmnUAwLps/Hrj7anpyurbzZlVs2hZk4E=";
+  cargoHash = "sha256-M6pP4xGeuJMzjKLbH3uIfLkfs6M0uztoea4GPTiDQ1E=";
 
   nativeBuildInputs = [
     pkg-config
