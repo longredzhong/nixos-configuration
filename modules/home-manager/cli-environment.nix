@@ -61,12 +61,12 @@
         just # 任务运行器
         nixfmt # Nix 代码格式化工具
 
-        # --- 包与环境管理 (使用当前 pkgs / overlay) ---
+        # --- 包与环境管理 ---
         pixi # 本地 pkgs/pixi (v0.80.0)
-        micromamba # 本地 pkgs/mamba-cpp (v2.9.0)
       ];
       unstablePackages = with pkgs.unstable; [
         # 需要不稳定源的包可放这里
+        micromamba # 来自 nixpkgs-unstable (v2.9.0 预编译二进制)
       ];
     in
     stablePackages ++ unstablePackages;

@@ -135,7 +135,7 @@
           };
         in
         {
-          inherit (pkgs) pixi micromamba mamba-cpp;
+          inherit (pkgs) pixi;
         };
 
     };
