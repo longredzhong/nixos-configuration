@@ -88,7 +88,7 @@ curl --fail http://100.100.10.1:5080/healthz
 
 OpenObserve 的 Kubernetes 推荐页同时说明了三类数据：容器日志、Kubernetes 事件和集群指标，以及工作负载 Trace。当前管理的机器没有统一的 Kubernetes 集群，仓库因此采用 OpenObserve Linux 推荐页的等价方案：通过 Home Manager 在 `nuc`、`fedora-thinkbook`、`metacube-wsl` 和 `thinkbook-wsl` 部署用户级 OpenTelemetry Collector，把每台机器的 journal、主机指标和本机 OTLP Trace 入口送回 NUC 上的 OpenObserve。
 
-采集器由 `openobserve-agent.service` 管理，配置文件是 `~/.config/opentelemetry-collector/config.yaml`，认证令牌由 Agenix 解密到运行时路径，不会写进 Nix store。每台机器按自己的 hostname 使用日志和 Trace stream；指标 stream 按 metric family 共用，并通过 `host.name` 区分机器。当前数据分类如下：
+采集器由 `openobserve-agent.service` 管理，配置文件是 `~/.config/opentelemetry-collector/config.yaml`，认证令牌由 Agenix 解密到运行时路径，不会写进 Nix store。每台机器按自己的 hostname 使用日志和 Trace stream；指标 stream 按 metric family 共用，并通过 `host_name` 区分机器（OpenTelemetry 的 `host.name` 会被指标接收端映射为这个字段）。当前数据分类如下：
 
 | Stream | 内容 | 来源 |
 | --- | --- | --- |
@@ -121,7 +121,7 @@ journalctl --user -u openobserve-agent -n 100 --no-pager
 curl --fail http://127.0.0.1:55679/debug/servicez
 ```
 
-看板使用 `system_*` metric stream 聚合所有机器，因此不会因为某台机器的日志 stream 尚未创建而缺少机器状态。每台机器第一次启动 agent 后，等待一个 30 秒采集周期和 batch timeout，再在看板中按 `host.name` 检查数据。
+看板使用 `system_*` metric stream 聚合所有机器，因此不会因为某台机器的日志 stream 尚未创建而缺少机器状态。每台机器第一次启动 agent 后，等待一个 30 秒采集周期和 batch timeout，再在看板中按 `host_name` 检查数据。
 
 ### 接入应用 Trace
 
@@ -163,6 +163,26 @@ curl --fail http://100.100.10.1:5080/healthz
 4. 有应用 instrumentation 后，再到对应机器的 `<hostname>_traces`，确认 span 的 `service.name`、时间线和错误状态。
 
 如果 API 健康但 stream 暂时为空，先等待一个 30 秒指标周期和 Collector 的 batch timeout，再检查 agent 日志。OpenObserve 的写入成功也可能早于 Garage 对象完成 compaction；对象存储验证仍按本文后面的命令执行。
+
+### 全部机器状态看板
+
+已经创建 `全部机器状态` 看板，当前 ID 是 `7505221643275337728`。直接打开下面的地址可以使用过去 15 分钟时间范围和 30 秒自动刷新：
+
+<http://100.100.10.1:5080/web/dashboards/view?org_identifier=default&dashboard=7505221643275337728&folder=default&tab=default&refresh=30s&period=15m&print=false>
+
+看板包含以下五个 PromQL 面板：
+
+| 面板 | PromQL | 用途 |
+| --- | --- | --- |
+| 主机在线心跳 | `count by (host_name) (system_processes_count)` | 显示每台机器最近是否持续上报指标 |
+| CPU 使用率 | `100 * (1 - avg by (host_name) (rate(system_cpu_time{state="idle"}[5m])))` | 按机器显示最近 5 分钟 CPU 使用率 |
+| 内存已用 | `sum by (host_name) (system_memory_usage{state="used"})` | 按机器显示已用内存 |
+| 文件系统已用 | `sum by (host_name, mountpoint) (system_filesystem_usage{state="used"})` | 按机器和挂载点显示已用空间 |
+| 进程数 | `max by (host_name) (system_processes_count)` | 按机器显示进程数 |
+
+看板的可重复导入文件是 [`docs/openobserve-machine-dashboard.json`](openobserve-machine-dashboard.json)，已经按当前 OpenObserve v8 dashboard schema 编写。需要在另一套 OpenObserve 中创建看板时，打开 Dashboards → Import → Custom → File upload / JSON，选择该文件和 `default` 文件夹后导入；直接上传 JSON 比在浏览器编辑器中逐行录入更可靠。修改文件时保留 `version: 8`、`tabs` 结构，以及每个 tab 内唯一的 panel `id` 和 layout `i`；PromQL 面板的 `fields.x`、`fields.y` 和筛选条件保持为空，并用 `host_name` 做跨机器聚合。
+
+使用看板时先选择最近 15 分钟并点击刷新；需要持续监控时把自动刷新设为 30 秒。新机器的指标通常要等一个 30 秒采集周期和 Collector batch timeout 才会出现。当前已验证有数据的机器是 `fedora-thinkbook` 和 `nuc`；`metacube-wsl`、`thinkbook-wsl` 的配置已提交，但要等 SSH/Tailscale 恢复连通后才能应用，因此它们出现数据后才会进入看板。
 
 ### 令牌轮换
 
@@ -311,6 +331,11 @@ OpenObserve Web UI、OTLP endpoint 和 Garage S3 endpoint 是三个不同的用�
 - [OpenObserve 环境变量](https://openobserve.ai/docs/administration/configuration/environment-variables/)
 - [OpenObserve 存储配置](https://openobserve.ai/docs/administration/maintenance/storage-management/storage/)
 - [OpenObserve OTLP 日志接入](https://openobserve.ai/docs/ingestion/logs/otlp/)
+- [OpenObserve 看板使用](https://openobserve.ai/docs/user-guide/analytics/dashboards/dashboards-in-openobserve/)
+- [OpenObserve 看板管理与导入](https://openobserve.ai/docs/user-guide/analytics/dashboards/manage-dashboards/)
+- [OpenObserve Prometheus 指标接入](https://openobserve.ai/docs/ingestion/metrics/prometheus/)
+- [OpenObserve Search API](https://openobserve.ai/docs/reference/api/search/search/)
+- [OpenObserve Trace Search API](https://openobserve.ai/docs/reference/api/traces/trace-search-api/)
 - [OpenTelemetry Collector OTLP exporter](https://opentelemetry.io/docs/collector/configuration/)
 - [OpenObserve Systemd 部署说明](https://openobserve.ai/docs/administration/maintenance/operator-guide/systemd/)
 - [Garage CLI 与 bucket/key 管理](https://garagehq.deuxfleurs.fr/documentation/quick-start/)
