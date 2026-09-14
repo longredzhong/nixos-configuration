@@ -85,6 +85,10 @@ just hm-switch
 | `just fmt` | 格式化代码 |
 | `just gc` | 清理存储 |
 
+## NUC 服务文档
+
+- [OpenObserve 部署与使用](docs/openobserve.md)
+
 ## Profiles (配置组合)
 
 | Profile | 用途 | 包含模块 |

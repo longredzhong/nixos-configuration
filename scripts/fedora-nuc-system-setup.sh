@@ -14,7 +14,7 @@ fi
 mountpoint -q /data || mount /data
 
 echo "==> 2. 创建服务数据目录并授权"
-mkdir -p /data/garage/data /data/garage/meta /data/dufs
+mkdir -p /data/garage/data /data/garage/meta /data/dufs /data/openobserve
 chown -R "${USERNAME}:${USERNAME}" /data
 
 echo "==> 3. 启用 linger（用户服务开机自启，无需登录会话）"
@@ -26,5 +26,5 @@ dnf install -y \
     fcitx5-gtk fcitx5-qt fcitx5-rime \
     podman-docker || true
 
-echo "==> 完成。重启后用户级 systemd 服务（garage/dufs）将自动运行。"
-echo "    验证: systemctl --user status garage dufs"
+echo "==> 完成。重启后用户级 systemd 服务（garage/dufs/openobserve）将自动运行。"
+echo "    验证: systemctl --user status garage dufs openobserve"
