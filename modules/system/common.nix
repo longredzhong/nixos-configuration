@@ -73,6 +73,7 @@ in
       "networkmanager"
       "wheel"
       "docker"
+      "systemd-journal"
     ];
   };
   i18n = {

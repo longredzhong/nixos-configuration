@@ -1,4 +1,4 @@
-# NUC 上的 OpenObserve
+# OpenObserve 部署与机器观测
 
 本仓库在 Fedora NUC 上以 Home Manager 的用户级 systemd 服务运行 OpenObserve，容器使用 rootless Podman。当前使用 OpenObserve `v1.0.0`，访问地址是：
 
@@ -84,6 +84,95 @@ curl --fail http://100.100.10.1:5080/healthz
 
 如果首次启动失败，先看 `journalctl --user -u openobserve`。常见原因是 Garage 尚未完成 layout、`/data` 不可写、端口已经被占用，或旧的 `openobserve.env` 不完整。修复原因后重启服务即可。
 
+## 全部机器与服务追踪
+
+OpenObserve 的 Kubernetes 推荐页同时说明了三类数据：容器日志、Kubernetes 事件和集群指标，以及工作负载 Trace。当前管理的机器没有统一的 Kubernetes 集群，仓库因此采用 OpenObserve Linux 推荐页的等价方案：通过 Home Manager 在 `nuc`、`fedora-thinkbook`、`metacube-wsl` 和 `thinkbook-wsl` 部署用户级 OpenTelemetry Collector，把每台机器的 journal、主机指标和本机 OTLP Trace 入口送回 NUC 上的 OpenObserve。
+
+采集器由 `openobserve-agent.service` 管理，配置文件是 `~/.config/opentelemetry-collector/config.yaml`，认证令牌由 Agenix 解密到运行时路径，不会写进 Nix store。每台机器按自己的 hostname 使用日志和 Trace stream；指标 stream 按 metric family 共用，并通过 `host.name` 区分机器。当前数据分类如下：
+
+| Stream | 内容 | 来源 |
+| --- | --- | --- |
+| `<hostname>_journald` | 该机器的 journald 日志 | NUC 上的 `garage`、`openobserve`、`garage-ui`、`dufs`、`cloudflared`、`opencode`、`anytype`、`affine` 及其依赖服务；其他机器的系统和用户服务 |
+| `system_*` | CPU、磁盘、文件系统、负载、内存、网络、分页和进程数指标；OpenObserve 按 metric family 建立多个 `system_*` stream | 全部机器，30 秒采集一次；按 `host.name` 区分 |
+| `<hostname>_traces` | OpenTelemetry spans | 各机器本机 `127.0.0.1:4317`（gRPC）或 `127.0.0.1:4318`（HTTP/protobuf） |
+
+NUC、Fedora ThinkBook 和 standalone Home Manager 目标中的采集器都以 `longred` 的用户级 systemd 单元运行；两个 NixOS WSL 目标同时把 `longred` 加入 `systemd-journal` 组，以便读取系统 journal。NUC 上的 agent 依赖本机 `openobserve.service`，其他机器通过 Tailscale 地址发送到 NUC，不依赖本机运行 OpenObserve。采集器的写入令牌只授予写入权限，不使用 root 密码。
+
+配置仓库变更后，按目标类型应用：
+
+```bash
+# Fedora / NUC / standalone Home Manager
+just hm-dry-run 'longred@fedora-thinkbook'
+just hm-switch 'longred@fedora-thinkbook'
+just hm-dry-run 'longred@nuc'
+just hm-switch 'longred@nuc'
+
+# NixOS WSL
+sudo nixos-rebuild switch --flake .#metacube-wsl
+sudo nixos-rebuild switch --flake .#thinkbook-wsl
+```
+
+每台机器都应检查自己的 user service；Collector 的 zpages 调试页只监听本机，可用下面的命令查看状态：
+
+```bash
+systemctl --user is-active openobserve-agent
+systemctl --user --no-pager status openobserve-agent
+journalctl --user -u openobserve-agent -n 100 --no-pager
+curl --fail http://127.0.0.1:55679/debug/servicez
+```
+
+看板使用 `system_*` metric stream 聚合所有机器，因此不会因为某台机器的日志 stream 尚未创建而缺少机器状态。每台机器第一次启动 agent 后，等待一个 30 秒采集周期和 batch timeout，再在看板中按 `host.name` 检查数据。
+
+### 接入应用 Trace
+
+应用必须使用 OpenTelemetry SDK、框架 instrumentation 或其他支持 OTLP 的 instrumentation 才会产生 span。只设置环境变量不会给没有埋点能力的预编译服务自动生成 Trace；当前 NUC 的 AFFiNE、Garage、DUFS、Anytype、OpenCode、Cloudflared 和 OpenObserve 的现有启动配置因此主要由 `nuc_journald` 和 `system_*` 观测。
+
+在任一已完成 OpenTelemetry instrumentation 的机器上，应用可以把 Trace 发给本机采集器：
+
+```bash
+export OTEL_SERVICE_NAME=my-service
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://127.0.0.1:4318
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+```
+
+如果应用在 rootless Podman 容器内运行，容器中的 `127.0.0.1` 指向容器自身，通常应把 endpoint 改为：
+
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://host.containers.internal:4318
+```
+
+SDK 会向 OTLP HTTP endpoint 追加 `/v1/traces`，采集器随后用专用写入令牌和该机器的 `<hostname>_traces` stream 转发到 OpenObserve。应用自身不需要保存 OpenObserve 密码或写入令牌。查询时在 UI 的 Traces 页面选择对应机器的 Trace stream，时间范围先选最近 15 分钟，再按 `service.name` 过滤。
+
+如果应用必须直接写 OpenObserve，使用 IAM 中单独创建的写入令牌，不要使用 root 密码。OTLP/HTTP base endpoint 是 `http://100.100.10.1:5080/api/default`，请求头至少需要 `Authorization: Basic <base64-token>`；日志和 Trace 可以用 `stream-name` 指定目标 stream。OTLP 指标会按 metric family 建立自己的 stream，不能依赖 `stream-name: nuc_system` 合并。Collector、SDK 和 OpenObserve 的 endpoint 都应使用内网/Tailscale 地址，不要把 4317、4318 或 Garage 的 3900 端口暴露到公网。
+
+### 验证日志和指标
+
+切换后先确认采集器没有导出错误：
+
+```bash
+systemctl --user --no-pager status openobserve-agent
+journalctl --user -u openobserve-agent --since '10 minutes ago' --no-pager
+curl --fail http://100.100.10.1:5080/healthz
+```
+
+然后在 OpenObserve UI 中分别打开 Logs 和 Metrics：
+
+1. Logs 选择对应机器的 `<hostname>_journald`，时间范围选择最近 15 分钟；
+2. Metrics 选择任一 `system_*` stream（例如 `system_cpu_time` 或 `system_memory_usage`），确认每个 `host.name` 有最近时间戳；
+3. 展开日志记录，按 `body__systemd_user_unit` 或服务名称筛选，例如 `garage.service` 和 `openobserve.service`；
+4. 有应用 instrumentation 后，再到对应机器的 `<hostname>_traces`，确认 span 的 `service.name`、时间线和错误状态。
+
+如果 API 健康但 stream 暂时为空，先等待一个 30 秒指标周期和 Collector 的 batch timeout，再检查 agent 日志。OpenObserve 的写入成功也可能早于 Garage 对象完成 compaction；对象存储验证仍按本文后面的命令执行。
+
+### 令牌轮换
+
+仓库使用 OpenObserve IAM 中名为 `nuc-host-agent` 的专用写入令牌为全部机器写入数据。令牌只以 `secrets/openobserve-agent-token.age` 的加密形式保存，并以各管理机器的用户/主机 SSH 密钥作为 Agenix 接收者；不能把 UI 中显示的 Basic 字符串写入 Nix 表达式、日志或文档。轮换时：
+
+1. 在 OpenObserve 的 IAM → 写入令牌中创建新令牌并停用旧令牌；
+2. 用全部目标机器可用的 SSH 公钥重新加密 `secrets/openobserve-agent-token.age`；
+3. 按上面的 NixOS/Home Manager 命令逐台切换，然后检查每台机器的 `openobserve-agent.service` 状态和日志；
+4. 在每台机器的 `<hostname>_journald`、任一 `system_*` metric stream 和 `<hostname>_traces` 中完成写入验证后，再删除旧令牌。
+
 ## 首次登录
 
 浏览器打开 `http://100.100.10.1:5080`。初始 root 用户是：
@@ -99,7 +188,7 @@ awk -F= '$1 == "ZO_ROOT_USER_PASSWORD" { print $2 }' \
   /data/openobserve/openobserve.env
 ```
 
-第一次登录后，在 OpenObserve UI 中确认组织 `default`，并按用途创建独立 stream，例如 `nuc_system`、`application`、`traces`。root 密码是首次初始化 SQLite 元数据时使用的 bootstrap 值；已经初始化后，不要通过随意修改 env 文件来改密码，应使用 UI 的用户管理流程。
+第一次登录后，在 OpenObserve UI 中确认组织 `default`，并按用途创建独立 stream，例如 `nuc_journald`、`nuc_traces`、`application`。root 密码是首次初始化 SQLite 元数据时使用的 bootstrap 值；已经初始化后，不要通过随意修改 env 文件来改密码，应使用 UI 的用户管理流程。
 
 ## 发送日志
 
@@ -158,7 +247,7 @@ processors:
     timeout: 5s
 
 exporters:
-  otlphttp/openobserve:
+  otlp_http/openobserve:
     endpoint: http://100.100.10.1:5080/api/default
     headers:
       Authorization: "Basic ${env:OPENOBSERVE_AUTH}"
@@ -169,7 +258,7 @@ service:
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlphttp/openobserve]
+      exporters: [otlp_http/openobserve]
 ```
 
 日志会进入 `otel_logs` stream。指标和 Trace 使用同一个 base endpoint，或者在发送端分别使用 `/v1/metrics`、`/v1/traces`。OTLP/gRPC 使用 `100.100.10.1:5081`，同时发送 `organization: default`、`Authorization` 和 `stream-name` headers。
@@ -217,8 +306,11 @@ OpenObserve Web UI、OTLP endpoint 和 Garage S3 endpoint 是三个不同的用�
 ## 参考资料
 
 - [OpenObserve 官方仓库](https://github.com/openobserve/openobserve)
+- [OpenObserve Linux agent](https://github.com/openobserve/agents)
+- [OpenObserve Kubernetes Helm chart](https://github.com/openobserve/openobserve-helm-chart)
 - [OpenObserve 环境变量](https://openobserve.ai/docs/administration/configuration/environment-variables/)
 - [OpenObserve 存储配置](https://openobserve.ai/docs/administration/maintenance/storage-management/storage/)
 - [OpenObserve OTLP 日志接入](https://openobserve.ai/docs/ingestion/logs/otlp/)
+- [OpenTelemetry Collector OTLP exporter](https://opentelemetry.io/docs/collector/configuration/)
 - [OpenObserve Systemd 部署说明](https://openobserve.ai/docs/administration/maintenance/operator-guide/systemd/)
 - [Garage CLI 与 bucket/key 管理](https://garagehq.deuxfleurs.fr/documentation/quick-start/)

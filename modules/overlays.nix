@@ -15,6 +15,7 @@ in
     (final: prev: {
       pixi = prev.callPackage ../pkgs/pixi { };
       anytype-cli = prev.callPackage ../pkgs/anytype-cli { };
+      opentelemetry-collector-contrib = prev.callPackage ../pkgs/opentelemetry-collector-contrib { };
     })
   ];
 }

@@ -33,4 +33,8 @@
       libglvnd
     ];
   };
+
+  # Keep the journal on disk so the user-level OpenObserve agent can follow
+  # both system and user services after restarts.
+  services.journald.storage = "persistent";
 }

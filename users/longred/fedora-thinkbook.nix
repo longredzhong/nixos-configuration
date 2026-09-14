@@ -4,5 +4,6 @@
   imports = [
     ./common.nix
     ../../modules/home-manager/desktop/default.nix
+    ../../modules/host-services/openobserve-agent.nix
   ];
 }

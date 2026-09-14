@@ -2,6 +2,7 @@
   pkgs,
   username,
   inputs,
+  hostname,
   ...
 }:
 let
@@ -9,12 +10,15 @@ let
 in
 {
   home-manager.backupFileExtension = "backups";
+  home-manager.extraSpecialArgs = { inherit hostname; };
   home-manager.users.${username} = {
     imports = [
+      inputs.agenix.homeManagerModules.default
       # Use WSL profile (includes common + cli-environment + wsl)
       # Shared Git identity (longred + adtiger)
       ../../users/longred/git-identity.nix
       ../../modules/home-manager/profiles/wsl.nix
+      ../../modules/host-services/openobserve-agent.nix
     ];
     nixpkgs.overlays = hmOverlays;
 

@@ -11,6 +11,7 @@
     # Services running as HM user-level systemd units
     ../../modules/host-services/garage.nix
     ../../modules/host-services/openobserve.nix
+    ../../modules/host-services/openobserve-agent.nix
     ../../modules/host-services/garage-ui.nix
     ../../modules/host-services/dufs-webdav.nix
     ../../modules/host-services/cloudflared.nix

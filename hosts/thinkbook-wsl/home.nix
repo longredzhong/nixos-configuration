@@ -2,15 +2,19 @@
   pkgs,
   username,
   inputs,
+  hostname,
   ...
 }:
 let
   hmOverlays = (import ../../modules/overlays.nix { inherit inputs; }).nixpkgs.overlays;
 in
 {
+  home-manager.extraSpecialArgs = { inherit hostname; };
   home-manager.users.${username} = {
     imports = [
+      inputs.agenix.homeManagerModules.default
       # Use WSL profile (includes common + cli-environment + wsl)
+      ../../modules/host-services/openobserve-agent.nix
       ../../modules/home-manager/profiles/wsl.nix
     ];
     nixpkgs.overlays = hmOverlays;
