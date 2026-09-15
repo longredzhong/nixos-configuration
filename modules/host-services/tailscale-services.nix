@@ -16,13 +16,18 @@ let
   serviceConfigPath = "${config.xdg.configHome}/tailscale/nuc-services.hujson";
   serviceConfig = builtins.fromJSON (builtins.readFile serviceConfigFile);
   serviceNames = lib.attrNames serviceConfig.services;
-  tailscale = pkgs.unstable.tailscale;
+  tailscale = "/usr/bin/tailscale";
 
   applyServices = pkgs.writeShellScript "tailscale-services-apply" ''
     set -euo pipefail
 
-    tailscale='${tailscale}/bin/tailscale'
+    tailscale='${tailscale}'
     config='${serviceConfigPath}'
+
+    if [ ! -x "$tailscale" ]; then
+      echo "tailscale-services: expected Tailscale CLI at $tailscale" >&2
+      exit 1
+    fi
 
     if ! "$tailscale" status --json >/dev/null 2>&1; then
       echo "tailscale-services: tailscaled is not ready" >&2
@@ -38,8 +43,6 @@ let
   '';
 in
 {
-  home.packages = [ tailscale ];
-
   home.file."${serviceConfigPath}".source = serviceConfigFile;
 
   systemd.user.services.tailscale-services = {
