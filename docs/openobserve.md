@@ -125,7 +125,7 @@ curl --fail http://127.0.0.1:55679/debug/servicez
 
 ### 接入应用 Trace
 
-应用必须使用 OpenTelemetry SDK、框架 instrumentation 或其他支持 OTLP 的 instrumentation 才会产生 span。只设置环境变量不会给没有埋点能力的预编译服务自动生成 Trace；当前 NUC 的 AFFiNE、Garage、DUFS、Anytype、OpenCode、Cloudflared 和 OpenObserve 的现有启动配置因此主要由 `nuc_journald` 和 `system_*` 观测。
+应用必须使用 OpenTelemetry SDK、框架 instrumentation 或其他支持 OTLP 的 instrumentation 才会产生 span。只设置环境变量不会给没有埋点能力的预编译服务自动生成 Trace；当前 NUC 的 AFFiNE、Garage、DUFS、Anytype、Cloudflared 和 OpenObserve 的现有启动配置因此主要由 `nuc_journald` 和 `system_*` 观测，OpenCode 例外，已经通过专用插件发送 Trace。
 
 在任一已完成 OpenTelemetry instrumentation 的机器上，应用可以把 Trace 发给本机采集器：
 
@@ -145,6 +145,40 @@ SDK 会向 OTLP HTTP endpoint 追加 `/v1/traces`，采集器随后用专用写�
 
 如果应用必须直接写 OpenObserve，使用 IAM 中单独创建的写入令牌，不要使用 root 密码。OTLP/HTTP base endpoint 是 `http://100.100.10.1:5080/api/default`，请求头至少需要 `Authorization: Basic <base64-token>`；日志和 Trace 可以用 `stream-name` 指定目标 stream。OTLP 指标会按 metric family 建立自己的 stream，不能依赖 `stream-name: nuc_system` 合并。Collector、SDK 和 OpenObserve 的 endpoint 都应使用内网/Tailscale 地址，不要把 4317、4318 或 Garage 的 3900 端口暴露到公网。
 
+### NUC 上的 OpenCode Trace
+
+NUC 上的 `opencode.service` 已接入 `@devtheops/opencode-plugin-otel` 1.5.1。官方安装脚本的实现和参数说明见 [OpenObserve 的 OpenCode installer](https://raw.githubusercontent.com/openobserve/o2-datasource/main/ai/agents/opencode/install.sh)，插件源代码和配置说明见 [`opencode-plugin-otel`](https://github.com/DEVtheOPS/opencode-plugin-otel)。仓库将插件包固定在 Nix store 中，并在服务启动前链接到 `~/.config/opencode/node_modules/`；服务启动前只对 `opencode.jsonc` 做增量合并，保留已有 provider、model、MCP 和其他未知配置项。
+
+这套服务的追踪归属固定如下：
+
+| 属性 | 值 | 用途 |
+| --- | --- | --- |
+| OpenObserve organization | `default` | 当前自托管实例的组织 |
+| traces stream | `nuc_opencode_traces` | 为 NUC 上的 OpenCode 保留独立 Trace stream |
+| `service.name` | `opencode` | 让不同机器或客户端按服务聚合 |
+| `service.namespace` | `longred` | 归属命名空间 |
+| `deployment.environment` | `home-lab` | 部署环境 |
+| `host.name` | `nuc` | 机器维度 |
+
+服务使用 `http/protobuf`，OTLP base endpoint 是 `http://100.100.10.1:5080/api/default`；插件会在发送 Trace 时追加 `/v1/traces`。主机指标和 journald 日志仍由 `openobserve-agent` 发送到各自的 stream，因此 OpenCode 集成关闭了插件的 OTLP 日志和指标，避免把不同信号混入 Trace stream。认证令牌名为 `opencode-nuc`，只存放在 `secrets/opencode-openobserve-token.age`，不出现在 Nix 表达式、配置文件或日志中。
+
+验证流程：
+
+```bash
+systemctl --user is-active opencode
+curl --fail http://127.0.0.1:4096/global/health
+```
+
+运行一次正常的 OpenCode 会话后，在 OpenObserve 的 Traces 页面选择 `nuc_opencode_traces`，时间范围先选最近 15 分钟，再按 `service_name=opencode` 过滤。OpenObserve 的 [Traces 使用说明](https://openobserve.ai/docs/user-guide/data-exploration/traces/traces/)和 [OpenTelemetry 接入说明](https://openobserve.ai/docs/ingestion/traces/opentelemetry/)分别说明了 Trace 浏览、OTLP endpoint、Basic Authorization 和 stream-name 的对应关系。
+
+### 按服务划分 OpenObserve 数据
+
+为不同服务设计追踪时，使用稳定的 `service.name` 表示可部署服务，使用 `service.version`、`deployment.environment`、`service.namespace` 和 `host.name` 表示版本、环境、归属和实例。不要把主机名拼进 `service.name`，否则同一个服务会被拆成多个无法聚合的服务；主机名应作为 resource attribute 或 `host.name` 查询维度。每个信号使用明确的 stream；当保留周期、访问权限或字段模式不同，就按服务和信号拆分 stream。
+
+认证使用每个服务独立的 ingestion token，轮换某个服务时不影响其他采集器；OpenObserve 的 [Service Accounts / IAM 文档](https://openobserve.ai/docs/user-guide/account-administration/identity-and-access-management/service-accounts/)也强调了凭据隔离、最小权限和一次性显示 token 的处理方式。只有确实需要跨服务管理 API 时才使用 service account，应用写入日志、指标和 Trace 优先使用仅用于 ingestion 的凭据。
+
+应用和 Collector 共享 `trace_id`、`span_id` 时，OpenObserve 可以把日志与 Trace 关联起来。跨服务调用应填充标准 OpenTelemetry 语义属性；例如数据库、HTTP 服务或消息系统的 `db.system`、`server.address`、`peer.service` 等属性可以帮助 [Service Graph](https://openobserve.ai/docs/user-guide/data-exploration/traces/service-graph/)生成稳定的依赖节点，其中 `peer.service` 明确存在时优先用于依赖命名。OpenCode Trace 可能包含 prompt 的输入内容，生产环境应限制该 stream 的访问和保留时间；需要只做会话级观测时，可在插件配置中关闭相应 trace 类型。
+
 ### 验证日志和指标
 
 切换后先确认采集器没有导出错误：
@@ -160,7 +194,7 @@ curl --fail http://100.100.10.1:5080/healthz
 1. Logs 选择对应机器的 `<hostname>_journald`，时间范围选择最近 15 分钟；
 2. Metrics 选择任一 `system_*` stream（例如 `system_cpu_time` 或 `system_memory_usage`），确认每个 `host.name` 有最近时间戳；
 3. 展开日志记录，按 `body__systemd_user_unit` 或服务名称筛选，例如 `garage.service` 和 `openobserve.service`；
-4. 有应用 instrumentation 后，再到对应机器的 `<hostname>_traces`，确认 span 的 `service.name`、时间线和错误状态。
+4. 有应用 instrumentation 后，再到对应机器的 `<hostname>_traces`，或 OpenCode 的 `nuc_opencode_traces`，确认 span 的 `service.name`、时间线和错误状态。
 
 如果 API 健康但 stream 暂时为空，先等待一个 30 秒指标周期和 Collector 的 batch timeout，再检查 agent 日志。OpenObserve 的写入成功也可能早于 Garage 对象完成 compaction；对象存储验证仍按本文后面的命令执行。
 
@@ -192,6 +226,8 @@ curl --fail http://100.100.10.1:5080/healthz
 2. 用全部目标机器可用的 SSH 公钥重新加密 `secrets/openobserve-agent-token.age`；
 3. 按上面的 NixOS/Home Manager 命令逐台切换，然后检查每台机器的 `openobserve-agent.service` 状态和日志；
 4. 在每台机器的 `<hostname>_journald`、任一 `system_*` metric stream 和 `<hostname>_traces` 中完成写入验证后，再删除旧令牌。
+
+OpenCode 的 `opencode-nuc` 令牌单独保存在 `secrets/opencode-openobserve-token.age`；轮换时在 IAM → 写入令牌创建同名替代令牌，用 NUC 用户 SSH 公钥和管理机公钥重新加密该文件，再切换 `longred@nuc` 并在 `nuc_opencode_traces` 中验证。
 
 ## 首次登录
 
