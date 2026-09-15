@@ -79,8 +79,10 @@ tailscale serve get-config --all
 tailscale serve status --json
 ```
 
-DeepSeek Harness 的 Provider/Models 设置仍建议使用现有的 loopback SSH tunnel，
-因为 Harness 的浏览器设置 API 会限制非 loopback authority。详见
+DeepSeek Harness 当前通过 `deepseek-harness.nix` 的版本敏感运行时补丁允许已
+声明 trusted host 且已通过 DSH token 认证的 HTTPS 浏览器会话加载并保存
+Provider/Models 设置。若 Harness 升级后补丁匹配失败，服务会拒绝启动；此时可
+先使用现有的 loopback SSH tunnel 访问设置，详见
 [`docs/deepseek-harness.md`](deepseek-harness.md)。
 
 ## 配置来源
