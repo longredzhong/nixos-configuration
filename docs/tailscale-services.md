@@ -14,20 +14,25 @@ Service 的 MagicDNS 名称区分它们。
 
 | Service | Service endpoint | NUC 本地目标 | 访问示例 |
 | --- | --- | --- | --- |
-| `svc:opencode` | `tcp:443` | `127.0.0.1:4096` | `http://opencode.tail388af.ts.net:443/` |
-| `svc:deepseek-harness` | `tcp:443` | `127.0.0.1:3080` | `http://deepseek-harness.tail388af.ts.net:443/` |
-| `svc:openobserve` | `tcp:443`, `tcp:5081` | `100.100.10.1:5080`, `100.100.10.1:5081` | `http://openobserve.tail388af.ts.net:443/` |
-| `svc:garage` | `tcp:443`, `tcp:3902` | `127.0.0.1:3900`, `127.0.0.1:3902` | `http://garage.tail388af.ts.net:443/` |
-| `svc:garage-ui` | `tcp:443` | `100.100.10.1:8080` | `http://garage-ui.tail388af.ts.net:443/` |
-| `svc:dufs` | `tcp:443` | `127.0.0.1:5000` | `http://dufs.tail388af.ts.net:443/` |
-| `svc:affine` | `tcp:443` | `100.100.10.1:3010` | `http://affine.tail388af.ts.net:443/` |
+| `svc:opencode` | `tcp:443` | `tls-terminated-tcp://127.0.0.1:4096` | `https://opencode.tail388af.ts.net/` |
+| `svc:deepseek-harness` | `tcp:443` | `tls-terminated-tcp://127.0.0.1:3080` | `https://deepseek-harness.tail388af.ts.net/` |
+| `svc:openobserve` | `tcp:443`, `tcp:5081` | `tls-terminated-tcp://100.100.10.1:5080`, `tcp://100.100.10.1:5081` | `https://openobserve.tail388af.ts.net/` |
+| `svc:garage` | `tcp:443`, `tcp:3902` | `tls-terminated-tcp://127.0.0.1:3900`, `tls-terminated-tcp://127.0.0.1:3902` | `https://garage.tail388af.ts.net/` |
+| `svc:garage-ui` | `tcp:443` | `tls-terminated-tcp://100.100.10.1:8080` | `https://garage-ui.tail388af.ts.net/` |
+| `svc:dufs` | `tcp:443` | `tls-terminated-tcp://127.0.0.1:5000` | `https://dufs.tail388af.ts.net/` |
+| `svc:affine` | `tcp:443` | `tls-terminated-tcp://100.100.10.1:3010` | `https://affine.tail388af.ts.net/` |
 
-这里使用 raw TCP 转发，保留 Web、S3 和 OTLP 的原始协议。Tailnet 内的链路仍
-由 Tailscale 加密，访问控制由 tailnet policy 和 Service 的访问规则负责。
-虽然入口端口是 443，当前 target 使用 `tcp://`，因此这些 Web 服务仍通过
-`http://<service>.tail388af.ts.net:443` 访问；这不是 TLS。需要由 Tailscale
-终止 HTTPS 时，应使用 `https://` URL，并用 `tailscale serve --service=... --https=443`
-单独配置对应 Service；不要把当前 huJSON 文件误当成 HTTPS 配置。
+Web、S3 和 Garage Web 端点使用 `tls-terminated-tcp://`：Tailscale 在 Service
+入口终止 TLS，再把解密后的 TCP 流转发到 NUC 上的明文服务。浏览器和 HTTP
+客户端使用 `https://<service>.tail388af.ts.net/`；后端服务无需自行配置证书。
+OpenObserve 的 `5081` 保留 raw TCP，因为它是 OTLP/gRPC 端口，不是浏览器 Web
+入口。需要原始协议透传的端口继续使用 `tcp://`。
+
+这里不能把 target 改成 `http://` 来表达“入口 HTTPS、后端 HTTP”：在
+`tailscale serve set-config` 的服务配置格式中，target 的协议同时决定 Serve
+模式，`http://` 会生成 HTTP 入口。`tls-terminated-tcp://` 才能在配置文件中
+明确表示 TLS 终止后继续转发原始明文流。Tailscale 客户端必须启用 tailnet 的
+HTTPS certificates，才能为 Service MagicDNS 名称提供证书。
 
 Garage 的 RPC、admin API 和 OpenObserve 的本地管理端口没有加入 Service，避免
 把内部控制面提供给普通客户端。Anytype 也暂不加入：当前服务没有确认一个可用
@@ -57,9 +62,16 @@ OpenCode、DeepSeek Harness、OpenObserve、Garage、DUFS 或 AFFiNE 服务。
 验证 Service 已批准后，从同一 tailnet 的客户端测试：
 
 ```bash
-curl -i http://opencode.tail388af.ts.net:443/
-curl -i http://deepseek-harness.tail388af.ts.net:443/
-curl -i http://openobserve.tail388af.ts.net:443/
+curl -i https://opencode.tail388af.ts.net/
+curl -i https://deepseek-harness.tail388af.ts.net/
+curl -i https://openobserve.tail388af.ts.net/
+```
+
+在 NUC 上确认入口已经是 TLS-terminated TCP：
+
+```bash
+tailscale serve get-config --all
+tailscale serve status --json
 ```
 
 DeepSeek Harness 的 Provider/Models 设置仍建议使用现有的 loopback SSH tunnel，
@@ -69,5 +81,5 @@ DeepSeek Harness 的 Provider/Models 设置仍建议使用现有的 loopback SSH
 ## 配置来源
 
 - [Tailscale Services](https://tailscale.com/docs/features/tailscale-services)：Service 定义、tag-based host、广告和审批流程。
-- [Tailscale Services configuration file](https://tailscale.com/docs/reference/tailscale-services-configuration-file)：`version`、`services`、`endpoints` 和 `tcp://` target 格式。
-- [tailscale serve](https://tailscale.com/docs/reference/tailscale-cli/serve)：`set-config`、`advertise`、`status` 和 HTTPS/TCP 转发命令。
+- [Tailscale Services configuration file](https://tailscale.com/docs/reference/tailscale-services-configuration-file)：`version`、`services`、`endpoints` 和 target 格式。
+- [tailscale serve](https://tailscale.com/docs/reference/tailscale-cli/serve)：HTTPS、raw TCP 和 `tls-terminated-tcp` 转发命令。
