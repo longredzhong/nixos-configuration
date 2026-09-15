@@ -12,6 +12,8 @@ NUC 上的 `deepseek-harness.service` 以 Home Manager 用户级 systemd 服务�
 http://100.100.10.1:3080
 ```
 
+当前 DSH 版本把 Settings/Models 的浏览器持久化限制为 loopback 页面。直接访问 `100.100.10.1` 可以加载主界面和会话 API，但打开设置时会显示 `settings are unavailable in this browser`；`--trusted-host` 不能改变这个客户端限制。[上游说明](https://github.com/deepseek-ai/deepseek-harness/discussions/5829)
+
 Harness 启动时会在日志中打印带一次性认证 token 的 URL。可以直接取出启动 URL：
 
 ```bash
@@ -21,6 +23,20 @@ ssh nuc 'journalctl --user -u deepseek-harness -n 100 -o cat \
 ```
 
 在浏览器打开上一个命令输出的 URL；首次访问会建立认证 cookie，随后页面会跳转到 `/`。如果浏览器无法访问 Tailscale 地址，可改用 SSH 隧道：`ssh -N -L 3086:100.100.10.1:3080 nuc`，再把启动 URL 中的 `100.100.10.1:3080` 替换成 `127.0.0.1:3086`。
+
+需要配置 Provider 或 DeepSeek API key 时，推荐使用 loopback 隧道：
+
+```bash
+# 终端一：保持隧道运行
+ssh -N -L 3086:100.100.10.1:3080 nuc
+
+# 终端二：取得可用于 Settings/Models 的 URL
+ssh nuc 'journalctl --user -u deepseek-harness -n 100 -o cat \
+  | sed -n "s/^dsh web: //p" | tail -n 1' \
+  | sed 's#127.0.0.1:3080#127.0.0.1:3086#'
+```
+
+打开第二个命令输出的 URL 后，Settings → Models 会正常加载并保存配置。
 
 ## 应用配置
 
