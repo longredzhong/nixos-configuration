@@ -20,7 +20,11 @@
     ../../modules/host-services/anytype.nix
     ../../modules/host-services/affine.nix
     ../../modules/host-services/tailscale-services.nix
+    ../../modules/host-services/mihomo.nix
   ];
+
+  # Local rule-based proxy with a dashboard and OpenObserve metrics.
+  hostServices.mihomo.enable = true;
 
   # Fedora NUC-specific packages
   home.packages =

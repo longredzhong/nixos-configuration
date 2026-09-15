@@ -1,0 +1,112 @@
+# mihomo runtime configuration template for the NUC.
+#
+# The render script (config/mihomo/render.py) substitutes these markers and
+# writes the result to the state directory with mode 0600:
+#   __CONTROLLER_SECRET__      controller/dashboard bearer secret
+#   __SUBSCRIPTION_USE__       comma-separated provider name, or empty
+#   # __SUBSCRIPTION_PROVIDER__ replaced by the subscription provider block
+#
+# Never put a subscription URL, node address, or node credential in this file:
+# those live only in the runtime secret files and the rendered state directory.
+
+mixed-port: 7890
+mode: rule
+log-level: info
+ipv6: false
+allow-lan: false
+find-process-mode: off
+unified-delay: true
+tcp-concurrent: true
+
+external-controller: 127.0.0.1:9091
+secret: "__CONTROLLER_SECRET__"
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+# Keep the GEO databases fresh from a China-friendly mirror. Rule matching
+# falls back to the last successful download when the mirror is unreachable.
+geodata-mode: true
+geodata-loader: standard
+geo-auto-update: true
+geo-update-interval: 24
+geox-url:
+  geoip: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geoip.dat"
+  geosite: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/geosite.dat"
+  mmdb: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+  asn: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/GeoLite2-ASN.mmdb"
+
+dns:
+  enable: true
+  ipv6: false
+  # default-nameserver must contain IP literals; it resolves the DNS servers.
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:
+    - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    ipcidr:
+      - 240.0.0.0/4
+  proxy-server-nameserver:
+    - https://doh.pub/dns-query
+
+proxy-providers:
+  # __SUBSCRIPTION_PROVIDER__
+  custom:
+    type: file
+    path: ./providers/custom.yaml
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+      lazy: true
+      expected-status: 204
+
+proxy-groups:
+  - name: PROXY
+    type: select
+    use: [__SUBSCRIPTION_USE__custom]
+    proxies:
+      - AUTO
+      - DIRECT
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    lazy: true
+    default-selected: AUTO
+  - name: AUTO
+    type: url-test
+    use: [__SUBSCRIPTION_USE__custom]
+    proxies:
+      - DIRECT
+    url: https://www.gstatic.com/generate_204
+    interval: 300
+    tolerance: 50
+    lazy: true
+  - name: DIRECT
+    type: select
+    proxies:
+      - DIRECT
+
+rules:
+  # Keep loopback, LAN, and the Tailscale tailnet on the direct path so the
+  # proxy never recurses into itself or breaks MagicDNS/Service names.
+  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
+  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
+  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
+  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
+  - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
+  - DOMAIN-SUFFIX,ts.net,DIRECT
+  - DOMAIN-SUFFIX,local,DIRECT
+  - GEOSITE,category-ads-all,REJECT
+  - GEOSITE,cn,DIRECT
+  - GEOIP,CN,DIRECT
+  - MATCH,PROXY

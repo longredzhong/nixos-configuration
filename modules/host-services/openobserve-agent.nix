@@ -133,7 +133,7 @@ let
           extensions: [zpages]
           pipelines:
             metrics:
-              receivers: [host_metrics]
+              receivers: [host_metrics, otlp]
               processors: [resource_detection/system, memory_limiter, batch]
               exporters: [otlp_http/openobserve-metrics]
             logs:
