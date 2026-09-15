@@ -4,23 +4,22 @@ NUC 上的 `deepseek-harness.service` 以 Home Manager 用户级 systemd 服务�
 
 ## 访问方式
 
-服务只监听 NUC 的 `127.0.0.1:3080`。DeepSeek Harness 官方 CLI 目前拒绝直接监听 `0.0.0.0`，因为 Web UI 包含本地文件和命令执行能力；loopback 服务配合 SSH 转发可以访问页面，同时保留这个调用者边界。
+服务监听 NUC 的 Tailscale 地址 `100.100.10.1:3080`，只对 Tailscale 网络开放。DeepSeek Harness 官方 CLI 目前拒绝直接监听 `0.0.0.0`，因为 Web UI 包含本地文件和命令执行能力；这里使用 NUC 的 Tailscale 地址来保留网络边界。
 
-在本地机器建立隧道（本机 `3080` 被其他 DSH 实例占用时使用 `3086`）：
+在已加入同一 Tailscale 网络的设备上打开：
 
 ```bash
-ssh -N -L 3086:127.0.0.1:3080 nuc
+http://100.100.10.1:3080
 ```
 
-Harness 启动时会在日志中打印带一次性认证 token 的 URL。取出 URL 并把远端端口改成本地隧道端口：
+Harness 启动时会在日志中打印带一次性认证 token 的 URL。可以直接取出启动 URL：
 
 ```bash
 ssh nuc 'journalctl --user -u deepseek-harness -n 100 -o cat \
-  | sed -n "s/^dsh web: //p" | tail -n 1' \
-  | sed 's#127.0.0.1:3080#127.0.0.1:3086#'
+  | sed -n "s/^dsh web: //p" | tail -n 1'
 ```
 
-在浏览器打开上一个命令输出的 URL；首次访问会建立认证 cookie，随后页面会跳转到 `/`。如果本地 `3080` 空闲，也可以使用 `-L 3080:127.0.0.1:3080`，并直接打开日志中的 URL。SSH 连接保持期间，浏览器请求会转到 NUC 上的 Harness 进程。
+在浏览器打开上一个命令输出的 URL；首次访问会建立认证 cookie，随后页面会跳转到 `/`。如果浏览器无法访问 Tailscale 地址，可改用 SSH 隧道：`ssh -N -L 3086:100.100.10.1:3080 nuc`，再把启动 URL 中的 `100.100.10.1:3080` 替换成 `127.0.0.1:3086`。
 
 ## 应用配置
 
@@ -48,7 +47,7 @@ systemctl --user is-active deepseek-harness
 systemctl --user status deepseek-harness --no-pager
 journalctl --user -u deepseek-harness -n 100 --no-pager
 # 裸访问没有认证 cookie，返回 401 是预期行为；浏览器应使用日志中的 token URL。
-curl -i http://127.0.0.1:3080/
+curl -i http://100.100.10.1:3080/
 ```
 
 首次启动需要从 npm 下载约 200 个运行时依赖，安装完成后服务会自动继续启动。升级时只修改模块中的 `dshVersion`，先运行 Home Manager dry-run，再观察安装日志和页面可用性。

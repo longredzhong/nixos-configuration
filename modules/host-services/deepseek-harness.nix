@@ -13,6 +13,7 @@ let
   node = pkgs.nodejs_22;
   npm = pkgs.nodejs-slim_22.npm;
   dshVersion = "0.1.5-rc.2";
+  listenHost = "100.100.10.1";
   runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
   dshHome = "${config.home.homeDirectory}/.local/share/deepseek-harness/home";
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
@@ -76,7 +77,7 @@ let
       --expose-internals \
       '${dshEntry}' \
       web \
-      --host 127.0.0.1 \
+      --host ${listenHost} \
       --port 3080 \
       --no-open
   '';
@@ -88,7 +89,7 @@ in
 
   systemd.user.services.deepseek-harness = {
     Unit = {
-      Description = "DeepSeek Harness Web UI (loopback port 3080)";
+      Description = "DeepSeek Harness Web UI (Tailscale ${listenHost}:3080)";
       After = [
         "network-online.target"
       ];
