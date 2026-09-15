@@ -17,6 +17,7 @@ let
   runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
   dshHome = "${config.home.homeDirectory}/.local/share/deepseek-harness/home";
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
+  settingsClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-ui-settings/lib/client.js";
   runtimeManifest = pkgs.writeText "deepseek-harness-package.json" ''
     {
       "private": true,
@@ -65,6 +66,38 @@ let
         --save-exact \
         "@deepseek-ai/dsh@$expected"
     fi
+
+    # @deepseek-ai/dsh-client-ui-settings currently disables its settings
+    # mirror whenever the browser URL is non-loopback, even when the server
+    # has explicitly trusted that authority with --trusted-host. The NUC's
+    # HTTPS endpoint is a single-user, Tailscale-approved service, so allow
+    # the already-authenticated browser session to use the Host settings
+    # mirror. Keep this patch version-sensitive and fail closed if the
+    # upstream bundle changes instead of silently losing settings support.
+    settings_client='${settingsClient}'
+    '${pkgs.python3}/bin/python3' - "$settings_client" <<'PY'
+    import pathlib
+    import sys
+
+    path = pathlib.Path(sys.argv[1])
+    if not path.is_file():
+        raise SystemExit(f"deepseek-harness: missing settings client bundle: {path}")
+
+    source = path.read_text(encoding="utf-8")
+    old = 'const persistence = ctx.remote.$host.isLoopback ? "host" : "memory";'
+    new = 'const persistence = "host";'
+
+    if new in source:
+        raise SystemExit(0)
+    if source.count(old) != 1:
+        raise SystemExit(
+            "deepseek-harness: unsupported dsh settings bundle; "
+            f"expected one remote-settings guard in {path}"
+        )
+
+    path.write_text(source.replace(old, new), encoding="utf-8")
+    print(f"deepseek-harness: enabled trusted remote settings in {path}")
+    PY
 
     test -f "$entry"
   '';

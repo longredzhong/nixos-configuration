@@ -12,7 +12,14 @@ NUC 上的 `deepseek-harness.service` 以 Home Manager 用户级 systemd 服务�
 https://deepseek-harness.tail388af.ts.net/
 ```
 
-当前 DSH 版本把 Settings/Models 的浏览器持久化限制为 loopback 页面。直接访问 `100.100.10.1` 可以加载主界面和会话 API，但打开设置时会显示 `settings are unavailable in this browser`；`--trusted-host` 不能改变这个客户端限制。[上游说明](https://github.com/deepseek-ai/deepseek-harness/discussions/5829)
+上游 DSH 版本默认把 Settings/Models 的浏览器持久化限制为 loopback 页面。
+本模块在 NUC 的运行时安装阶段对固定的 `@deepseek-ai/dsh-client-ui-settings`
+bundle 应用一个版本敏感的补丁：只要服务端已经通过 `--trusted-host`
+声明了 Tailscale Service 域名，已通过 DSH token 认证的 HTTPS 浏览器会话也能
+使用 Host settings mirror。补丁匹配失败会让服务启动失败，避免升级后静默回到
+`settings are unavailable in this browser`。该设置把完整的 Harness settings
+和 credentials 管理面暴露给拥有 Tailscale Service 访问权及 DSH token 的用户；
+不要把同一服务暴露给不受信任的网络。[上游限制与配置讨论](https://github.com/deepseek-ai/deepseek-harness/discussions/5829)
 
 Harness 启动时会在日志中打印带一次性认证 token 的本地 URL。把它的
 `127.0.0.1:3080` 替换为 Service 域名，协议改为 `https`，然后在浏览器打开：
