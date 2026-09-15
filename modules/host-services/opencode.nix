@@ -19,6 +19,13 @@ let
   openobserveTracesStream = "nuc_opencode_traces";
   openobserveToken = config.age.secrets.opencode-openobserve-token.path;
 
+  # Browser origins allowed to interact with the HTTP server (opencode serve --cors).
+  serveOrigins = [
+    "http://100.100.10.1:4096"
+    "https://opencode.tail388af.ts.net"
+  ];
+  corsArgs = lib.concatMapStringsSep " " (origin: "--cors ${origin}") serveOrigins;
+
   ensurePluginAndConfig = pkgs.writeShellScript "opencode-openobserve-preflight" ''
     set -euo pipefail
 
@@ -135,7 +142,7 @@ let
     export OTEL_SERVICE_NAME='opencode'
     export OTEL_RESOURCE_ATTRIBUTES="$OPENCODE_RESOURCE_ATTRIBUTES"
 
-    exec '${opencodeBin}' serve --hostname 0.0.0.0 --port 4096
+    exec '${opencodeBin}' serve --hostname 0.0.0.0 --port 4096 ${corsArgs}
   '';
 in
 {
