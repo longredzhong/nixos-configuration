@@ -88,6 +88,7 @@ just hm-switch
 ## NUC 服务文档
 
 - [OpenObserve 部署与使用](docs/openobserve.md)
+- [DeepSeek Harness 部署与使用](docs/deepseek-harness.md)
 
 ## Profiles (配置组合)
 
