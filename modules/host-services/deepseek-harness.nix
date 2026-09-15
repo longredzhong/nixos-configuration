@@ -101,6 +101,8 @@ let
       --host 127.0.0.1 \
       --port 3080 \
       --trusted-host ${listenHost}:3080 \
+      --trusted-host deepseek-harness.tail388af.ts.net \
+      --trusted-host deepseek-harness.tail388af.ts.net:80 \
       --no-open &
     harness_pid=$!
 

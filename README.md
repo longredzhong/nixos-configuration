@@ -89,6 +89,7 @@ just hm-switch
 
 - [OpenObserve 部署与使用](docs/openobserve.md)
 - [DeepSeek Harness 部署与使用](docs/deepseek-harness.md)
+- [Tailscale Services 家庭实验室配置](docs/tailscale-services.md)
 
 ## Profiles (配置组合)
 

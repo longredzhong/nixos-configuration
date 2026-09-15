@@ -19,6 +19,7 @@
     ../../modules/host-services/deepseek-harness.nix
     ../../modules/host-services/anytype.nix
     ../../modules/host-services/affine.nix
+    ../../modules/host-services/tailscale-services.nix
   ];
 
   # Fedora NUC-specific packages
