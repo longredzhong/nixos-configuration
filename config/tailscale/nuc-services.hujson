@@ -3,39 +3,39 @@
   "services": {
     "svc:opencode": {
       "endpoints": {
-        "tcp:80": "tcp://127.0.0.1:4096"
+        "tcp:443": "tcp://127.0.0.1:4096"
       }
     },
     "svc:deepseek-harness": {
       "endpoints": {
-        "tcp:80": "tcp://127.0.0.1:3080"
+        "tcp:443": "tcp://127.0.0.1:3080"
       }
     },
     "svc:openobserve": {
       "endpoints": {
-        "tcp:80": "tcp://100.100.10.1:5080",
+        "tcp:443": "tcp://100.100.10.1:5080",
         "tcp:5081": "tcp://100.100.10.1:5081"
       }
     },
     "svc:garage": {
       "endpoints": {
-        "tcp:80": "tcp://127.0.0.1:3900",
+        "tcp:443": "tcp://127.0.0.1:3900",
         "tcp:3902": "tcp://127.0.0.1:3902"
       }
     },
     "svc:garage-ui": {
       "endpoints": {
-        "tcp:80": "tcp://100.100.10.1:8080"
+        "tcp:443": "tcp://100.100.10.1:8080"
       }
     },
     "svc:dufs": {
       "endpoints": {
-        "tcp:80": "tcp://127.0.0.1:5000"
+        "tcp:443": "tcp://127.0.0.1:5000"
       }
     },
     "svc:affine": {
       "endpoints": {
-        "tcp:80": "tcp://100.100.10.1:3010"
+        "tcp:443": "tcp://100.100.10.1:3010"
       }
     }
   }

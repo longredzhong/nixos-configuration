@@ -9,22 +9,24 @@ Home Manager 将它安装到 `~/.config/tailscale/nuc-services.hujson`，然后�
 ## 当前服务
 
 当前 NUC 上已经运行并验证过监听端口的家庭实验室服务如下。每个 Service 都
-使用自己的 TailVIP，因此多个 Service 可以同时使用 `tcp:80`；客户端通过
+使用自己的 TailVIP，因此多个 Service 可以同时使用 `tcp:443`；客户端通过
 Service 的 MagicDNS 名称区分它们。
 
 | Service | Service endpoint | NUC 本地目标 | 访问示例 |
 | --- | --- | --- | --- |
-| `svc:opencode` | `tcp:80` | `127.0.0.1:4096` | `http://opencode.tail388af.ts.net/` |
-| `svc:deepseek-harness` | `tcp:80` | `127.0.0.1:3080` | `http://deepseek-harness.tail388af.ts.net/` |
-| `svc:openobserve` | `tcp:80`, `tcp:5081` | `100.100.10.1:5080`, `100.100.10.1:5081` | `http://openobserve.tail388af.ts.net/` |
-| `svc:garage` | `tcp:80`, `tcp:3902` | `127.0.0.1:3900`, `127.0.0.1:3902` | `http://garage.tail388af.ts.net/` |
-| `svc:garage-ui` | `tcp:80` | `100.100.10.1:8080` | `http://garage-ui.tail388af.ts.net/` |
-| `svc:dufs` | `tcp:80` | `127.0.0.1:5000` | `http://dufs.tail388af.ts.net/` |
-| `svc:affine` | `tcp:80` | `100.100.10.1:3010` | `http://affine.tail388af.ts.net/` |
+| `svc:opencode` | `tcp:443` | `127.0.0.1:4096` | `http://opencode.tail388af.ts.net:443/` |
+| `svc:deepseek-harness` | `tcp:443` | `127.0.0.1:3080` | `http://deepseek-harness.tail388af.ts.net:443/` |
+| `svc:openobserve` | `tcp:443`, `tcp:5081` | `100.100.10.1:5080`, `100.100.10.1:5081` | `http://openobserve.tail388af.ts.net:443/` |
+| `svc:garage` | `tcp:443`, `tcp:3902` | `127.0.0.1:3900`, `127.0.0.1:3902` | `http://garage.tail388af.ts.net:443/` |
+| `svc:garage-ui` | `tcp:443` | `100.100.10.1:8080` | `http://garage-ui.tail388af.ts.net:443/` |
+| `svc:dufs` | `tcp:443` | `127.0.0.1:5000` | `http://dufs.tail388af.ts.net:443/` |
+| `svc:affine` | `tcp:443` | `100.100.10.1:3010` | `http://affine.tail388af.ts.net:443/` |
 
 这里使用 raw TCP 转发，保留 Web、S3 和 OTLP 的原始协议。Tailnet 内的链路仍
 由 Tailscale 加密，访问控制由 tailnet policy 和 Service 的访问规则负责。
-需要由 Tailscale 终止 HTTPS 时，应使用 `tailscale serve --service=... --https=443`
+虽然入口端口是 443，当前 target 使用 `tcp://`，因此这些 Web 服务仍通过
+`http://<service>.tail388af.ts.net:443` 访问；这不是 TLS。需要由 Tailscale
+终止 HTTPS 时，应使用 `https://` URL，并用 `tailscale serve --service=... --https=443`
 单独配置对应 Service；不要把当前 huJSON 文件误当成 HTTPS 配置。
 
 Garage 的 RPC、admin API 和 OpenObserve 的本地管理端口没有加入 Service，避免
@@ -55,9 +57,9 @@ OpenCode、DeepSeek Harness、OpenObserve、Garage、DUFS 或 AFFiNE 服务。
 验证 Service 已批准后，从同一 tailnet 的客户端测试：
 
 ```bash
-curl -i http://opencode.tail388af.ts.net/
-curl -i http://deepseek-harness.tail388af.ts.net/
-curl -i http://openobserve.tail388af.ts.net/
+curl -i http://opencode.tail388af.ts.net:443/
+curl -i http://deepseek-harness.tail388af.ts.net:443/
+curl -i http://openobserve.tail388af.ts.net:443/
 ```
 
 DeepSeek Harness 的 Provider/Models 设置仍建议使用现有的 loopback SSH tunnel，
