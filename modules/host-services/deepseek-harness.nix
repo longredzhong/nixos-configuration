@@ -12,7 +12,7 @@
 let
   node = pkgs.nodejs_22;
   npm = pkgs.nodejs-slim_22.npm;
-  dshVersion = "0.1.5-rc.2";
+  dshVersion = "0.1.6-alpha.1";
   listenHost = "100.100.10.1";
   serviceHost = "deepseek-harness.tail388af.ts.net";
   runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
