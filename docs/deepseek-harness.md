@@ -4,7 +4,7 @@ NUC 上的 `deepseek-harness.service` 以 Home Manager 用户级 systemd 服务�
 
 ## 访问方式
 
-服务监听 NUC 的 Tailscale 地址 `100.100.10.1:3080`，只对 Tailscale 网络开放。DeepSeek Harness 官方 CLI 目前拒绝直接监听 `0.0.0.0`，因为 Web UI 包含本地文件和命令执行能力；这里使用 NUC 的 Tailscale 地址来保留网络边界。
+服务实际监听 NUC 的 Tailscale 地址 `100.100.10.1:3080`，只对 Tailscale 网络开放。当前 DSH Web Server 配置只接受 `127.0.0.1` 或 `0.0.0.0`，因此 `deepseek-harness.service` 让 DSH 绑定 loopback，再由同一服务中的 TCP 转发器绑定精确的 Tailscale 地址。这样不会把 DSH 直接暴露到所有网卡。
 
 在已加入同一 Tailscale 网络的设备上打开：
 
@@ -16,7 +16,8 @@ Harness 启动时会在日志中打印带一次性认证 token 的 URL。可以�
 
 ```bash
 ssh nuc 'journalctl --user -u deepseek-harness -n 100 -o cat \
-  | sed -n "s/^dsh web: //p" | tail -n 1'
+  | sed -n "s/^dsh web: //p" | tail -n 1' \
+  | sed 's#127.0.0.1#100.100.10.1#'
 ```
 
 在浏览器打开上一个命令输出的 URL；首次访问会建立认证 cookie，随后页面会跳转到 `/`。如果浏览器无法访问 Tailscale 地址，可改用 SSH 隧道：`ssh -N -L 3086:100.100.10.1:3080 nuc`，再把启动 URL 中的 `100.100.10.1:3080` 替换成 `127.0.0.1:3086`。

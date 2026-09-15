@@ -73,13 +73,42 @@ let
     # Nix-built Node cannot provide the loader internals through the native
     # fallback used by the current HMR dependency. Pass this Node-only flag
     # before the dsh entrypoint; NODE_OPTIONS is rejected for this flag.
-    exec '${node}/bin/node' \
+    set -euo pipefail
+
+    harness_pid=""
+    proxy_pid=""
+
+    cleanup() {
+      trap - EXIT INT TERM
+      if [ -n "$proxy_pid" ]; then
+        kill "$proxy_pid" 2>/dev/null || true
+      fi
+      if [ -n "$harness_pid" ]; then
+        kill "$harness_pid" 2>/dev/null || true
+      fi
+      wait "$proxy_pid" 2>/dev/null || true
+      wait "$harness_pid" 2>/dev/null || true
+    }
+    trap cleanup EXIT INT TERM
+
+    # dsh-host-webserver currently accepts only 127.0.0.1 or 0.0.0.0 as its
+    # host value. Keep dsh on loopback and expose the exact Tailscale address
+    # through a local TCP forward in the same systemd service.
+    '${node}/bin/node' \
       --expose-internals \
       '${dshEntry}' \
       web \
-      --host ${listenHost} \
+      --host 127.0.0.1 \
       --port 3080 \
-      --no-open
+      --no-open &
+    harness_pid=$!
+
+    '${pkgs.socat}/bin/socat' \
+      'TCP-LISTEN:3080,bind=${listenHost},reuseaddr,fork' \
+      'TCP:127.0.0.1:3080' &
+    proxy_pid=$!
+
+    wait -n "$harness_pid" "$proxy_pid"
   '';
 in
 {
@@ -89,7 +118,7 @@ in
 
   systemd.user.services.deepseek-harness = {
     Unit = {
-      Description = "DeepSeek Harness Web UI (Tailscale ${listenHost}:3080)";
+      Description = "DeepSeek Harness Web UI (Tailscale ${listenHost}:3080 via loopback backend)";
       After = [
         "network-online.target"
       ];
