@@ -158,7 +158,25 @@ let
   '';
 
   startOpenObserve = pkgs.writeShellScript "openobserve-start" ''
-    exec '${podman}' run \
+    set -euo pipefail
+
+    openobserve_pid=""
+    loopback_pid=""
+
+    cleanup() {
+      trap - EXIT INT TERM
+      if [ -n "$loopback_pid" ]; then
+        kill "$loopback_pid" 2>/dev/null || true
+      fi
+      if [ -n "$openobserve_pid" ]; then
+        kill "$openobserve_pid" 2>/dev/null || true
+      fi
+      wait "$loopback_pid" 2>/dev/null || true
+      wait "$openobserve_pid" 2>/dev/null || true
+    }
+    trap cleanup EXIT INT TERM
+
+    '${podman}' run \
       --name openobserve \
       --rm \
       --replace \
@@ -168,7 +186,23 @@ let
       --http-proxy=false \
       --env-file '${openobserveEnvFile}' \
       --volume '${openobserveDataVolume}:/data' \
-      '${openobserveImage}'
+      '${openobserveImage}' &
+    openobserve_pid=$!
+
+    # The built-in MCP server (https://<instance>/api/<org>/mcp) executes its
+    # tools through OpenObserve's own HTTP API, which it calls at
+    # http://localhost:<ZO_HTTP_PORT>. This service binds the Tailscale address
+    # only (--network host plus ZO_HTTP_ADDR), so nothing answers on loopback
+    # and every MCP tool call fails with "error sending request for url
+    # (http://localhost:<ZO_HTTP_PORT>/...)". Bridge the same port on loopback
+    # only: the unit shares the host network namespace, so this is the address
+    # the container sees, and no new address is reachable from the network.
+    '${pkgs.socat}/bin/socat' \
+      TCP-LISTEN:${toString httpPort},bind=127.0.0.1,reuseaddr,fork \
+      TCP:${listenAddress}:${toString httpPort} &
+    loopback_pid=$!
+
+    wait -n "$openobserve_pid" "$loopback_pid"
   '';
 in
 {
