@@ -41,6 +41,9 @@ NUC。NUC 当前使用 `tag:longred-server` 等 tag 身份，满足 Service host
 管理端完成定义和审批后，在 NUC 上运行：
 
 ```bash
+# 只需首次执行一次；用户级 systemd unit 需要通过本机 Tailscale CLI 写配置
+sudo tailscale set --operator=longred
+
 systemctl --user restart tailscale-services.service
 systemctl --user status tailscale-services.service
 tailscale serve status --json
