@@ -748,7 +748,8 @@
           "htmlContent": "",
           "markdownContent": ""
         }
-      ]
+      ],
+      "tabId": "garage-default"
     }
   ],
   "variables": {
