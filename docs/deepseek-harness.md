@@ -54,6 +54,37 @@ provider 没有把 DSH 会话 ID映射到该 provider 专用 header 的兼容问
 上游讨论见 [DeepSeek Harness discussion #6467](https://github.com/deepseek-ai/deepseek-harness/discussions/6467)。
 插件只在消费模型流的异步作用域内包装 Node fetch，其他 provider 请求不添加该 header。
 
+## OpenCode Go 动态模型目录
+
+同一个 OpenCode Go 套餐同时提供 Chat Completions、Responses 和 Anthropic
+Messages 三种协议。OpenCode 官方文档说明模型列表会随服务端变化，并提供完整的
+模型接口；仅读取 `/zen/go/v1/models` 只能得到模型 ID，不能得到每个模型应使用的
+协议。插件使用公开的
+[`pi.dev/api/models/providers/opencode-go`](https://pi.dev/api/models/providers/opencode-go)
+目录获取模型 ID、协议、endpoint、上下文长度、输入模态和兼容参数。
+
+DSH `0.1.6-alpha.1` 的 Settings provider route 在 route 层保存 `api` 和
+`baseURL`，所以插件把目录按协议写入三个受管理的 route：
+
+| Provider route | 协议 | Base URL |
+| --- | --- | --- |
+| `opencode-go-live-chat` | `openai-completions` | `https://opencode.ai/zen/go/v1` |
+| `opencode-go-live-responses` | `openai-responses` | `https://opencode.ai/zen/go/v1` |
+| `opencode-go-live-messages` | `anthropic-messages` | `https://opencode.ai/zen/go` |
+
+插件在服务启动约 5 秒后同步一次，此后每 4 小时刷新；刷新失败时保留上一次成功的
+动态目录，静态的 `opencode-go` route 继续作为回退。动态 route 使用
+`OPENCODE_GO_API_KEY` 凭据引用，目录请求不携带或保存 API key。上述三个 route
+由插件管理，不要在 Settings 中为它们手工保存自定义配置；原有 `opencode-go`
+route 保留用于兼容已有会话和默认模型。
+
+更新后的模型会出现在 **Settings → Models**。选择模型时使用相应的
+`opencode-go-live-*` route，模型会通过插件的同一套 `x-opencode-session` header
+修复发送请求。模型协议和 OpenCode Go 的 endpoint 约束以
+[OpenCode Go provider 文档](https://dev.opencode.ai/docs/go/)
+以及 [DSH live discovery discussion #5681](https://github.com/deepseek-ai/deepseek-harness/discussions/5681)
+为依据。
+
 ## 部署和验证
 
 ```bash
