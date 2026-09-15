@@ -17,6 +17,10 @@ let
   serviceHost = "deepseek-harness.tail388af.ts.net";
   runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
   dshHome = "${config.home.homeDirectory}/.local/share/deepseek-harness/home";
+  webProfileDir = "${dshHome}/profiles/web";
+  webProfileManifest = "${webProfileDir}/package.json";
+  sessionPluginName = "@longred/deepseek-harness-opencode-session";
+  sessionPluginPath = "${pkgs.deepseek-harness-opencode-session}/lib/node_modules/${sessionPluginName}";
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
   settingsClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-ui-settings/lib/client.js";
   runtimeManifest = pkgs.writeText "deepseek-harness-package.json" ''
@@ -68,6 +72,57 @@ let
         "@deepseek-ai/dsh@$expected"
     fi
 
+    # Initialize the shipped web profile before adding the local bundle. This
+    # keeps the profile's own manifest and patch-reload policy under dsh's
+    # control while making the bundle reproducible from the Home Manager
+    # generation.
+    if [ ! -f '${webProfileManifest}' ]; then
+      DSH_HOME='${dshHome}' \
+        '${node}/bin/node' --expose-internals "$entry" \
+        --profile web --dump-default-config >/dev/null
+    fi
+
+    DSH_PROFILE='${webProfileDir}' \
+      DSH_PROFILE_MANIFEST='${webProfileManifest}' \
+      DSH_SESSION_PLUGIN_NAME='${sessionPluginName}' \
+      DSH_SESSION_PLUGIN_PATH='${sessionPluginPath}' \
+      '${pkgs.python3}/bin/python3' - <<'PY'
+    import json
+    import os
+    import pathlib
+
+    profile_dir = pathlib.Path(os.environ["DSH_PROFILE"])
+    manifest_path = pathlib.Path(os.environ["DSH_PROFILE_MANIFEST"])
+    plugin_name = os.environ["DSH_SESSION_PLUGIN_NAME"]
+    plugin_path = pathlib.Path(os.environ["DSH_SESSION_PLUGIN_PATH"])
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    dependencies = manifest.setdefault("dependencies", {})
+    dependency_spec = f"file:{plugin_path}"
+    dependencies[plugin_name] = dependency_spec
+
+    profile = manifest.setdefault("dsh", {}).setdefault("profile", {})
+    bundles = profile.setdefault("bundles", [])
+    if plugin_name not in bundles:
+        bundles.append(plugin_name)
+
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+
+    plugin_link = profile_dir / "node_modules" / plugin_name
+    if plugin_link.is_symlink():
+        if plugin_link.resolve() != plugin_path.resolve():
+            plugin_link.unlink()
+    elif plugin_link.exists():
+        raise SystemExit(
+            "deepseek-harness: refusing to replace an existing custom session plugin at "
+            f"{plugin_link}"
+        )
+
+    plugin_link.parent.mkdir(parents=True, exist_ok=True)
+    if not plugin_link.exists():
+        plugin_link.symlink_to(plugin_path, target_is_directory=True)
+    PY
+
     # @deepseek-ai/dsh-client-ui-settings currently disables its settings
     # mirror whenever the browser URL is non-loopback, even when the server
     # has explicitly trusted that authority with --trusted-host. The NUC's
@@ -107,6 +162,7 @@ let
     PY
 
     test -f "$entry"
+    test -f '${sessionPluginPath}/package.json'
   '';
 
   startHarness = pkgs.writeShellScript "deepseek-harness-start" ''

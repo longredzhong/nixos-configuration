@@ -41,6 +41,19 @@ ssh -N -L <local-port>:127.0.0.1:<dsh-port> <ssh-target>
 
 API key 通过 Settings 页面写入运行时凭据文件。不要在 Shell 历史、Nix 表达式、日志或文档中保存 key。
 
+## OpenCode Go 会话标识
+
+`web` profile 会加载仓库中的
+`@longred/deepseek-harness-opencode-session` 自定义插件。它监听 DSH 的
+`llm/stream` 扩展点，只对 provider 为 `opencode-go` 的请求建立异步会话作用域，
+并把当前 Harness `sessionId` 作为 `x-opencode-session` 发给 OpenCode Go。
+不同 Harness 会话会得到不同的 header；没有 `sessionId` 时不会生成或复用固定值。
+
+该插件解决 OpenCode Go 在 Chat Completions 路径要求会话 header、而当前 pi-ai
+provider 没有把 DSH 会话 ID映射到该 provider 专用 header 的兼容问题。背景和
+上游讨论见 [DeepSeek Harness discussion #6467](https://github.com/deepseek-ai/deepseek-harness/discussions/6467)。
+插件只在消费模型流的异步作用域内包装 Node fetch，其他 provider 请求不添加该 header。
+
 ## 部署和验证
 
 ```bash
@@ -73,3 +86,4 @@ curl --fail-with-body -i https://<service-domain>/
 - [Quickstart](https://deepseek-harness.github.io/deepseek-harness/en/guide/quickstart)
 - [Web server reference](https://deepseek-harness.github.io/deepseek-harness/en/reference/subsystems/web-server)
 - [远程 Settings 限制](https://github.com/deepseek-ai/deepseek-harness/discussions/5829)
+- [OpenCode Go session header discussion](https://github.com/deepseek-ai/deepseek-harness/discussions/6467)

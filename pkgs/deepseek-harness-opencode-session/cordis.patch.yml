@@ -1,0 +1,3 @@
+- insert:
+    - id: deepseek-harness-opencode-session
+      name: '@longred/deepseek-harness-opencode-session'
