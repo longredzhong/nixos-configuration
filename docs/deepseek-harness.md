@@ -45,7 +45,7 @@ API key 通过 Settings 页面写入运行时凭据文件。不要在 Shell 历�
 
 `web` profile 会加载仓库中的
 `@longred/deepseek-harness-opencode-session` 自定义插件。它监听 DSH 的
-`llm/stream` 扩展点，只对 provider 为 `opencode-go` 的请求建立异步会话作用域，
+`llm/stream` 扩展点，只对 provider 为 `opencode-go` 或 `opencode-go-live-*` 的请求建立异步会话作用域，
 并把当前 Harness `sessionId` 作为 `x-opencode-session` 发给 OpenCode Go。
 不同 Harness 会话会得到不同的 header；没有 `sessionId` 时不会生成或复用固定值。
 
