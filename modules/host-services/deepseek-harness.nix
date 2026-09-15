@@ -13,7 +13,6 @@ let
   node = pkgs.nodejs_22;
   npm = pkgs.nodejs-slim_22.npm;
   dshVersion = "0.1.6-alpha.1";
-  listenHost = "100.100.10.1";
   serviceHost = "deepseek-harness.tail388af.ts.net";
   runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
   dshHome = "${config.home.homeDirectory}/.local/share/deepseek-harness/home";
@@ -23,6 +22,7 @@ let
   sessionPluginPath = "${pkgs.deepseek-harness-opencode-session}/lib/node_modules/${sessionPluginName}";
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
   settingsClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-ui-settings/lib/client.js";
+  connectionClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-connection/lib/index.js";
   runtimeManifest = pkgs.writeText "deepseek-harness-package.json" ''
     {
       "private": true,
@@ -161,6 +161,90 @@ let
     print(f"deepseek-harness: enabled trusted remote settings in {path}")
     PY
 
+    # Browser authentication: accept a Tailscale Serve identity assertion from
+    # the local HTTP proxy instead of requiring the launch-token URL, and keep
+    # the signed fallback cookie alive for a year. Version-sensitive and fail
+    # closed: an unrecognized bundle stops the service instead of losing auth.
+    connection_client='${connectionClient}'
+    '${pkgs.python3}/bin/python3' - "$connection_client" <<'PY'
+    import pathlib
+    import sys
+
+    path = pathlib.Path(sys.argv[1])
+    if not path.is_file():
+        raise SystemExit(f"deepseek-harness: missing connection client bundle: {path}")
+
+    source = path.read_text(encoding="utf-8")
+
+    # Option A: keep the signed browser cookie for a year so the launch-token
+    # URL is needed only for the rare fallback, not for routine access.
+    old_default = "cookieMaxAgeDays: z.natural().min(1).default(30),"
+    new_default = "cookieMaxAgeDays: z.natural().min(1).default(365),"
+
+    identity_marker = "Accept a Tailscale Serve identity assertion as browser authentication."
+    identity_anchor = "\t/**\n\t* Verify the authority-bound browser cookie on a Host request."
+    identity_block = (
+        "\t/**\n"
+        "\t* Accept a Tailscale Serve identity assertion as browser authentication.\n"
+        "\t* Serve strips any client-supplied copy and sets the header only for an\n"
+        "\t* authenticated, user-owned peer, so a present login on a loopback request\n"
+        "\t* proves the request reached this loopback-only server through the\n"
+        "\t* deployment's Tailscale HTTP proxy. Funnel requests stay unauthenticated.\n"
+        "\t* @param request - request headers plus optional socket facts.\n"
+        "\t* @returns true only for a non-empty identity login on a loopback connection.\n"
+        "\t*/\n"
+        "\tisTailscaleIdentity(request) {\n"
+        "\t\tconst login = header(request.headers, \"tailscale-user-login\");\n"
+        "\t\tif (login === void 0 || login.trim() === \"\") return false;\n"
+        "\t\tif (header(request.headers, \"tailscale-funnel-request\") !== void 0) return false;\n"
+        "\t\tconst address = request.socket?.remoteAddress;\n"
+        "\t\tif (typeof address === \"string\" && address !== \"::1\" && !address.startsWith(\"127.\") && !address.startsWith(\"::ffff:127.\")) return false;\n"
+        "\t\treturn true;\n"
+        "\t}\n"
+        "\t/**\n"
+        "\t* Verify the authority-bound browser cookie on a Host request."
+    )
+    auth_anchor = "isAuthenticated(request) {\n\t\tconst authority = requestAuthority(request.headers);"
+    auth_replacement = "isAuthenticated(request) {\n\t\tif (this.isTailscaleIdentity(request)) return true;\n\t\tconst authority = requestAuthority(request.headers);"
+
+    if identity_marker in source:
+        if old_default in source:
+            source = source.replace(old_default, new_default)
+            path.write_text(source, encoding="utf-8")
+            print(f"deepseek-harness: extended browser-session lifetime in {path}")
+        raise SystemExit(0)
+
+    if source.count(old_default) != 1:
+        raise SystemExit(
+            "deepseek-harness: unsupported dsh connection client; "
+            f"expected one cookieMaxAgeDays default in {path}"
+        )
+    if source.count(identity_anchor) != 1:
+        raise SystemExit(
+            "deepseek-harness: unsupported dsh connection client; "
+            f"expected one browser-auth JSDoc anchor in {path}"
+        )
+    if source.count(auth_anchor) != 1:
+        raise SystemExit(
+            "deepseek-harness: unsupported dsh connection client; "
+            f"expected one isAuthenticated implementation in {path}"
+        )
+
+    source = source.replace(old_default, new_default)
+    source = source.replace(identity_anchor, identity_block)
+    source = source.replace(auth_anchor, auth_replacement)
+    path.write_text(source, encoding="utf-8")
+    print(f"deepseek-harness: enabled Tailscale identity authentication in {path}")
+    PY
+
+    # Keep the launch-token URL out of journald: stdout and stderr are appended
+    # to a 0600 file owned by this user, and pin the mode even when systemd
+    # created the file before this script ran.
+    log_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness"
+    install -d -m 0700 "$log_dir"
+    touch "$log_dir/web.log"
+    chmod 600 "$log_dir/web.log"
+
     test -f "$entry"
     test -f '${sessionPluginPath}/package.json'
   '';
@@ -169,45 +253,21 @@ let
     # Nix-built Node cannot provide the loader internals through the native
     # fallback used by the current HMR dependency. Pass this Node-only flag
     # before the dsh entrypoint; NODE_OPTIONS is rejected for this flag.
-    set -euo pipefail
-
-    harness_pid=""
-    proxy_pid=""
-
-    cleanup() {
-      trap - EXIT INT TERM
-      if [ -n "$proxy_pid" ]; then
-        kill "$proxy_pid" 2>/dev/null || true
-      fi
-      if [ -n "$harness_pid" ]; then
-        kill "$harness_pid" 2>/dev/null || true
-      fi
-      wait "$proxy_pid" 2>/dev/null || true
-      wait "$harness_pid" 2>/dev/null || true
-    }
-    trap cleanup EXIT INT TERM
-
-    # dsh-host-webserver currently accepts only 127.0.0.1 or 0.0.0.0 as its
-    # host value. Keep dsh on loopback and expose the exact Tailscale address
-    # through a local TCP forward in the same systemd service.
-    '${node}/bin/node' \
+    #
+    # dsh stays on loopback. The Tailscale Service terminates TLS and
+    # reverse-proxies to this port, injecting its identity headers, which the
+    # patched connection bundle accepts as authentication. There is no local
+    # TCP forward, so a remote tailnet peer cannot reach the backend with a
+    # spoofed identity header.
+    exec '${node}/bin/node' \
       --expose-internals \
       '${dshEntry}' \
       web \
       --host 127.0.0.1 \
       --port 3080 \
-      --trusted-host ${listenHost}:3080 \
       --trusted-host ${serviceHost} \
       --trusted-host ${serviceHost}:443 \
-      --no-open &
-    harness_pid=$!
-
-    '${pkgs.socat}/bin/socat' \
-      'TCP-LISTEN:3080,bind=${listenHost},reuseaddr,fork' \
-      'TCP:127.0.0.1:3080' &
-    proxy_pid=$!
-
-    wait -n "$harness_pid" "$proxy_pid"
+      --no-open
   '';
 in
 {
@@ -217,7 +277,7 @@ in
 
   systemd.user.services.deepseek-harness = {
     Unit = {
-      Description = "DeepSeek Harness Web UI (Tailscale ${listenHost}:3080 via loopback backend)";
+      Description = "DeepSeek Harness Web UI (Tailscale ${serviceHost} identity-proxied to loopback 127.0.0.1:3080)";
       After = [
         "network-online.target"
       ];
@@ -237,6 +297,13 @@ in
         "DISPLAY="
         "WAYLAND_DISPLAY="
       ];
+      # The harness prints its launch-token URL to stdout. Append it to a
+      # user-owned log instead of journald so the token does not persist in a
+      # log readable beyond this account; ensureRuntime pins the file to 0600.
+      LogsDirectory = "deepseek-harness";
+      LogsDirectoryMode = "0700";
+      StandardOutput = "append:%L/deepseek-harness/web.log";
+      StandardError = "append:%L/deepseek-harness/web.log";
       Restart = "always";
       RestartSec = "5s";
       TimeoutStartSec = "15min";

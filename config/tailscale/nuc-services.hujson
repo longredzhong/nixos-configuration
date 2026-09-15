@@ -8,7 +8,7 @@
     },
     "svc:deepseek-harness": {
       "endpoints": {
-        "tcp:443": "tls-terminated-tcp://127.0.0.1:3080"
+        "tcp:443": "http://127.0.0.1:3080"
       }
     },
     "svc:openobserve": {

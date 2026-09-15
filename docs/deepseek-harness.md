@@ -8,35 +8,50 @@
 
 ## 访问
 
-服务端使用 loopback 启动 DSH，再由本地 TCP 转发器接入受控的 Tailscale Service。浏览器应使用已批准的 HTTPS Service 域名：
+服务端只监听 loopback，由受控的 Tailscale Service 以 **HTTP 反向代理**方式接入（`http://127.0.0.1:<dsh-port>` target）：
+
+```text
+浏览器 ──HTTPS──> svc:<service-name> ──HTTP──> 127.0.0.1:<dsh-port>
+```
+
+Tailscale 反代时注入 `Tailscale-User-Login` / `Tailscale-User-Name` 身份头，并先删除客户端自带的同名头；tagged 对端不会收到身份头。部署模块对固定的 connection bundle 应用版本敏感的运行时补丁：只在回环连接且没有 `Tailscale-Funnel-Request` 时接受该身份头。因此浏览器直接使用不带 token 的 HTTPS 域名：
 
 ```text
 https://<service-domain>/
 ```
 
-启动日志会打印带一次性 token 的 URL。安全地取得并转换 URL 时，不要把 token 写入文档或提交记录：
+认证与授权边界：
+
+- 应用身份来自 Tailscale 用户身份，授权范围完全由 tailnet 策略决定。必须在管理端用 grants/ACL 把 `svc:<service-name>`（`tcp:443`）限制到指定用户或设备，否则同 tailnet 的任意用户设备都会被应用视为已认证。
+- 不使用 Funnel；Funnel 流量没有身份头，补丁也会拒绝 `Tailscale-Funnel-Request`。
+- 服务单元不再保留额外的 TCP 转发器或尾部 IP 监听，避免绕过身份注入直连回环后端。
+
+### 回退：启动 token
+
+DSH 每个进程仍生成一次性 launch token 并打印到标准输出。模块把服务 stdout/stderr 追加到 `${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log`（`0600`），因此 token 不再进入 journald。仅在身份头不可用的场景（SSH 隧道直连 loopback、tagged 设备等）使用；不要把结果写入文档或提交记录：
 
 ```bash
 ssh <ssh-target> \
-  'journalctl --user -u deepseek-harness -n 100 -o cat --no-pager \
-   | sed -n "s#^dsh web: ##p" | tail -n 1' \
+  'sed -n "s#^dsh web: ##p" \
+     "${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log" \
+   | tail -n 1' \
   | sed -E 's#http://127\.0\.0\.1:[0-9]+#https://<service-domain>#'
 ```
 
-首次打开 token URL 后会建立认证 cookie，随后页面会跳转到不带 token 的根路径。没有认证 cookie 时根路径返回 `401` 是预期行为。
+首次打开 token URL 或直接打开已注入身份头的域名后，浏览器会得到签名 cookie，随后页面跳转到不带 token 的根路径。connection 补丁把 `cookieMaxAgeDays` 固定为 365 天，且 cookie 跨 DSH 重启有效；删除 `client-connection/browser-session` 凭据记录并重启可全局撤销。
 
 ## Settings 和 Provider
 
 当前 DSH 上游客户端默认只允许 loopback 页面使用持久化 Settings。部署模块对固定的 Settings bundle 应用版本敏感的运行时补丁，仅对模块中声明的受信任 Service hostname 启用 Host settings mirror；补丁匹配失败会让服务启动失败，避免升级后静默失去 Settings。
 
-因此应通过 HTTPS Service 域名打开 **Settings → Models**。直接访问后端 IP 不会获得这条远程 Settings 放行；如果补丁因上游 bundle 变化而停止服务，先使用 loopback SSH 隧道完成配置，再更新补丁：
+因此应通过 HTTPS Service 域名打开 **Settings → Models**。回环直连没有身份头，`location.hostname` 也不会匹配模块声明的受信任 Service hostname，因此不会启用 Host settings mirror；如果补丁因上游 bundle 变化而停止服务，先使用 loopback SSH 隧道完成配置，再更新补丁：
 
 ```bash
 # 终端一：保持隧道运行
 ssh -N -L <local-port>:127.0.0.1:<dsh-port> <ssh-target>
 
-# 终端二：把启动 URL 中的 loopback authority 改成
-# http://127.0.0.1:<local-port>
+# 终端二：从 web.log 取当前进程的 token URL，把 loopback authority 换成
+# http://127.0.0.1:<local-port> 后打开（没有身份头时的回退路径）
 ```
 
 API key 通过 Settings 页面写入运行时凭据文件。不要在 Shell 历史、Nix 表达式、日志或文档中保存 key。
@@ -98,15 +113,25 @@ just hm-switch '<user>@<host>'
 ```bash
 systemctl --user is-active deepseek-harness
 systemctl --user --no-pager status deepseek-harness
-journalctl --user -u deepseek-harness -n 100 --no-pager
-curl --fail-with-body -i https://<service-domain>/
+# 服务 stdout/stderr 写入手册指定的 0600 文件，不在 journald
+tail -n 100 "${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log"
+# loopback 直连没有身份头，预期 401
+curl --fail-with-body -i http://127.0.0.1:<dsh-port>/
 ```
 
-无认证的 `curl` 预期返回 `401`。浏览器验证必须继续使用 token URL，并检查 Models 页面、`settings/describe` 和 provider directory 请求。
+在 tailnet 用户设备上验证 Service 反代与身份注入：
+
+```bash
+# 预期 200：请求经 Tailscale HTTP 反代携带身份头
+curl -i https://<service-domain>/
+```
+
+浏览器验证应直接打开不带 token 的 HTTPS 域名，并检查 Models 页面、`settings/describe` 和 provider directory 请求。tagged 设备或被 tailnet 策略拒绝的设备预期返回 `401`。
 
 ## 状态和回滚
 
 - npm runtime：模块定义的用户运行时目录。
+- 服务日志：`%L/deepseek-harness/web.log`（`0600`），不写入 journald。
 - Harness 数据：模块定义的 `DSH_HOME` 目录；其中包括会话、Settings 和 credentials。
 - 升级：只修改模块中的 `dshVersion`，先 dry-run，再观察安装日志和页面。
 - 回滚：恢复旧版本并重新执行 Home Manager；不要删除保存会话和 credentials 的数据目录。

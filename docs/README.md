@@ -13,7 +13,7 @@
 
 | 主题 | 内容 | 主要来源 |
 | --- | --- | --- |
-| [DeepSeek Harness](deepseek-harness.md) | Web 服务、认证 URL、远程 Settings 和回滚 | `modules/host-services/deepseek-harness.nix` |
+| [DeepSeek Harness](deepseek-harness.md) | Web 服务、Tailscale 身份认证、token 回退、远程 Settings 和回滚 | `modules/host-services/deepseek-harness.nix` |
 | [OpenObserve 与 OpenTelemetry](openobserve.md) | OpenObserve、Garage、Collector、OTLP 和观测验证 | `modules/host-services/openobserve*.nix`、`modules/host-services/garage.nix` |
 | [Tailscale Services](tailscale-services.md) | Service endpoint、TLS 终止、审批和本地应用 | `config/tailscale/nuc-services.hujson`、`modules/host-services/tailscale-services.nix` |
 | [Agenix 机密](../secrets/README.md) | 加密文件原则和运行时使用方式 | `secrets/*.age`、各服务模块的 `age.secrets` |

@@ -30,10 +30,10 @@ Tailscale Service 有两个配置边界：
 
 - `tls-terminated-tcp://<host>:<port>`：Tailscale 在 Service 入口终止 TLS，再把明文 TCP 转发给后端。适合后端只提供 HTTP 的 Web 服务，客户端使用 `https://<service>.<tailnet-domain>/`。
 - `tcp://<host>:<port>`：原始 TCP 转发，适合 S3、OTLP/gRPC 或其他需要保留协议的端口。
-- `http://` 表示 HTTP ingress，不是“入口 HTTPS、后端 HTTP”的写法。
+- `http://<host>:<port>`：Tailscale 终止 TLS 并把 HTTP 请求**反向代理**到后端，反代时注入 `Tailscale-User-Login`、`Tailscale-User-Name`、`Tailscale-User-Profile-Pic`，并先删除客户端自带的同名头。身份头只对用户设备注入，tagged 对端没有；后端应只监听 loopback，且不要再额外暴露尾部 IP，否则身份头可被伪造。
 - `https://` 要求后端本身提供 HTTPS；它不会替代 TLS 终止配置。
 
-如果当前 Tailscale CLI 不能从 versioned config 直接保留 TLS 终止字段，`modules/host-services/tailscale-services.nix` 的 raw 配置转换会生成 `TerminateTLS` 和 `TCPForward`。这层兼容逻辑不应手工改写生成文件。
+如果当前 Tailscale CLI 不能从 versioned config 直接保留 TLS 终止字段，`modules/host-services/tailscale-services.nix` 的 raw 配置转换会为 `tcp://`/`tls-terminated-tcp://` 生成 `TCPForward`（必要时加 `TerminateTLS`），为 `http://`/`https://` 生成 `HTTPS` + `Web.Handlers`。这层兼容逻辑不应手工改写生成文件。
 
 ## 管理端首次配置
 
@@ -71,12 +71,15 @@ Web 服务通常应返回应用响应或应用自己的认证状态；原始协�
 | `tailscale-services.service` 失败 | `journalctl --user -u tailscale-services.service`、Tailscale CLI 版本和源文件格式 |
 | 域名无法解析 | 管理端 Service 是否已创建、host 是否已批准、客户端是否在同一 tailnet |
 | TLS 成功但应用拒绝请求 | 后端监听地址/端口、Host/Origin 受信配置和应用认证 |
+| 经 Service 访问返回 401 | 对端是 tagged 设备、走了 Funnel，或 endpoint target 不是 `http://`；确认 HTTP 反代生效且客户端是用户设备 |
 | Web 页面能开但 Settings 不可用 | 应用自己的 loopback/远程设置策略；查看对应主题文档的 tunnel 或受信域名配置 |
 | raw TCP 可连但数据失败 | 确认 endpoint 没有误用 TLS 终止，检查后端协议和端口 |
 
 ## 权限边界
 
 不要把 Garage 管理 API、RPC、OpenObserve 内部管理端口、Collector 调试端口或其他控制面加入普通客户端使用的 Service。新增 endpoint 前先确认认证、访问范围和回滚方式。
+
+`svc:deepseek-harness` 使用 `http://` 反代，应用身份取自 Tailscale 身份头。必须在管理端用 grants/ACL 把该 Service 限制到指定用户或设备；否则同 tailnet 的任意用户设备都会被应用视为已认证。Funnel 不注入身份头，不能替代 grants。
 
 ## 参考资料
 

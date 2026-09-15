@@ -40,30 +40,61 @@ let
         port = builtins.elemAt match 2;
       };
 
+  # Map one Service endpoint to the raw ServeConfig handler the CLI imports.
+  #
+  # `tcp://` forwards raw TCP and `tls-terminated-tcp://` terminates TLS before
+  # forwarding; both keep the backend protocol opaque. `http://`/`https://`
+  # instead make tailscaled terminate TLS and reverse-proxy the request, which
+  # is what lets it inject its identity headers for the backend to consume.
   rawEndpoint = service: endpoint: target:
     let
       targetSpec = parseTarget target;
-      tlsName = "${lib.removePrefix "svc:" service}.tail388af.ts.net";
-      targetConfig = {
-        TCPForward = "${targetSpec.host}:${targetSpec.port}";
+      serviceName = lib.removePrefix "svc:" service;
+      tlsName = "${serviceName}.tail388af.ts.net";
+      backend = "${targetSpec.host}:${targetSpec.port}";
+      port = parseEndpointPort endpoint;
+      tcpTarget = {
+        TCPForward = backend;
+      };
+      webTarget = targetSpec.protocol == "http" || targetSpec.protocol == "https";
+      web = {
+        "${tlsName}:${port}" = {
+          Handlers."/" = {
+            Proxy = "${targetSpec.protocol}://${backend}";
+          };
+        };
       };
     in
     {
-      name = parseEndpointPort endpoint;
-      value =
+      inherit port web webTarget;
+      tcp =
         if targetSpec.protocol == "tcp" then
-          targetConfig
+          tcpTarget
         else if targetSpec.protocol == "tls-terminated-tcp" then
-          targetConfig // { TerminateTLS = tlsName; }
+          tcpTarget // { TerminateTLS = tlsName; }
+        else if webTarget then
+          { HTTPS = true; }
         else
           throw "Unsupported Tailscale Service target protocol for ${service}: ${targetSpec.protocol}";
     };
 
-  rawService = service: definition: {
-    TCP = builtins.listToAttrs (
-      lib.mapAttrsToList (endpoint: target: rawEndpoint service endpoint target) definition.endpoints
-    );
-  };
+  rawService = service: definition:
+    let
+      endpoints = lib.mapAttrsToList (rawEndpoint service) definition.endpoints;
+      tcp = builtins.listToAttrs (
+        map (entry: {
+          name = entry.port;
+          value = entry.tcp;
+        }) endpoints
+      );
+      web = lib.foldl' (acc: entry: acc // entry.web) { } (
+        lib.filter (entry: entry.webTarget) endpoints
+      );
+    in
+    {
+      TCP = tcp;
+    }
+    // lib.optionalAttrs (web != { }) { Web = web; };
 
   # Tailscale 1.102.x can represent TLS-terminated TCP in its raw Serve
   # state, but set-config cannot apply the equivalent versioned endpoint
