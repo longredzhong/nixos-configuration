@@ -114,7 +114,7 @@ let
   startOpenCode = pkgs.writeShellScript "opencode-start" ''
     set -euo pipefail
 
-    auth="$(cat '${openobserveToken}')"
+    auth="$(cat "${openobserveToken}")"
     if [ -z "$auth" ]; then
       echo "opencode: OpenObserve authentication header is empty" >&2
       exit 1
