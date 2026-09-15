@@ -2,9 +2,12 @@
 
 本仓库把 NUC 上的 Tailscale Services endpoint 集中放在
 [`config/tailscale/nuc-services.hujson`](../config/tailscale/nuc-services.hujson)。
-Home Manager 将它安装到 `~/.config/tailscale/nuc-services.hujson`，然后由
-`tailscale-services.service` 执行 `tailscale serve set-config --all` 并重新广告
-文件中列出的 Service。
+Home Manager 将它安装到 `~/.config/tailscale/nuc-services.hujson`。由于当前
+NUC 使用的 Tailscale 1.102.x 在 versioned `set-config` 中不能直接应用
+`tls-terminated-tcp` target，Home Manager 会从这个源文件生成 raw ServeConfig，
+由 `tailscale-services.service` 清理同名旧 endpoint、执行
+`tailscale serve set-config --all`，然后重新广告文件中列出的 Service。生成的 raw 配置保留
+`TerminateTLS` 和 `TCPForward` 两个字段。
 
 ## 当前服务
 
@@ -29,10 +32,12 @@ OpenObserve 的 `5081` 保留 raw TCP，因为它是 OTLP/gRPC 端口，不是�
 入口。需要原始协议透传的端口继续使用 `tcp://`。
 
 这里不能把 target 改成 `http://` 来表达“入口 HTTPS、后端 HTTP”：在
-`tailscale serve set-config` 的服务配置格式中，target 的协议同时决定 Serve
-模式，`http://` 会生成 HTTP 入口。`tls-terminated-tcp://` 才能在配置文件中
-明确表示 TLS 终止后继续转发原始明文流。Tailscale 客户端必须启用 tailnet 的
-HTTPS certificates，才能为 Service MagicDNS 名称提供证书。
+`tailscale serve set-config` 的 versioned 服务配置中，target 的协议同时决定
+Serve 模式，`http://` 会生成 HTTP 入口。源文件使用
+`tls-terminated-tcp://` 明确表示 TLS 终止后继续转发原始明文流；Home Manager
+负责把它转换成当前客户端能应用的 `TerminateTLS`/`TCPForward` 结构。
+Tailscale 客户端必须启用 tailnet 的 HTTPS certificates，才能为 Service
+MagicDNS 名称提供证书。
 
 Garage 的 RPC、admin API 和 OpenObserve 的本地管理端口没有加入 Service，避免
 把内部控制面提供给普通客户端。Anytype 也暂不加入：当前服务没有确认一个可用
