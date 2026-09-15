@@ -29,7 +29,8 @@ let
       exit 1
     fi
 
-    "$tailscale" serve set-config "$config" --all
+    # The current Tailscale CLI requires --all before the positional file.
+    "$tailscale" serve set-config --all "$config"
 
     ${lib.concatMapStringsSep "\n" (service: ''
       "$tailscale" serve advertise '${service}'
