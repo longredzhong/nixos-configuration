@@ -67,6 +67,14 @@ Collector 默认负责三类数据：
 - 主机指标：按 metric family 建立 `system_*` stream，并用 `host.name` 或等价 resource attribute 区分主机；
 - OTLP logs/metrics/traces：由应用或其他 Collector 发送到 OpenObserve。
 
+应用自身的信号按服务分 stream。OpenCode 的 OTel 插件一次导出三类信号，用一个
+`<hostname>_opencode` 名称即可：OpenObserve 按信号类型各建一个同名 stream，因此
+traces、metrics、logs 不会互相混淆。**不要**再用 `<hostname>_opencode_traces`
+这类带信号后缀的名字——它会被 logs 和 metrics 复用而名不副实。该插件默认导出
+token 与成本计数器和会话生命周期日志事件；禁用它们等于放弃用量观测。代价是 Trace
+span 会携带 prompt、工具输入输出和系统提示（`gen_ai.*` 系列字段），且没有按字段
+关闭的开关，因此限制该 stream 的访问范围和保留时间。
+
 Garage 的 trace receiver 和 Prometheus receiver 只应在运行 Garage 的目标启用。Garage 的 S3 请求 Trace 和管理指标使用独立的 stream，避免与普通应用信号混合。
 
 ## OTLP 接入

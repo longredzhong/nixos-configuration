@@ -16,7 +16,10 @@ let
   pluginPath = "${pkgs.opencode-plugin-otel}/lib/node_modules/${pluginName}";
   pluginLink = "${config.home.homeDirectory}/.config/opencode/node_modules/${pluginName}";
   openobserveEndpoint = "http://100.100.10.1:5080/api/default";
-  openobserveTracesStream = "nuc_opencode_traces";
+  # One stream name covers all three OTLP signals; OpenObserve keeps a separate
+  # stream per signal type, so this becomes nuc_opencode (traces),
+  # nuc_opencode (metrics) and nuc_opencode (logs).
+  openobserveStream = "nuc_opencode";
   openobserveToken = config.age.secrets.opencode-openobserve-token.path;
 
   # Browser origins allowed to interact with the HTTP server (opencode serve --cors).
@@ -129,16 +132,22 @@ let
 
     # The plugin's current configuration interface uses OPENCODE_* variables.
     # Keep the standard OTEL_* variables too for the bundled OTLP exporters.
+    #
+    # Metrics and log events stay enabled on purpose: the token/cost counters
+    # (`token.usage`, `cost.usage`, `session.token.total`, `session.cost.total`)
+    # and the session lifecycle log events are the usage signals this service is
+    # observed for. Suppressing them leaves only trace spans, which a dashboard
+    # cannot aggregate the same way. Trace spans DO carry prompt and tool content
+    # (`gen_ai.input_messages`, `gen_ai.system_instructions`), and that capture
+    # has no per-field opt-out; see docs/openobserve.md before widening access.
     export OPENCODE_ENABLE_TELEMETRY=1
     export OPENCODE_OTLP_ENDPOINT='${openobserveEndpoint}'
     export OPENCODE_OTLP_PROTOCOL='http/protobuf'
-    export OPENCODE_OTLP_HEADERS="Authorization=$auth,stream-name=${openobserveTracesStream}"
+    export OPENCODE_OTLP_HEADERS="Authorization=$auth,stream-name=${openobserveStream}"
     export OPENCODE_RESOURCE_ATTRIBUTES='service.namespace=longred,deployment.environment=home-lab,host.name=nuc'
-    export OPENCODE_DISABLE_LOGS=1
-    export OPENCODE_DISABLE_METRICS='session.count,token.usage,cost.usage,lines_of_code.count,lines_of_code.total,commit.count,tool.duration,cache.count,session.duration,message.count,session.token.total,session.cost.total,model.usage,retry.count'
     export OTEL_EXPORTER_OTLP_ENDPOINT='${openobserveEndpoint}'
     export OTEL_EXPORTER_OTLP_PROTOCOL='http/protobuf'
-    export OTEL_EXPORTER_OTLP_HEADERS="Authorization=$auth,stream-name=${openobserveTracesStream}"
+    export OTEL_EXPORTER_OTLP_HEADERS="Authorization=$auth,stream-name=${openobserveStream}"
     export OTEL_SERVICE_NAME='opencode'
     export OTEL_RESOURCE_ATTRIBUTES="$OPENCODE_RESOURCE_ATTRIBUTES"
 
