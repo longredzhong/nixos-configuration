@@ -14,6 +14,7 @@ let
   npm = pkgs.nodejs-slim_22.npm;
   dshVersion = "0.1.5-rc.2";
   listenHost = "100.100.10.1";
+  serviceHost = "deepseek-harness.tail388af.ts.net";
   runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
   dshHome = "${config.home.homeDirectory}/.local/share/deepseek-harness/home";
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
@@ -85,17 +86,23 @@ let
 
     source = path.read_text(encoding="utf-8")
     old = 'const persistence = ctx.remote.$host.isLoopback ? "host" : "memory";'
-    new = 'const persistence = "host";'
+    new = 'const persistence = ctx.remote.$host.isLoopback || location.hostname === "${serviceHost}" ? "host" : "memory";'
+    legacy = 'const persistence = "host";'
 
     if new in source:
         raise SystemExit(0)
-    if source.count(old) != 1:
+    if source.count(old) == 1:
+        source = source.replace(old, new)
+    elif source.count(legacy) == 1:
+        # Migrate the first deployed revision of this repository's patch.
+        source = source.replace(legacy, new)
+    else:
         raise SystemExit(
             "deepseek-harness: unsupported dsh settings bundle; "
             f"expected one remote-settings guard in {path}"
         )
 
-    path.write_text(source.replace(old, new), encoding="utf-8")
+    path.write_text(source, encoding="utf-8")
     print(f"deepseek-harness: enabled trusted remote settings in {path}")
     PY
 
@@ -134,8 +141,8 @@ let
       --host 127.0.0.1 \
       --port 3080 \
       --trusted-host ${listenHost}:3080 \
-      --trusted-host deepseek-harness.tail388af.ts.net \
-      --trusted-host deepseek-harness.tail388af.ts.net:443 \
+      --trusted-host ${serviceHost} \
+      --trusted-host ${serviceHost}:443 \
       --no-open &
     harness_pid=$!
 
