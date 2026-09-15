@@ -95,6 +95,8 @@ OpenObserve 的 Kubernetes 推荐页同时说明了三类数据：容器日志�
 | `<hostname>_journald` | 该机器的 journald 日志 | NUC 上的 `garage`、`openobserve`、`garage-ui`、`dufs`、`cloudflared`、`opencode`、`anytype`、`affine` 及其依赖服务；其他机器的系统和用户服务 |
 | `system_*` | CPU、磁盘、文件系统、负载、内存、网络、分页和进程数指标；OpenObserve 按 metric family 建立多个 `system_*` stream | 全部机器，30 秒采集一次；按 `host.name` 区分 |
 | `<hostname>_traces` | OpenTelemetry spans | 各机器本机 `127.0.0.1:4317`（gRPC）或 `127.0.0.1:4318`（HTTP/protobuf） |
+| `nuc_garage_traces` | Garage 处理 S3 API 请求的 OpenTelemetry spans | NUC 的 Garage `trace_sink` → 本机 Collector `127.0.0.1:4319` |
+| `garage_*`、`api_*`、`cluster_*`、`block_*` | Garage Prometheus 指标 | NUC Garage `127.0.0.1:3903/metrics`，由 agent 每 30 秒抓取 |
 
 NUC、Fedora ThinkBook 和 standalone Home Manager 目标中的采集器都以 `longred` 的用户级 systemd 单元运行；两个 NixOS WSL 目标同时把 `longred` 加入 `systemd-journal` 组，以便读取系统 journal。NUC 上的 agent 依赖本机 `openobserve.service`，其他机器通过 Tailscale 地址发送到 NUC，不依赖本机运行 OpenObserve。采集器的写入令牌只授予写入权限，不使用 root 密码。
 
@@ -125,7 +127,7 @@ curl --fail http://127.0.0.1:55679/debug/servicez
 
 ### 接入应用 Trace
 
-应用必须使用 OpenTelemetry SDK、框架 instrumentation 或其他支持 OTLP 的 instrumentation 才会产生 span。只设置环境变量不会给没有埋点能力的预编译服务自动生成 Trace；当前 NUC 的 AFFiNE、Garage、DUFS、Anytype、Cloudflared 和 OpenObserve 的现有启动配置因此主要由 `nuc_journald` 和 `system_*` 观测，OpenCode 例外，已经通过专用插件发送 Trace。
+应用必须使用 OpenTelemetry SDK、框架 instrumentation 或其他支持 OTLP 的 instrumentation 才会产生 span。只设置环境变量不会给没有埋点能力的预编译服务自动生成 Trace；当前 NUC 的 AFFiNE、DUFS、Anytype、Cloudflared 和 OpenObserve 的现有启动配置主要由 `nuc_journald` 和 `system_*` 观测。Garage 使用自身的 `trace_sink` 原生发送 S3 请求 Trace，OpenCode 使用专用插件发送 Trace。
 
 在任一已完成 OpenTelemetry instrumentation 的机器上，应用可以把 Trace 发给本机采集器：
 
@@ -170,6 +172,38 @@ curl --fail http://127.0.0.1:4096/global/health
 ```
 
 运行一次正常的 OpenCode 会话后，在 OpenObserve 的 Traces 页面选择 `nuc_opencode_traces`，时间范围先选最近 15 分钟，再按 `service_name=opencode` 过滤。OpenObserve 的 [Traces 使用说明](https://openobserve.ai/docs/user-guide/data-exploration/traces/traces/)和 [OpenTelemetry 接入说明](https://openobserve.ai/docs/ingestion/traces/opentelemetry/)分别说明了 Trace 浏览、OTLP endpoint、Basic Authorization 和 stream-name 的对应关系。
+
+### Garage 服务 Trace 与看板
+
+Garage 官方提供 `[admin].trace_sink`，会把处理 S3 API 请求的 spans 发送到 OpenTelemetry Collector；仓库把它配置为 `http://127.0.0.1:4319`。这个端口只由 NUC 上的 `openobserve-agent` 监听，和通用应用 Trace 入口 `4317/4318` 分开，因此 Garage Trace 可以单独写入 `nuc_garage_traces`。Garage 服务本身不读取 OpenObserve 令牌，agent 继续从 `secrets/openobserve-agent-token.age` 解密认证头并完成写入。
+
+同一个 agent 还会从 Garage 管理 API 的 `127.0.0.1:3903/metrics` 抓取 Prometheus 指标，写入 OpenObserve 的 metric streams。看板使用 `cluster_healthy`、`cluster_available`、`cluster_connected_nodes`、`api_s3_request_counter`、`api_s3_error_counter`、`api_s3_request_duration`、`garage_local_disk_avail`、`garage_local_disk_total` 和 `block_resync_errored_blocks`，分别覆盖集群健康、请求量、错误、延迟、磁盘和数据完整性。
+
+Garage Trace 的归属固定如下：
+
+| 属性 | 值 | 用途 |
+| --- | --- | --- |
+| OpenObserve organization | `default` | 当前自托管实例的组织 |
+| traces stream | `nuc_garage_traces` | 为 NUC Garage 保留独立 Trace stream |
+| `service.name` | `garage` | 按对象存储服务聚合请求 |
+| `service.namespace` | `longred` | 归属命名空间 |
+| `deployment.environment` | `home-lab` | 部署环境 |
+| `host.name` | `nuc` | 机器维度 |
+
+配置切换后验证：
+
+```bash
+systemctl --user is-active garage openobserve-agent
+curl --fail http://127.0.0.1:3903/metrics | grep -E '^(cluster_healthy|cluster_available|api_s3_request_counter)'
+curl --fail http://127.0.0.1:55679/debug/servicez
+journalctl --user -u openobserve-agent --since '10 minutes ago' --no-pager
+```
+
+然后访问 OpenObserve 的 Traces，选择 `nuc_garage_traces` 和最近 15 分钟，按 `service_name=garage` 筛选。触发一次 S3 请求或等待 OpenObserve 写入 Garage 后，应该可以看到 Garage 的请求 spans。Trace 页面地址为：
+
+<http://100.100.10.1:5080/web/traces?stream=nuc_garage_traces&period=15m&org_identifier=default&tab=spans>
+
+Garage 看板的可重复导入文件是 [`docs/openobserve-garage-dashboard.json`](openobserve-garage-dashboard.json)。在 Dashboards → Import → Custom → File upload / JSON 中上传这个文件并选择 `default` 文件夹；这样可以保留完整的 v8 schema、PromQL 和布局，避免在浏览器编辑器中逐项录入。导入后把时间范围设为最近 15 分钟、自动刷新设为 30 秒。
 
 ### 按服务划分 OpenObserve 数据
 
@@ -375,3 +409,6 @@ OpenObserve Web UI、OTLP endpoint 和 Garage S3 endpoint 是三个不同的用�
 - [OpenTelemetry Collector OTLP exporter](https://opentelemetry.io/docs/collector/configuration/)
 - [OpenObserve Systemd 部署说明](https://openobserve.ai/docs/administration/maintenance/operator-guide/systemd/)
 - [Garage CLI 与 bucket/key 管理](https://garagehq.deuxfleurs.fr/documentation/quick-start/)
+- [Garage 配置文件参考（含 `trace_sink`）](https://garagehq.deuxfleurs.fr/documentation/reference-manual/configuration/)
+- [Garage 监控与 Prometheus 指标](https://garagehq.deuxfleurs.fr/documentation/cookbook/monitoring/)
+- [Garage 指标清单](https://garagehq.deuxfleurs.fr/documentation/reference-manual/monitoring/)

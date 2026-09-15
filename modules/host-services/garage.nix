@@ -38,6 +38,9 @@ in
 
     [admin]
     api_bind_addr = "127.0.0.1:3903"
+    # Send Garage's S3 request spans to the dedicated local receiver in
+    # openobserve-agent. The agent owns OpenObserve authentication.
+    trace_sink = "http://127.0.0.1:4319"
   '';
 
   systemd.user.services.garage = {

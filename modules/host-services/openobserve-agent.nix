@@ -18,77 +18,133 @@ let
   collectorConfig = "${config.xdg.configHome}/opentelemetry-collector/config.yaml";
   authHeader = config.age.secrets.openobserve-agent-token.path;
   requiresLocalOpenObserve = config.hostServices.openobserveAgent.requiresLocalOpenObserve;
+  garageTelemetryEnabled = hostname == "nuc";
+  garageTracesStream = "${hostname}_garage_traces";
+
+  garageReceiverConfig = lib.optionalString garageTelemetryEnabled (
+    lib.concatStringsSep "\n" [
+      "      otlp/garage:"
+      "        protocols:"
+      "          grpc:"
+      "            endpoint: 127.0.0.1:4319"
+      "      prometheus/garage:"
+      "        config:"
+      "          scrape_configs:"
+      "            - job_name: garage"
+      "              scrape_interval: 30s"
+      "              static_configs:"
+      "                - targets:"
+      "                    - 127.0.0.1:3903"
+    ]
+  );
+
+  garageExporterConfig = lib.optionalString garageTelemetryEnabled (
+    lib.concatStringsSep "\n" [
+      "      otlp_http/openobserve-garage-traces:"
+      "        endpoint: ${endpoint}"
+      "        headers:"
+      ("          Authorization: \"" + "$" + "{env:OPENOBSERVE_AUTH}\"")
+      "          stream-name: ${garageTracesStream}"
+    ]
+  );
+
+  garagePipelineConfig = lib.optionalString garageTelemetryEnabled (
+    lib.concatStringsSep "\n" [
+      "        metrics/garage:"
+      "          receivers: [prometheus/garage]"
+      "          processors: [resource_detection/system, resource/garage, memory_limiter, batch]"
+      "          exporters: [otlp_http/openobserve-metrics]"
+      "        traces/garage:"
+      "          receivers: [otlp/garage]"
+      "          processors: [resource_detection/system, resource/garage, memory_limiter, batch]"
+      "          exporters: [otlp_http/openobserve-garage-traces]"
+    ]
+  );
 
   collectorConfigText = ''
-    receivers:
-      journald:
-        directory: /var/log/journal
-      host_metrics:
-        root_path: /
-        collection_interval: 30s
-        scrapers:
-          cpu:
-          disk:
-          filesystem:
-          load:
-          memory:
-          network:
-          paging:
-          processes:
-      otlp:
-        protocols:
-          grpc:
-            endpoint: 127.0.0.1:4317
-          http:
-            endpoint: 127.0.0.1:4318
+        receivers:
+          journald:
+            directory: /var/log/journal
+          host_metrics:
+            root_path: /
+            collection_interval: 30s
+            scrapers:
+              cpu:
+              disk:
+              filesystem:
+              load:
+              memory:
+              network:
+              paging:
+              processes:
+          otlp:
+            protocols:
+              grpc:
+                endpoint: 127.0.0.1:4317
+              http:
+                endpoint: 127.0.0.1:4318
+    ${garageReceiverConfig}
 
-    processors:
-      resource_detection/system:
-        detectors: [system]
-        system:
-          hostname_sources: [os]
-      memory_limiter:
-        check_interval: 1s
-        limit_percentage: 75
-        spike_limit_percentage: 15
-      batch:
-        send_batch_size: 1000
-        timeout: 10s
+        processors:
+          resource_detection/system:
+            detectors: [system]
+            system:
+              hostname_sources: [os]
+          resource/garage:
+            attributes:
+              - key: service.name
+                value: garage
+                action: upsert
+              - key: service.namespace
+                value: longred
+                action: upsert
+              - key: deployment.environment
+                value: home-lab
+                action: upsert
+          memory_limiter:
+            check_interval: 1s
+            limit_percentage: 75
+            spike_limit_percentage: 15
+          batch:
+            send_batch_size: 1000
+            timeout: 10s
 
-    extensions:
-      zpages:
+        extensions:
+          zpages:
 
-    exporters:
-      otlp_http/openobserve-metrics:
-        endpoint: ${endpoint}
-        headers:
-          Authorization: "''${env:OPENOBSERVE_AUTH}"
-      otlp_http/openobserve-logs:
-        endpoint: ${endpoint}
-        headers:
-          Authorization: "''${env:OPENOBSERVE_AUTH}"
-          stream-name: ${journaldStream}
-      otlp_http/openobserve-traces:
-        endpoint: ${endpoint}
-        headers:
-          Authorization: "''${env:OPENOBSERVE_AUTH}"
-          stream-name: ${tracesStream}
+        exporters:
+          otlp_http/openobserve-metrics:
+            endpoint: ${endpoint}
+            headers:
+              Authorization: "''${env:OPENOBSERVE_AUTH}"
+          otlp_http/openobserve-logs:
+            endpoint: ${endpoint}
+            headers:
+              Authorization: "''${env:OPENOBSERVE_AUTH}"
+              stream-name: ${journaldStream}
+          otlp_http/openobserve-traces:
+            endpoint: ${endpoint}
+            headers:
+              Authorization: "''${env:OPENOBSERVE_AUTH}"
+              stream-name: ${tracesStream}
+    ${garageExporterConfig}
 
-    service:
-      extensions: [zpages]
-      pipelines:
-        metrics:
-          receivers: [host_metrics]
-          processors: [resource_detection/system, memory_limiter, batch]
-          exporters: [otlp_http/openobserve-metrics]
-        logs:
-          receivers: [journald]
-          processors: [resource_detection/system, memory_limiter, batch]
-          exporters: [otlp_http/openobserve-logs]
-        traces:
-          receivers: [otlp]
-          processors: [resource_detection/system, memory_limiter, batch]
-          exporters: [otlp_http/openobserve-traces]
+        service:
+          extensions: [zpages]
+          pipelines:
+            metrics:
+              receivers: [host_metrics]
+              processors: [resource_detection/system, memory_limiter, batch]
+              exporters: [otlp_http/openobserve-metrics]
+            logs:
+              receivers: [journald]
+              processors: [resource_detection/system, memory_limiter, batch]
+              exporters: [otlp_http/openobserve-logs]
+            traces:
+              receivers: [otlp]
+              processors: [resource_detection/system, memory_limiter, batch]
+              exporters: [otlp_http/openobserve-traces]
+    ${garagePipelineConfig}
   '';
 
   startCollector = pkgs.writeShellScript "openobserve-agent-start" ''
