@@ -1,92 +1,85 @@
-# Tailscale Services 家庭实验室配置
+# Tailscale Services
 
-本仓库把 NUC 上的 Tailscale Services endpoint 集中放在
-[`config/tailscale/nuc-services.hujson`](../config/tailscale/nuc-services.hujson)。
-Home Manager 将它安装到 `~/.config/tailscale/nuc-services.hujson`。由于当前
-NUC 使用的 Tailscale 1.102.x 在 versioned `set-config` 中不能直接应用
-`tls-terminated-tcp` target，Home Manager 会从这个源文件生成 raw ServeConfig，
-由 `tailscale-services.service` 清理同名旧 endpoint、执行
-`tailscale serve set-config --all`，然后重新广告文件中列出的 Service。生成的 raw 配置保留
-`TerminateTLS` 和 `TCPForward` 两个字段。
+[返回文档索引](README.md) · [返回项目 README](../README.md)
 
-## 当前服务
+## 配置链路
 
-当前 NUC 上已经运行并验证过监听端口的家庭实验室服务如下。每个 Service 都
-使用自己的 TailVIP，因此多个 Service 可以同时使用 `tcp:443`；客户端通过
-Service 的 MagicDNS 名称区分它们。
+Tailscale Service 有两个配置边界：
 
-| Service | Service endpoint | NUC 本地目标 | 访问示例 |
-| --- | --- | --- | --- |
-| `svc:opencode` | `tcp:443` | `tls-terminated-tcp://127.0.0.1:4096` | `https://opencode.tail388af.ts.net/` |
-| `svc:deepseek-harness` | `tcp:443` | `tls-terminated-tcp://127.0.0.1:3080` | `https://deepseek-harness.tail388af.ts.net/` |
-| `svc:openobserve` | `tcp:443`, `tcp:5081` | `tls-terminated-tcp://100.100.10.1:5080`, `tcp://100.100.10.1:5081` | `https://openobserve.tail388af.ts.net/` |
-| `svc:garage` | `tcp:443`, `tcp:3902` | `tls-terminated-tcp://127.0.0.1:3900`, `tls-terminated-tcp://127.0.0.1:3902` | `https://garage.tail388af.ts.net/` |
-| `svc:garage-ui` | `tcp:443` | `tls-terminated-tcp://100.100.10.1:8080` | `https://garage-ui.tail388af.ts.net/` |
-| `svc:dufs` | `tcp:443` | `tls-terminated-tcp://127.0.0.1:5000` | `https://dufs.tail388af.ts.net/` |
-| `svc:affine` | `tcp:443` | `tls-terminated-tcp://100.100.10.1:3010` | `https://affine.tail388af.ts.net/` |
+1. 管理端定义 Service、endpoint 和允许的 host，并完成审批。
+2. 本仓库在主机上配置本地转发目标、加载 Serve 配置并广告 Service。
 
-Web、S3 和 Garage Web 端点使用 `tls-terminated-tcp://`：Tailscale 在 Service
-入口终止 TLS，再把解密后的 TCP 流转发到 NUC 上的明文服务。浏览器和 HTTP
-客户端使用 `https://<service>.tail388af.ts.net/`；后端服务无需自行配置证书。
-OpenObserve 的 `5081` 保留 raw TCP，因为它是 OTLP/gRPC 端口，不是浏览器 Web
-入口。需要原始协议透传的端口继续使用 `tcp://`。
+本地源文件是 [`config/tailscale/nuc-services.hujson`](../config/tailscale/nuc-services.hujson)，Home Manager 将它安装到 Tailscale 配置目录。模块在应用前生成 CLI 需要的 raw ServeConfig，并在应用后广告源文件声明的 Service。实际服务名、端口和后端地址以源文件为准。
 
-这里不能把 target 改成 `http://` 来表达“入口 HTTPS、后端 HTTP”：在
-`tailscale serve set-config` 的 versioned 服务配置中，target 的协议同时决定
-Serve 模式，`http://` 会生成 HTTP 入口。源文件使用
-`tls-terminated-tcp://` 明确表示 TLS 终止后继续转发原始明文流；Home Manager
-负责把它转换成当前客户端能应用的 `TerminateTLS`/`TCPForward` 结构。
-Tailscale 客户端必须启用 tailnet 的 HTTPS certificates，才能为 Service
-MagicDNS 名称提供证书。
+## Endpoint 语义
 
-Garage 的 RPC、admin API 和 OpenObserve 的本地管理端口没有加入 Service，避免
-把内部控制面提供给普通客户端。Anytype 也暂不加入：当前服务没有确认一个可用
-的对外 TCP listener。
+源文件中的 endpoint 是 Service 对外监听的端口，例如：
 
-## 首次在 Tailscale 管理端创建 Service
+```json
+{
+  "version": "0.0.1",
+  "services": {
+    "svc:example": {
+      "endpoints": {
+        "tcp:443": "tls-terminated-tcp://127.0.0.1:8080"
+      }
+    }
+  }
+}
+```
 
-Tailscale Services 的 Service 定义不属于本地 `tailscale serve` 配置文件，必须
-由 Owner、Admin 或 Network admin 在管理端建立。对每一行 Service 至少创建同名
-资源，并加入表中的 endpoint；创建后在该 Service 的 pending host 列表中批准
-NUC。NUC 当前使用 `tag:longred-server` 等 tag 身份，满足 Service host 的要求。
+- `tls-terminated-tcp://<host>:<port>`：Tailscale 在 Service 入口终止 TLS，再把明文 TCP 转发给后端。适合后端只提供 HTTP 的 Web 服务，客户端使用 `https://<service>.<tailnet-domain>/`。
+- `tcp://<host>:<port>`：原始 TCP 转发，适合 S3、OTLP/gRPC 或其他需要保留协议的端口。
+- `http://` 表示 HTTP ingress，不是“入口 HTTPS、后端 HTTP”的写法。
+- `https://` 要求后端本身提供 HTTPS；它不会替代 TLS 终止配置。
 
-管理端完成定义和审批后，在 NUC 上运行：
+如果当前 Tailscale CLI 不能从 versioned config 直接保留 TLS 终止字段，`modules/host-services/tailscale-services.nix` 的 raw 配置转换会生成 `TerminateTLS` 和 `TCPForward`。这层兼容逻辑不应手工改写生成文件。
+
+## 管理端首次配置
+
+由 Tailscale 管理员在管理端：
+
+1. 为每个 `svc:<name>` 创建同名 Service。
+2. 添加源文件中声明的 endpoint。
+3. 将目标主机加入 Service 的 pending host 列表并批准。
+4. 确认 tailnet 已启用对应 HTTPS certificates；需要浏览器 HTTPS 时还要确认客户端信任该域名。
+
+主机本地只负责应用和广告配置，不能代替管理端定义或审批。
+
+## 本地应用和验证
 
 ```bash
-# 只需首次执行一次；用户级 systemd unit 需要通过本机 Tailscale CLI 写配置
-sudo tailscale set --operator=longred
-
+sudo tailscale set --operator=<user>
 systemctl --user restart tailscale-services.service
-systemctl --user status tailscale-services.service
-tailscale serve status --json
-```
-
-如果 unit 先于管理端定义启动，它会失败并每五分钟重试；这不会停止现有的
-OpenCode、DeepSeek Harness、OpenObserve、Garage、DUFS 或 AFFiNE 服务。
-
-验证 Service 已批准后，从同一 tailnet 的客户端测试：
-
-```bash
-curl -i https://opencode.tail388af.ts.net/
-curl -i https://deepseek-harness.tail388af.ts.net/
-curl -i https://openobserve.tail388af.ts.net/
-```
-
-在 NUC 上确认入口已经是 TLS-terminated TCP：
-
-```bash
+systemctl --user --no-pager status tailscale-services.service
 tailscale serve get-config --all
 tailscale serve status --json
 ```
 
-DeepSeek Harness 当前通过 `deepseek-harness.nix` 的版本敏感运行时补丁允许已
-声明 trusted host 且已通过 DSH token 认证的 HTTPS 浏览器会话加载并保存
-Provider/Models 设置。若 Harness 升级后补丁匹配失败，服务会拒绝启动；此时可
-先使用现有的 loopback SSH tunnel 访问设置，详见
-[`docs/deepseek-harness.md`](deepseek-harness.md)。
+验证时使用已批准 Service 的域名：
 
-## 配置来源
+```bash
+curl -i https://<service>.<tailnet-domain>/
+```
 
-- [Tailscale Services](https://tailscale.com/docs/features/tailscale-services)：Service 定义、tag-based host、广告和审批流程。
-- [Tailscale Services configuration file](https://tailscale.com/docs/reference/tailscale-services-configuration-file)：`version`、`services`、`endpoints` 和 target 格式。
-- [tailscale serve](https://tailscale.com/docs/reference/tailscale-cli/serve)：HTTPS、raw TCP 和 `tls-terminated-tcp` 转发命令。
+Web 服务通常应返回应用响应或应用自己的认证状态；原始协议端口应使用对应客户端检查。Service 配置成功不等于后端应用健康，仍需检查后端 systemd 单元和健康接口。
+
+## 故障排查
+
+| 现象 | 优先检查 |
+| --- | --- |
+| `tailscale-services.service` 失败 | `journalctl --user -u tailscale-services.service`、Tailscale CLI 版本和源文件格式 |
+| 域名无法解析 | 管理端 Service 是否已创建、host 是否已批准、客户端是否在同一 tailnet |
+| TLS 成功但应用拒绝请求 | 后端监听地址/端口、Host/Origin 受信配置和应用认证 |
+| Web 页面能开但 Settings 不可用 | 应用自己的 loopback/远程设置策略；查看对应主题文档的 tunnel 或受信域名配置 |
+| raw TCP 可连但数据失败 | 确认 endpoint 没有误用 TLS 终止，检查后端协议和端口 |
+
+## 权限边界
+
+不要把 Garage 管理 API、RPC、OpenObserve 内部管理端口、Collector 调试端口或其他控制面加入普通客户端使用的 Service。新增 endpoint 前先确认认证、访问范围和回滚方式。
+
+## 参考资料
+
+- [Tailscale Services](https://tailscale.com/docs/features/tailscale-services)
+- [Services configuration file](https://tailscale.com/docs/reference/tailscale-services-configuration-file)
+- [tailscale serve CLI](https://tailscale.com/docs/reference/tailscale-cli/serve)

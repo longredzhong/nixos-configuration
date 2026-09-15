@@ -1,11 +1,10 @@
 {
   "version": 8,
-  "dashboardId": "managed-machines-status-v8-20260914",
+  "dashboardId": "managed-machines-status-template-v1",
   "title": "全部机器状态",
   "description": "监控 Nix 管理机器的 CPU、内存、文件系统和进程状态",
   "role": "",
-  "owner": "root@openobserve.local",
-  "created": "2026-09-14T11:10:00.000Z",
+  "owner": "",
   "tabs": [
     {
       "tabId": "default",

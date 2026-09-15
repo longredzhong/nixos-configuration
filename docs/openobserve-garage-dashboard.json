@@ -1,11 +1,10 @@
 {
   "version": 8,
-  "dashboardId": "garage-storage-observability-v1-20260915",
+  "dashboardId": "garage-storage-observability-template-v1",
   "title": "Garage 对象存储服务",
-  "description": "监控 Garage S3 请求、集群可用性、磁盘使用率和重同步状态；Trace stream 为 nuc_garage_traces。",
+  "description": "监控 Garage S3 请求、集群可用性、磁盘使用率和重同步状态。",
   "role": "",
-  "owner": "root@openobserve.local",
-  "created": "2026-09-15T00:00:00.000Z",
+  "owner": "",
   "tabs": [
     {
       "name": "Default",

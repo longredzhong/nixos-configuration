@@ -1,109 +1,66 @@
-# NixOS Configuration
+# Nix 配置仓库
 
-[![Nix Flake](https://img.shields.io/badge/flake-supported-brightgreen)](https://nixos.wiki/wiki/Flakes)
+这个仓库使用 Nix Flakes 和 Home Manager 管理 NixOS、WSL 以及非 NixOS 主机上的用户环境。服务模块以用户级 systemd 单元为主，机密使用 Agenix 加密文件保存。
 
-基于 Nix Flakes 和 Home Manager 的模块化 NixOS 配置。
+## 从哪里开始
 
-## 项目结构
+- [项目文档索引](docs/README.md)：部署、服务、观测、Tailscale 和机密管理的入口。
+- [AGENTS.md](AGENTS.md)：修改代码和文档时必须遵守的仓库约定。
+- [justfile](justfile)：可执行任务和验证命令。
+
+## 仓库结构
 
 ```text
 .
-├── flake.nix              # Flake 入口
-├── hosts/                 # 主机配置
-│   └── <hostname>/
-│       ├── configuration.nix  # 系统配置
-│       ├── home.nix           # Home Manager 配置
-│       └── hardware-configuration.nix
+├── flake.nix                         # Flake 输入和输出
+├── hosts/                            # NixOS 主机入口
+├── users/                            # 用户及 standalone Home Manager 入口
 ├── modules/
-│   ├── system/            # NixOS 公共模块
-│   ├── home-manager/
-│   │   ├── profiles/      # 配置组合 (desktop/wsl/minimal)
-│   │   ├── desktop/       # 桌面环境模块
-│   │   └── shell/         # Shell 工具模块
-│   ├── services/          # 自定义服务
-│   └── overlays.nix       # Overlay 配置
-├── users/                 # 用户配置
-├── secrets/               # 机密管理 (agenix)
-└── justfile               # 任务命令
+│   ├── home-manager/                 # 通用、桌面、Shell 和 WSL 模块
+│   ├── host-services/                # 用户级服务及其运行时配置
+│   └── overlays.nix                  # nixpkgs overlay
+├── config/                           # 非 Nix 的声明式配置
+├── pkgs/                             # 本地 Nix 包
+├── scripts/                          # 辅助脚本
+├── secrets/*.age                     # 仅提交加密后的机密
+└── docs/                             # 运维文档和可导入模板
 ```
 
-## 快速开始
-
-### 安装 Nix (非 NixOS 系统)
-
-在 macOS、Ubuntu、Fedora 等非 NixOS 系统上，先安装 Nix：
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
-```
-
-> 使用 [Determinate Nix Installer](https://github.com/DeterminateSystems/nix-installer)，已默认启用 Flakes。
-
-### 常用命令
-
-```bash
-# 查看所有命令
-just
-
-# 检查配置
-just check-fast
-
-# 切换系统 (NixOS)
-just switch
-
-# 切换 Home Manager (非 NixOS)
-just hm-switch
-```
-
-## 添加新主机
-
-### NixOS 主机
-
-1. 创建 `hosts/<hostname>/` 目录，包含 `configuration.nix` 和 `home.nix`
-2. 在 `flake.nix` 添加：
-   ```nix
-   nixosConfigurations.<hostname> = mkHost { hostname = "<hostname>"; };
-   ```
-3. 运行 `just switch host=<hostname>`
-
-### Home Manager (非 NixOS)
-
-1. 创建 `users/<username>/<hostname>.nix`
-2. 在 `flake.nix` 的 `homeConfigurations` 添加配置
-3. 运行 `just hm-switch target='<user>@<host>'`
+Flake 当前提供两类输出：`nixosConfigurations` 用于 NixOS/WSL，`homeConfigurations` 用于 standalone Home Manager。具体目标名称以 `just show-systems` 和 `just show-homes` 的输出为准，不要把某台机器的名称或地址写进通用文档。
 
 ## 常用命令
 
-| 命令 | 说明 |
-|------|------|
-| `just check-fast` | 快速检查配置 |
-| `just switch` | 切换 NixOS 系统 |
-| `just hm-switch` | 切换 Home Manager |
-| `just build` | 构建系统 |
-| `just vm` | VM 测试 |
-| `just update` | 更新依赖 |
-| `just fmt` | 格式化代码 |
-| `just gc` | 清理存储 |
+```bash
+# 查看任务
+just
 
-## NUC 服务文档
+# 快速检查 Flake
+just check-fast
 
-- [OpenObserve 部署与使用](docs/openobserve.md)
-- [DeepSeek Harness 部署与使用](docs/deepseek-harness.md)
-- [Tailscale Services 家庭实验室配置](docs/tailscale-services.md)
+# 完整检查
+just check
 
-## Profiles (配置组合)
+# 格式化 Nix
+just fmt
 
-| Profile | 用途 | 包含模块 |
-|---------|------|----------|
-| `desktop` | 桌面环境 | common + cli + desktop |
-| `wsl` | WSL 环境 | common + cli + wsl |
-| `minimal` | 最小化 | common + cli |
+# 预览或切换 standalone Home Manager
+just hm-dry-run '<user>@<host>'
+just hm-switch '<user>@<host>'
 
-在 `hosts/<hostname>/home.nix` 中使用：
-```nix
-imports = [ ../../modules/home-manager/profiles/desktop.nix ];
+# 构建或切换 NixOS
+just build '<host>'
+just switch-nixos '<host>'
 ```
 
-## License
+修改前先确认目标属于 NixOS 还是 standalone Home Manager。部署后应检查对应的 systemd 单元和健康接口；只通过静态评估不能证明远端服务已经生效。
 
-[MIT](LICENSE)
+## 配置原则
+
+- Nix 模块和 `config/` 中的声明文件是运行时配置的来源；文档只解释它们，不复制一份容易过期的完整配置。
+- `secrets/*.age` 可以提交，明文机密、解密结果、API token、密码、私钥和带 token 的 URL 不能提交、粘贴到文档或写入日志。
+- 文档示例使用 `<user>`、`<host>`、`<service-domain>`、`<tailnet-ip>`、`<data-root>` 等占位符。
+- 版本、状态、已验证主机和看板 ID 都属于容易过时的信息；除非记录了验证日期和证据，否则不要写进长期文档。
+
+## 许可
+
+仓库当前没有提交许可证文件。若需要对外发布，请先补充许可证并同步更新文档。
