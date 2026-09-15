@@ -16,6 +16,7 @@ in
       pixi = prev.callPackage ../pkgs/pixi { };
       anytype-cli = prev.callPackage ../pkgs/anytype-cli { };
       deepseek-harness-opencode-session = prev.callPackage ../pkgs/deepseek-harness-opencode-session { };
+      deepseek-harness-observability = prev.callPackage ../pkgs/deepseek-harness-observability { };
       opentelemetry-collector-contrib = prev.callPackage ../pkgs/opentelemetry-collector-contrib { };
       opencode-plugin-otel = prev.callPackage ../pkgs/opencode-plugin-otel { };
     })

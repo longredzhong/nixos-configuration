@@ -75,6 +75,11 @@ token 与成本计数器和会话生命周期日志事件；禁用它们等于�
 span 会携带 prompt、工具输入输出和系统提示（`gen_ai.*` 系列字段），且没有按字段
 关闭的开关，因此限制该 stream 的访问范围和保留时间。
 
+DeepSeek Harness 的会话遥测不经过 Collector：Harness 进程直接用原生 JSON
+ingestion 接口写入 `<hostname>_dsh_ledger`（会话事件与 token 记账）和
+`<hostname>_dsh_ops`（agent 错误）。它只导出标量字段，不含任何消息正文。详见
+[DeepSeek Harness](deepseek-harness.md)。
+
 Garage 的 trace receiver 和 Prometheus receiver 只应在运行 Garage 的目标启用。Garage 的 S3 请求 Trace 和管理指标使用独立的 stream，避免与普通应用信号混合。
 
 ## OTLP 接入

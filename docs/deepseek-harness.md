@@ -100,6 +100,91 @@ route 保留用于兼容已有会话和默认模型。
 以及 [DSH live discovery discussion #5681](https://github.com/deepseek-ai/deepseek-harness/discussions/5681)
 为依据。
 
+## 会话遥测（OpenObserve）
+
+`web` profile 还会加载仓库中的 `@longred/deepseek-harness-observability`
+自定义插件，把 Harness 自身的会话遥测写入 OpenObserve。它和 OpenCode Go
+插件是两个独立的 bundle，都由 `ensureRuntime` 以 `file:` 依赖加软链接的方式
+注册到 profile 清单里。
+
+### 为什么需要自建 backend
+
+上游 `@deepseek-ai/dsh-session-telemetry-otel` 的模式枚举只有 `FEEDBACK_ONLY`
+和 `DISABLED`，构造时把 coordinator 固定在按需捕获，并且只对 `feedback/record`
+事件触发上传：它能送出的只有用户反馈，没有 token、工具或错误信号。要取得这些
+信号必须由部署提供自己的 backend。
+
+单元里的 `DSH_TELEMETRY_DISABLED=1` 保留不变，作用有两点：
+
+1. 关闭上游那一行，避免和自建行争用同一个 `sessionTelemetry` 单例服务（cordis
+   对重复注册直接抛错）；
+2. 阻止反馈被送到上游的默认端点 `https://harness-telemetry.deepseeksvc.com/v1/logs`。
+
+自建行的 id 是 `deepseek-harness-observability`，与上游行不同名。
+
+### 传输与依赖约束
+
+插件**不依赖任何 npm 包**。profile loader 只为 profile 目录内的导入者安装解析
+路由，而插件是从 Nix store 软链接进来的，Node 的原生解析看不到 dsh 安装的
+`node_modules`；因此插件只能使用 Node 内置能力和 Node 22 的全局 `fetch`。上报
+走 OpenObserve 的原生 JSON ingestion 接口，不需要 OTLP SDK，也不需要额外的
+依赖树。插件不能读取 profile 之外的 npm 包——扩展它时要保持这条约束。
+
+### 数据流
+
+单元通过 `DSH_OBSERVABILITY_*` 环境变量提供配置，凭据只以文件路径形式传入：
+
+| 变量 | 作用 |
+| --- | --- |
+| `DSH_OBSERVABILITY_URL` | OpenObserve 组织级 base URL，模块中定义 |
+| `DSH_OBSERVABILITY_TOKEN_FILE` | 运行时解密出的 ingestion 凭据路径 |
+| `DSH_OBSERVABILITY_LEDGER_STREAM` | 会话事件 stream，模块中定义为 `<hostname>_dsh_ledger` |
+| `DSH_OBSERVABILITY_OPS_STREAM` | 运维信号 stream，模块中定义为 `<hostname>_dsh_ops` |
+
+凭据文件在 `startHarness` 中展开 `XDG_RUNTIME_DIR` 后导出：agenix 给出的路径
+本身带该变量，放在单元的 `Environment=` 里会依赖 systemd 自己的变量展开，因此
+与仓库其他服务模块一样在 shell 里解析。
+
+插件监听 `session/event` 和 `agent/error`：
+
+- **ledger stream**：只投影白名单内的事件类型（`user/message`、
+  `assistant/message`、`assistant/attempt`、`tool/call`、`tool/result`）；
+  `assistant/message` 上的 `usage` 是会话日志里唯一的 token 记账来源，没有单独的
+  用量记录；
+- **ops stream**：`agent/error` 的 session、turn、step 和错误名。
+
+### 脱敏原则
+
+记录由**逐字段白名单**构造，而不是截取事件体后依赖规则清洗：消息正文、工具参数、
+工具输出、流式分片和错误文案从不读取，因此不存在需要在
+`session-telemetry/record` waterfall 上挂规则才能删掉的字段。这条性质是刻意的，
+不要为了加字段而改成复制事件体——一旦引入自由文本，脱敏规则就变成必需项。
+
+### 环境不完整时的行为
+
+缺 `DSH_OBSERVABILITY_URL`、缺凭据文件或凭据为空时，插件只记一条 warning 并
+保持挂载但不导出，不会阻止 Harness 启动。导出失败只写 logger，不进入会话日志，
+也不阻断 agent loop。缓冲上限 5000 条，超出部分丢弃并计入一次 warning。
+
+### 验证
+
+```bash
+systemctl --user is-active deepseek-harness
+# 插件装载与导出错误只出现在这里
+tail -n 200 "${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log"
+```
+
+在 OpenObserve 中确认对应组织中出现了 ledger 和 ops 两个 stream，并有一个活动
+会话产生的记录。服务健康只证明 Harness 进程可达，不证明遥测写入成功；两者要
+分别报告。查询示例：
+
+```sql
+SELECT event_type, COUNT(*) AS n,
+       SUM(input_tokens) AS input_tokens, SUM(output_tokens) AS output_tokens
+FROM "<hostname>_dsh_ledger"
+GROUP BY event_type
+```
+
 ## 部署和验证
 
 ```bash
@@ -133,6 +218,10 @@ curl -i https://<service-domain>/
 - npm runtime：模块定义的用户运行时目录。
 - 服务日志：`%L/deepseek-harness/web.log`（`0600`），不写入 journald。
 - Harness 数据：模块定义的 `DSH_HOME` 目录；其中包括会话、Settings 和 credentials。
+- 会话遥测：写入 OpenObserve 的 ledger 和 ops 两个 stream。ingestion 凭据与
+  `openobserve-agent` 共用同一份 agenix 机密：OpenObserve 的 ingestion token 是
+  组织级作用域，单独签发不会带来额外权限差异。需要按服务轮换时再拆分，并把两个
+  模块的 `age.secrets` 声明一起改。
 - 升级：只修改模块中的 `dshVersion`，先 dry-run，再观察安装日志和页面。
 - 回滚：恢复旧版本并重新执行 Home Manager；不要删除保存会话和 credentials 的数据目录。
 
@@ -143,3 +232,5 @@ curl -i https://<service-domain>/
 - [Web server reference](https://deepseek-harness.github.io/deepseek-harness/en/reference/subsystems/web-server)
 - [远程 Settings 限制](https://github.com/deepseek-ai/deepseek-harness/discussions/5829)
 - [OpenCode Go session header discussion](https://github.com/deepseek-ai/deepseek-harness/discussions/6467)
+- [OpenObserve JSON 摄取接口](https://openobserve.ai/docs/api/ingestion/logs/json/)
+- [OpenObserve 与 OpenTelemetry](openobserve.md)

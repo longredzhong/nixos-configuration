@@ -1,0 +1,15 @@
+# Host-plane observability row for the DeepSeek Harness.
+#
+# The row id is deliberately distinct from the shipped `session-telemetry-otel`
+# row: both would register the one `sessionTelemetry` service and cordis throws
+# on the duplicate. The shipped row is switched off with
+# DSH_TELEMETRY_DISABLED=1 in the systemd unit, which is also what keeps
+# feedback off the shipped default endpoint
+# (https://harness-telemetry.deepseeksvc.com/v1/logs).
+#
+# Configuration arrives through the DSH_OBSERVABILITY_* environment variables in
+# the same unit, so no credential is written into this file or the profile's
+# patch layer.
+- insert:
+    - id: deepseek-harness-observability
+      name: '@longred/deepseek-harness-observability'

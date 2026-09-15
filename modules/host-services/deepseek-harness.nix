@@ -20,6 +20,30 @@ let
   webProfileManifest = "${webProfileDir}/package.json";
   sessionPluginName = "@longred/deepseek-harness-opencode-session";
   sessionPluginPath = "${pkgs.deepseek-harness-opencode-session}/lib/node_modules/${sessionPluginName}";
+  observabilityPluginName = "@longred/deepseek-harness-observability";
+  observabilityPluginPath = "${pkgs.deepseek-harness-observability}/lib/node_modules/${observabilityPluginName}";
+
+  # Bundles this module contributes to the web profile, in patch order.
+  profilePlugins = [
+    {
+      name = sessionPluginName;
+      path = sessionPluginPath;
+    }
+    {
+      name = observabilityPluginName;
+      path = observabilityPluginPath;
+    }
+  ];
+
+  # Session telemetry destination. The credential is the OpenObserve ingestion
+  # token the collector already uses: this module and openobserve-agent.nix are
+  # imported together for this host, and OpenObserve ingestion tokens are
+  # organization scoped, so a separate token would carry the same privilege.
+  # Split them when per-service rotation is wanted.
+  openobserveEndpoint = "http://100.100.10.1:5080/api/default";
+  openobserveLedgerStream = "nuc_dsh_ledger";
+  openobserveOpsStream = "nuc_dsh_ops";
+  openobserveToken = config.age.secrets.openobserve-agent-token.path;
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
   settingsClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-ui-settings/lib/client.js";
   connectionClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-connection/lib/index.js";
@@ -72,9 +96,9 @@ let
         "@deepseek-ai/dsh@$expected"
     fi
 
-    # Initialize the shipped web profile before adding the local bundle. This
+    # Initialize the shipped web profile before adding the local bundles. This
     # keeps the profile's own manifest and patch-reload policy under dsh's
-    # control while making the bundle reproducible from the Home Manager
+    # control while making the bundles reproducible from the Home Manager
     # generation.
     if [ ! -f '${webProfileManifest}' ]; then
       DSH_HOME='${dshHome}' \
@@ -84,8 +108,7 @@ let
 
     DSH_PROFILE='${webProfileDir}' \
       DSH_PROFILE_MANIFEST='${webProfileManifest}' \
-      DSH_SESSION_PLUGIN_NAME='${sessionPluginName}' \
-      DSH_SESSION_PLUGIN_PATH='${sessionPluginPath}' \
+      DSH_PROFILE_PLUGINS='${builtins.toJSON profilePlugins}' \
       '${pkgs.python3}/bin/python3' - <<'PY'
     import json
     import os
@@ -93,34 +116,36 @@ let
 
     profile_dir = pathlib.Path(os.environ["DSH_PROFILE"])
     manifest_path = pathlib.Path(os.environ["DSH_PROFILE_MANIFEST"])
-    plugin_name = os.environ["DSH_SESSION_PLUGIN_NAME"]
-    plugin_path = pathlib.Path(os.environ["DSH_SESSION_PLUGIN_PATH"])
+    plugins = json.loads(os.environ["DSH_PROFILE_PLUGINS"])
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     dependencies = manifest.setdefault("dependencies", {})
-    dependency_spec = f"file:{plugin_path}"
-    dependencies[plugin_name] = dependency_spec
-
     profile = manifest.setdefault("dsh", {}).setdefault("profile", {})
     bundles = profile.setdefault("bundles", [])
-    if plugin_name not in bundles:
-        bundles.append(plugin_name)
+
+    for plugin in plugins:
+        plugin_name = plugin["name"]
+        plugin_path = pathlib.Path(plugin["path"])
+
+        dependencies[plugin_name] = f"file:{plugin_path}"
+        if plugin_name not in bundles:
+            bundles.append(plugin_name)
+
+        plugin_link = profile_dir / "node_modules" / plugin_name
+        if plugin_link.is_symlink():
+            if plugin_link.resolve() != plugin_path.resolve():
+                plugin_link.unlink()
+        elif plugin_link.exists():
+            raise SystemExit(
+                "deepseek-harness: refusing to replace an existing custom plugin at "
+                f"{plugin_link}"
+            )
+
+        plugin_link.parent.mkdir(parents=True, exist_ok=True)
+        if not plugin_link.exists():
+            plugin_link.symlink_to(plugin_path, target_is_directory=True)
 
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
-
-    plugin_link = profile_dir / "node_modules" / plugin_name
-    if plugin_link.is_symlink():
-        if plugin_link.resolve() != plugin_path.resolve():
-            plugin_link.unlink()
-    elif plugin_link.exists():
-        raise SystemExit(
-            "deepseek-harness: refusing to replace an existing custom session plugin at "
-            f"{plugin_link}"
-        )
-
-    plugin_link.parent.mkdir(parents=True, exist_ok=True)
-    if not plugin_link.exists():
-        plugin_link.symlink_to(plugin_path, target_is_directory=True)
     PY
 
     # @deepseek-ai/dsh-client-ui-settings currently disables its settings
@@ -247,9 +272,16 @@ let
 
     test -f "$entry"
     test -f '${sessionPluginPath}/package.json'
+    test -f '${observabilityPluginPath}/package.json'
   '';
 
   startHarness = pkgs.writeShellScript "deepseek-harness-start" ''
+    # agenix publishes the ingestion credential under ''${XDG_RUNTIME_DIR}, so
+    # the path is expanded here rather than in the unit's Environment=, where
+    # the value would depend on systemd's own variable expansion. Every other
+    # service module in this repository resolves the same path the same way.
+    export DSH_OBSERVABILITY_TOKEN_FILE="${openobserveToken}"
+
     # Nix-built Node cannot provide the loader internals through the native
     # fallback used by the current HMR dependency. Pass this Node-only flag
     # before the dsh entrypoint; NODE_OPTIONS is rejected for this flag.
@@ -275,12 +307,20 @@ in
 
   home.packages = [ node ];
 
+  # Same declaration as openobserve-agent.nix, and the same value, so the
+  # module merge keeps one definition. The harness exports session telemetry
+  # with this ingestion credential.
+  age.secrets.openobserve-agent-token.file = ../../secrets/openobserve-agent-token.age;
+  age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+
   systemd.user.services.deepseek-harness = {
     Unit = {
       Description = "DeepSeek Harness Web UI (Tailscale ${serviceHost} identity-proxied to loopback 127.0.0.1:3080)";
       After = [
+        "agenix.service"
         "network-online.target"
       ];
+      Requires = [ "agenix.service" ];
       Wants = [ "network-online.target" ];
     };
     Service = {
@@ -289,7 +329,14 @@ in
       ExecStart = startHarness;
       Environment = config.hostServices.proxyEnvironment ++ [
         "DSH_HOME=${dshHome}"
+        # Keeps the shipped session-telemetry-otel row switched off: it only
+        # implements FEEDBACK_ONLY and would otherwise upload feedback to its
+        # default endpoint (https://harness-telemetry.deepseeksvc.com/v1/logs).
+        # @longred/deepseek-harness-observability replaces it.
         "DSH_TELEMETRY_DISABLED=1"
+        "DSH_OBSERVABILITY_URL=${openobserveEndpoint}"
+        "DSH_OBSERVABILITY_LEDGER_STREAM=${openobserveLedgerStream}"
+        "DSH_OBSERVABILITY_OPS_STREAM=${openobserveOpsStream}"
         "all_proxy="
         "ALL_PROXY="
         # A user-level service has the desktop environment available, but the
