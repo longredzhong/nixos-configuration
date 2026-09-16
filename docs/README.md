@@ -17,6 +17,7 @@
 | [OpenObserve 与 OpenTelemetry](openobserve.md) | OpenObserve、Garage、Collector、OTLP 和观测验证 | `modules/host-services/openobserve*.nix`、`modules/host-services/garage.nix` |
 | [mihomo（Clash Meta）](mihomo.md) | 本机代理、订阅与自定义节点、Web 面板和 OpenObserve 指标 | `modules/host-services/mihomo.nix`、`config/mihomo/` |
 | [Tailscale Services](tailscale-services.md) | Service endpoint、TLS 终止、审批和本地应用 | `config/tailscale/nuc-services.hujson`、`modules/host-services/tailscale-services.nix` |
+| [Home Lab Portal](homelab-portal.md) | 服务清单与实时状态的只读门户，以及 Tailscale Service 与 Cloudflare Pages 的方案对比 | `modules/host-services/homelab-portal.nix`、`config/homelab/` |
 | [Agenix 机密](../secrets/README.md) | 加密文件原则和运行时使用方式 | `secrets/*.age`、各服务模块的 `age.secrets` |
 | [Garage 观测看板模板](openobserve-garage-dashboard.json) | 可导入的 Garage 指标看板模板 | OpenObserve dashboard JSON |
 | [机器观测看板模板](openobserve-machine-dashboard.json) | 可导入的主机指标看板模板 | OpenObserve dashboard JSON |

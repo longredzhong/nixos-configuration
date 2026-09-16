@@ -134,9 +134,28 @@ let
     # that preserves both TerminateTLS and TCPForward on Tailscale 1.102.x.
     "$tailscale" serve set-config --all "$config"
 
+    # Advertise each service independently. A service that is not yet defined
+    # or approved in the Tailscale admin console fails here, and because the
+    # previous step applies the whole Serve config at once, aborting on the
+    # first failure would not change any outcome for that service while
+    # leaving later services unadvertised. Report every failure instead.
+    #
+    # The unit deliberately stays active in that case: Restart=on-failure
+    # would otherwise re-run the drain/clear/set-config sequence every five
+    # minutes, repeatedly disturbing services that are already working. The
+    # warning below is the signal, and the portal reports the same condition
+    # as a degraded service.
+    failed=""
     ${lib.concatMapStringsSep "\n" (service: ''
-      "$tailscale" serve advertise '${service}'
+      if ! "$tailscale" serve advertise '${service}'; then
+        echo "tailscale-services: advertise ${service} failed; is it defined and approved in the Tailscale admin console?" >&2
+        failed="$failed ${service}"
+      fi
     '') serviceNames}
+
+    if [ -n "$failed" ]; then
+      echo "tailscale-services: not advertised:$failed" >&2
+    fi
   '';
 in
 {

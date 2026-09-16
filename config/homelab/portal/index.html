@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Home Lab Portal</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div class="brand-text">
+          <h1 id="site-title">Home Lab Portal</h1>
+          <p id="site-subtitle" class="muted"></p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span id="last-updated" class="muted" role="status" aria-live="polite"
+          >正在加载…</span
+        >
+        <button id="refresh" type="button" class="button">刷新</button>
+        <label class="switch">
+          <input id="auto-refresh" type="checkbox" checked />
+          <span>自动刷新</span>
+        </label>
+      </div>
+    </header>
+
+    <main id="main">
+      <div id="load-error" class="banner banner-error" hidden></div>
+
+      <section class="panel" aria-labelledby="overview-heading">
+        <div class="panel-head">
+          <h2 id="overview-heading">服务器状态</h2>
+          <p class="muted" id="overview-note"></p>
+        </div>
+        <div id="overview-cards" class="card-grid"></div>
+        <div id="overview-detail" class="detail-grid"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="guide-heading">
+        <div class="panel-head">
+          <h2 id="guide-heading">访问引导</h2>
+          <p class="muted" id="guide-summary"></p>
+        </div>
+        <ol id="guide-steps" class="steps"></ol>
+      </section>
+
+      <section class="panel" aria-labelledby="services-heading">
+        <div class="panel-head">
+          <h2 id="services-heading">服务状态</h2>
+          <p class="muted">
+            状态来自 systemd 单元、健康探针和 Tailscale advertise 结果，三者不一致时判定为「部分可用」。
+          </p>
+        </div>
+        <div id="service-filters" class="filters" role="group" aria-label="按分类筛选"></div>
+        <div id="services-list"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="deployment-heading">
+        <div class="panel-head">
+          <h2 id="deployment-heading">部署方案分析</h2>
+          <p class="muted">
+            本页应该跑在哪里：NUC + Tailscale Service，还是 Cloudflare Pages。
+          </p>
+        </div>
+        <div id="deployment-summary" class="callout"></div>
+        <div class="md-table-wrap">
+          <table id="deployment-table">
+            <thead>
+              <tr>
+                <th>评估项</th>
+                <th>NUC + Tailscale Service</th>
+                <th>Cloudflare Pages（静态托管）</th>
+              </tr>
+            </thead>
+            <tbody id="deployment-rows"></tbody>
+          </table>
+        </div>
+        <div class="panel-actions">
+          <button type="button" class="button" data-doc="homelab-portal.md">
+            阅读完整分析
+          </button>
+        </div>
+      </section>
+
+      <section id="fleet-panel" class="panel" aria-labelledby="fleet-heading" hidden>
+        <div class="panel-head">
+          <h2 id="fleet-heading">家庭实验室机群</h2>
+          <p class="muted" id="fleet-note"></p>
+        </div>
+        <div id="fleet-cards" class="card-grid"></div>
+        <ul id="fleet-notes" class="notes"></ul>
+      </section>
+
+      <section id="reader-panel" class="panel" aria-labelledby="reader-heading" hidden>
+        <div class="panel-head">
+          <h2 id="reader-heading"></h2>
+          <button type="button" id="reader-close" class="button button-quiet">
+            关闭
+          </button>
+        </div>
+        <article id="reader-content" class="markdown"></article>
+      </section>
+
+      <section class="panel" aria-labelledby="stack-heading">
+        <div class="panel-head">
+          <h2 id="stack-heading">本页部署方式</h2>
+          <p class="muted" id="stack-note"></p>
+        </div>
+        <ul id="stack-notes" class="notes"></ul>
+        <div class="panel-actions">
+          <button type="button" class="button" data-doc="homelab-portal.md">
+            homelab-portal.md
+          </button>
+          <button type="button" class="button" data-doc="tailscale-services.md">
+            tailscale-services.md
+          </button>
+          <button type="button" class="button" data-doc="openobserve.md">
+            openobserve.md
+          </button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p class="muted">
+        只读视图。本页不提供任何修改服务状态的入口；所有变更都要通过仓库中的 Nix 模块和 Home
+        Manager 切换完成。
+      </p>
+    </footer>
+
+    <script src="/markdown.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>

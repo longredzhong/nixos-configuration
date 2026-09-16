@@ -21,7 +21,13 @@
     ../../modules/host-services/affine.nix
     ../../modules/host-services/tailscale-services.nix
     ../../modules/host-services/mihomo.nix
+    ../../modules/host-services/homelab-portal.nix
   ];
+
+  # Read-only portal listing the services on this host, how to reach them, and
+  # their live state. It binds to the Tailscale address only and is published
+  # as the svc:portal Tailscale Service.
+  hostServices.homelabPortal.enable = true;
 
   # Local rule-based proxy with a dashboard and OpenObserve metrics. The
   # dashboard binds to the tailnet address; the metrics collector follows it.

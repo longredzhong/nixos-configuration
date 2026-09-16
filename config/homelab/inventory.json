@@ -1,0 +1,339 @@
+{
+  "version": "0.0.1",
+  "site": {
+    "title": "Home Lab Portal",
+    "subtitle": "NUC 与家庭实验室的部署总览、访问入口和实时状态",
+    "intro": "本页由 NUC 上的 homelab-portal 用户服务生成。服务清单来自本文件，状态来自目标机器上的 systemd、健康探针和 OpenObserve。",
+    "refreshSeconds": 15
+  },
+
+  "placeholders": {
+    "tailnet_ip": "本机的 Tailscale IPv4 地址",
+    "tailnet_suffix": "本机 Tailscale DNS 后缀（<tailnet>.ts.net）",
+    "hostname": "本机主机名"
+  },
+
+  "guide": {
+    "summary": "所有服务都运行在家庭实验室节点上，访问边界由 Tailscale tailnet 决定。先接入 tailnet，再从下面的入口进入具体服务。",
+    "steps": [
+      {
+        "title": "接入 tailnet",
+        "body": "在客户端安装 Tailscale 并使用属于本 tailnet 的账号登录。只有 tailnet 内的设备能访问下列入口；服务本身不监听局域网地址，也没有公网入口。"
+      },
+      {
+        "title": "按服务选择入口",
+        "body": "偏好 HTTPS 的服务通过 Tailscale Service 暴露，使用 https://<service>.<tailnet>.ts.net，由 tailscaled 终止 TLS 并注入身份。对象存储等二进制协议服务也可以直接访问 tailnet 地址上的端口。"
+      },
+      {
+        "title": "确认访问权限",
+        "body": "Tailscale Service 的可用性由管理端的 ACL 和设备审批决定。本机只能声明「谁提供该服务」，不能声明「谁可以使用该服务」。"
+      },
+      {
+        "title": "需要公网时走 Tunnel",
+        "body": "少数需要公网可达的入口通过 Cloudflare Tunnel 暴露。公网入口绕过 tailnet 边界，因此只有明确需要时才对单个服务开放。"
+      }
+    ]
+  },
+
+  "categories": [
+    {
+      "id": "platform",
+      "name": "平台与访问",
+      "summary": "连接方式、出口和反向代理，是其他服务可达性的前提。"
+    },
+    {
+      "id": "observability",
+      "name": "观测与遥测",
+      "summary": "日志、指标和 Trace 的采集、存储与查询链路。"
+    },
+    {
+      "id": "storage",
+      "name": "存储与文件",
+      "summary": "对象存储、管理界面和文件服务。"
+    },
+    {
+      "id": "knowledge",
+      "name": "知识与协作",
+      "summary": "文档、笔记和协作工作区。"
+    },
+    {
+      "id": "dev",
+      "name": "开发与自动化",
+      "summary": "面向编码和代理会话的服务。"
+    }
+  ],
+
+  "hosts": [
+    {
+      "id": "nuc",
+      "name": "NUC",
+      "role": "家庭实验室主节点",
+      "local": true,
+      "target": "Fedora + standalone Home Manager",
+      "summary": "承载全部用户级 systemd 服务；服务数据集中放在数据盘。",
+      "dataPaths": [
+        { "path": "/", "label": "系统盘" },
+        { "path": "/data", "label": "数据盘" }
+      ],
+      "notes": [
+        "部署方式是 standalone Home Manager，不是 NixOS：没有 nixos-rebuild，服务单元由 Home Manager 的 sd-switch 管理。",
+        "所有单元都是 user 级：验证状态要用 systemctl --user 和 journalctl --user。"
+      ]
+    }
+  ],
+
+  "services": [
+    {
+      "id": "tailscale-services",
+      "name": "Tailscale Services",
+      "category": "platform",
+      "summary": "把本机服务声明为 tailnet 内的命名 HTTPS 端点。",
+      "details": "config/tailscale/nuc-services.hujson 是端点定义的来源；oneshot 单元把它应用为本地 Serve 配置并逐条 advertise。服务名和可用范围由 Tailscale 管理端定义，本机只声明提供方。",
+      "units": ["tailscale-services.service"],
+      "since": "oneshot",
+      "docs": "tailscale-services.md",
+      "tags": ["访问边界", "TLS"],
+      "provides": ["svc:opencode", "svc:deepseek-harness", "svc:openobserve", "svc:garage", "svc:garage-ui", "svc:dufs", "svc:affine", "svc:portal"],
+      "notes": [
+        "serve set-config --all 会先清空再导入，因此单次应用失败会影响整个单元而不是单个服务。",
+        "新增服务名必须在管理端先定义并审批，本机 advertise 才会成功。"
+      ]
+    },
+    {
+      "id": "cloudflared",
+      "name": "Cloudflare Tunnel",
+      "category": "platform",
+      "summary": "为少数需要公网可达的服务提供出站隧道，无需开放入站端口。",
+      "details": "隧道凭据来自 agenix 机密；ingress 规则在模块中声明，使用 store 路径以便配置变更触发 sd-switch 重启。",
+      "units": ["cloudflared.service"],
+      "health": { "type": "tcp", "host": "127.0.0.1", "port": 20241 },
+      "docs": "cloudflared（见模块注释）",
+      "tags": ["公网入口", "出站隧道"],
+      "publicHosts": [
+        { "hostname": "s3-alex.longred.work", "target": "Garage S3 API (127.0.0.1:3900)" },
+        { "hostname": "webdav-alex.longred.work", "target": "dufs WebDAV (127.0.0.1:5000)" }
+      ],
+      "notes": [
+        "公网入口不经过 tailnet 边界，访问控制只能依赖服务自身或 Cloudflare 策略。"
+      ]
+    },
+    {
+      "id": "mihomo",
+      "name": "mihomo (Clash Meta)",
+      "category": "platform",
+      "summary": "本机规则代理，供各服务出站使用，并提供指标。",
+      "details": "混合代理端口同时服务本机和 tailnet 客户端；局域网客户端只有在 lanAllowedIps 允许时才可使用。控制器与面板绑定在 tailnet 地址上。",
+      "units": ["mihomo.service"],
+      "health": { "type": "http", "url": "http://{tailnet_ip}:9091/", "expect": [200, 401, 403] },
+      "extraUnits": ["mihomo-metrics.timer"],
+      "direct": [
+        { "label": "控制面板", "scheme": "http", "host": "{tailnet_ip}", "port": 9091 },
+        { "label": "混合代理 (HTTP/SOCKS)", "scheme": "http", "host": "{tailnet_ip}", "port": 7890, "kind": "proxy" }
+      ],
+      "docs": "mihomo.md",
+      "tags": ["代理", "出站"],
+      "notes": [
+        "mihomo-metrics 由 timer 触发，oneshot 执行完即退出，inactive (dead) 是预期状态而不是故障。"
+      ]
+    },
+    {
+      "id": "homelab-portal",
+      "name": "Home Lab Portal",
+      "category": "platform",
+      "summary": "本页：服务清单、访问引导、机器与服务实时状态。",
+      "details": "纯 Python 标准库 HTTP 服务，读取本清单、systemctl --user、健康探针和 OpenObserve 查询结果，前端为无构建的静态资源。",
+      "units": ["homelab-portal.service"],
+      "health": { "type": "http", "url": "http://{tailnet_ip}:8090/api/health", "expect": [200] },
+      "tailscale": { "service": "portal", "ports": [443], "primaryPort": 443 },
+      "direct": [
+        { "label": "tailnet 直连", "scheme": "http", "host": "{tailnet_ip}", "port": 8090 }
+      ],
+      "tags": ["本页", "只读"],
+      "notes": [
+        "只读服务：不提供任何可以修改系统或服务状态的操作。"
+      ]
+    },
+
+    {
+      "id": "openobserve",
+      "name": "OpenObserve",
+      "category": "observability",
+      "summary": "统一存储与查询日志、指标和 Trace。",
+      "details": "以 rootless Podman 运行并使用 host 网络：既能在 127.0.0.1 上访问 Garage 的 S3 端点，也只能在 tailnet 地址上对外提供 HTTP 与 gRPC。元数据存 sqlite，数据存 Garage。",
+      "units": ["openobserve.service"],
+      "health": { "type": "http", "url": "http://{tailnet_ip}:5080/healthz", "expect": [200] },
+      "tailscale": { "service": "openobserve", "ports": [443, 5081] },
+      "direct": [
+        { "label": "OpenObserve Web UI", "scheme": "http", "host": "{tailnet_ip}", "port": 5080 },
+        { "label": "OTLP gRPC", "scheme": "http", "host": "{tailnet_ip}", "port": 5081, "kind": "api" }
+      ],
+      "dataPaths": ["/data/openobserve"],
+      "dependsOn": ["garage"],
+      "docs": "openobserve.md",
+      "tags": ["日志", "指标", "Trace"],
+      "notes": [
+        "单元额外在 loopback 上桥接同一个 HTTP 端口，因为容器看到的 localhost 与主机不同。",
+        "root 口令由模块在首次启动时生成并写入本机 env 文件，不是仓库内容。"
+      ]
+    },
+    {
+      "id": "openobserve-agent",
+      "name": "OpenTelemetry Collector",
+      "category": "observability",
+      "summary": "采集主机指标、journald 日志和 OTLP 数据并导出到 OpenObserve。",
+      "details": "rootless Collector：hostmetrics 提供 CPU、内存、磁盘和网络指标，journald 接收日志，OTLP 接收应用 Trace。写入凭据来自 agenix 的摄取 token。",
+      "units": ["openobserve-agent.service"],
+      "health": { "type": "tcp", "host": "127.0.0.1", "port": 4318 },
+      "direct": [
+        { "label": "OTLP HTTP", "scheme": "http", "host": "127.0.0.1", "port": 4318, "kind": "api" },
+        { "label": "OTLP gRPC", "scheme": "http", "host": "127.0.0.1", "port": 4317, "kind": "api" }
+      ],
+      "dependsOn": ["openobserve"],
+      "docs": "openobserve.md",
+      "tags": ["采集", "OTLP"],
+      "notes": [
+        "摄取 token 只能写入，不能用于查询；本页的跨机器视图使用 OpenObserve 本机生成的凭据。"
+      ]
+    },
+
+    {
+      "id": "garage",
+      "name": "Garage",
+      "category": "storage",
+      "summary": "自托管 S3 兼容对象存储，同时承载 OpenObserve 的数据后端。",
+      "details": "单节点布局，元数据与数据都放在数据盘上。S3 API、RPC、静态站点和 Admin API 端口分开绑定，Admin API 只在 loopback 上监听。",
+      "units": ["garage.service"],
+      "health": { "type": "http", "url": "http://127.0.0.1:3903/health", "expect": [200] },
+      "tailscale": { "service": "garage", "ports": [443, 3902], "primaryPort": 443 },
+      "ports": [
+        { "port": 3900, "bind": "所有地址", "role": "S3 API" },
+        { "port": 3901, "bind": "所有地址", "role": "集群 RPC" },
+        { "port": 3902, "bind": "所有地址", "role": "静态站点 / Web" },
+        { "port": 3903, "bind": "127.0.0.1", "role": "Admin API" }
+      ],
+      "dataPaths": ["/data/garage/data", "/data/garage/meta"],
+      "docs": "openobserve.md",
+      "tags": ["S3", "对象存储"],
+      "notes": [
+        "RPC 端口没有 TLS 也没有鉴权，安全性依赖所在网络不可被不可信主机访问。"
+      ]
+    },
+    {
+      "id": "garage-ui",
+      "name": "Garage UI",
+      "category": "storage",
+      "summary": "Garage 的浏览与管理界面。",
+      "details": "rootless Podman 容器，使用 host 网络，通过 Admin token 与 Garage 的 Admin API 通信。界面自身带 token 校验。",
+      "units": ["garage-ui.service"],
+      "health": { "type": "http", "url": "http://{tailnet_ip}:8080/", "expect": [200, 401, 403] },
+      "tailscale": { "service": "garage-ui", "ports": [443], "primaryPort": 443 },
+      "direct": [
+        { "label": "Garage UI", "scheme": "http", "host": "{tailnet_ip}", "port": 8080 }
+      ],
+      "dependsOn": ["garage"],
+      "tags": ["对象存储", "管理界面"]
+    },
+    {
+      "id": "dufs",
+      "name": "dufs (WebDAV)",
+      "category": "storage",
+      "summary": "对数据目录提供 WebDAV 和浏览器文件访问。",
+      "details": "单目录读写共享，凭据来自 agenix 机密并在启动时注入。服务在 tailnet 和 loopback 上可达，同时通过 Cloudflare Tunnel 有一个公网 WebDAV 入口。",
+      "units": ["dufs.service"],
+      "health": { "type": "http", "url": "http://127.0.0.1:5000/", "expect": [200, 401, 403] },
+      "tailscale": { "service": "dufs", "ports": [443], "primaryPort": 443 },
+      "publicHosts": [
+        { "hostname": "webdav-alex.longred.work", "target": "本服务" }
+      ],
+      "dataPaths": ["/data/dufs"],
+      "tags": ["WebDAV", "文件"],
+      "notes": [
+        "公网入口与 tailnet 入口共享同一组凭据，轮换时要同时考虑两侧。"
+      ]
+    },
+
+    {
+      "id": "affine",
+      "name": "AFFiNE",
+      "category": "knowledge",
+      "summary": "自托管文档与协作工作区。",
+      "details": "四单元组合：应用服务加 PostgreSQL、Redis 和索引器。应用以 DEPLOYMENT_TYPE=selfhosted 运行，只绑定 tailnet 地址。",
+      "units": [
+        "affine.service",
+        "affine-postgres.service",
+        "affine-redis.service",
+        "affine-indexer.service"
+      ],
+      "health": { "type": "http", "url": "http://{tailnet_ip}:3010/", "expect": [200] },
+      "tailscale": { "service": "affine", "ports": [443], "primaryPort": 443 },
+      "direct": [
+        { "label": "AFFiNE", "scheme": "http", "host": "{tailnet_ip}", "port": 3010 }
+      ],
+      "tags": ["文档", "协作"],
+      "notes": [
+        "数据库和缓存没有独立备份单元；数据丢失风险由 /data 上的数据盘承担。"
+      ]
+    },
+    {
+      "id": "anytype",
+      "name": "Anytype",
+      "category": "knowledge",
+      "summary": "Anytype 无头服务，为客户端提供本地 API。",
+      "details": "gRPC 及其 Web 代理绑定在 loopback，API 端口设计为对所有地址开放，以便其他 tailnet 主机访问。",
+      "units": ["anytype.service"],
+      "health": { "type": "tcp", "host": "127.0.0.1", "port": 31012 },
+      "direct": [
+        { "label": "gRPC", "scheme": "http", "host": "127.0.0.1", "port": 31010, "kind": "api" },
+        { "label": "gRPC Web", "scheme": "http", "host": "127.0.0.1", "port": 31011, "kind": "api" }
+      ],
+      "tags": ["笔记"],
+      "notes": [
+        "单元处于 active 只说明进程在运行。没有存储的账号密钥时服务会跳过自动登录，此时 API 端口不监听，探针会判定为不可用。"
+      ]
+    },
+
+    {
+      "id": "opencode",
+      "name": "OpenCode",
+      "category": "dev",
+      "summary": "无头编码代理服务，并把 Trace 直接导出到 OpenObserve。",
+      "details": "通过插件从环境变量读取 OTLP 目的地，日志与指标打开、内部 Span 关闭，以免淹没观测后端。CORS 来源在模块中声明。",
+      "units": ["opencode.service"],
+      "health": { "type": "http", "url": "http://127.0.0.1:4096/", "expect": [200] },
+      "tailscale": { "service": "opencode", "ports": [443], "primaryPort": 443 },
+      "dependsOn": ["openobserve"],
+      "docs": "openobserve.md",
+      "tags": ["编码代理", "Trace"]
+    },
+    {
+      "id": "deepseek-harness",
+      "name": "DeepSeek Harness",
+      "category": "dev",
+      "summary": "DSH Web 控制台，使用 Tailscale 身份做访问控制。",
+      "details": "npm 发行版安装在用户运行时目录，Home Manager 负责初始化 web profile 并注入本地插件。连接层被补丁为只接受 loopback 或本 tailnet 身份。",
+      "units": ["deepseek-harness.service"],
+      "health": { "type": "http", "url": "http://127.0.0.1:3080/", "expect": [200, 401, 403] },
+      "tailscale": { "service": "deepseek-harness", "ports": [443], "primaryPort": 443 },
+      "docs": "deepseek-harness.md",
+      "tags": ["Web 控制台", "身份认证"],
+      "notes": [
+        "loopback 之外返回 401 是预期行为：访问需要由 Tailscale 身份或 token 证明。"
+      ]
+    }
+  ],
+
+  "fleet": {
+    "enabled": true,
+    "title": "家庭实验室机群",
+    "summary": "其他受管机器没有本页的本地探针，状态来自它们已经上报到 OpenObserve 的主机指标。",
+    "streams": {
+      "load": "system_cpu_load_average_1m",
+      "memory": "system_memory_usage"
+    },
+    "windowSeconds": 900,
+    "notes": [
+      "只有正在上报指标的机器会出现；没有上报不代表机器离线。",
+      "这里的数据同时依赖 OpenObserve、Garage 和采集端，任一层故障都会让视图退化为不可用。"
+    ]
+  }
+}

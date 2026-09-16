@@ -37,6 +37,11 @@
       "endpoints": {
         "tcp:443": "tls-terminated-tcp://100.100.10.1:3010"
       }
+    },
+    "svc:portal": {
+      "endpoints": {
+        "tcp:443": "tls-terminated-tcp://100.100.10.1:8090"
+      }
     }
   }
 }
