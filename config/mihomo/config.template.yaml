@@ -2,9 +2,15 @@
 #
 # The render script (config/mihomo/render.py) substitutes these markers and
 # writes the result to the state directory with mode 0600:
-#   __CONTROLLER_SECRET__      controller/dashboard bearer secret
-#   __SUBSCRIPTION_USE__       comma-separated provider name, or empty
-#   # __SUBSCRIPTION_PROVIDER__ replaced by the subscription provider block
+#   __CONTROLLER_SECRET__       controller/dashboard bearer secret
+#   __CONTROLLER_ENDPOINT__     controller/dashboard bind address
+#   # __PROXY_PROVIDERS__      replaced by the subscription provider block
+#   # __CUSTOM_PROXIES__       replaced by the runtime custom proxies
+#   # __PROXY_GROUPS__         replaced by the rules-override proxy-groups
+#   # __RULES__                replaced by the rules-override rules
+#
+# The subscription only carries proxy nodes; proxy groups, rule-providers and
+# rules come from an external Clash override document fetched by render.py.
 #
 # Never put a subscription URL, node address, or node credential in this file:
 # those live only in the runtime secret files and the rendered state directory.
@@ -13,12 +19,12 @@ mixed-port: 7890
 mode: rule
 log-level: info
 ipv6: false
-allow-lan: false
+allow-lan: true
 find-process-mode: off
 unified-delay: true
 tcp-concurrent: true
 
-external-controller: 127.0.0.1:9091
+external-controller: "__CONTROLLER_ENDPOINT__"
 secret: "__CONTROLLER_SECRET__"
 
 profile:
@@ -44,69 +50,24 @@ dns:
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
+  # Resolve everything through China-friendly DoH. A fallback list of
+  # 1.1.1.1 / dns.google is unreachable here and makes rules and providers on
+  # non-CN CDNs fail to resolve, so resolution stays on the domestic servers.
   nameserver:
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
-  fallback:
-    - https://1.1.1.1/dns-query
-    - https://dns.google/dns-query
-  fallback-filter:
-    geoip: true
-    geoip-code: CN
-    ipcidr:
-      - 240.0.0.0/4
   proxy-server-nameserver:
     - https://doh.pub/dns-query
 
-proxy-providers:
-  # __SUBSCRIPTION_PROVIDER__
-  custom:
-    type: file
-    path: ./providers/custom.yaml
-    health-check:
-      enable: true
-      url: https://www.gstatic.com/generate_204
-      interval: 300
-      lazy: true
-      expected-status: 204
+# __PROXY_PROVIDERS__
 
-proxy-groups:
-  - name: PROXY
-    type: select
-    use: [__SUBSCRIPTION_USE__custom]
-    proxies:
-      - AUTO
-      - DIRECT
-    url: https://www.gstatic.com/generate_204
-    interval: 300
-    lazy: true
-    default-selected: AUTO
-  - name: AUTO
-    type: url-test
-    use: [__SUBSCRIPTION_USE__custom]
-    proxies:
-      - DIRECT
-    url: https://www.gstatic.com/generate_204
-    interval: 300
-    tolerance: 50
-    lazy: true
-  - name: DIRECT
-    type: select
-    proxies:
-      - DIRECT
+# Custom nodes are declared at the top level (not as a provider) so that
+# dialer-proxy chains between them resolve; the override's include-all groups
+# still pick them up.
+# __CUSTOM_PROXIES__
 
-rules:
-  # Keep loopback, LAN, and the Tailscale tailnet on the direct path so the
-  # proxy never recurses into itself or breaks MagicDNS/Service names.
-  - IP-CIDR,127.0.0.0/8,DIRECT,no-resolve
-  - IP-CIDR,100.64.0.0/10,DIRECT,no-resolve
-  - IP-CIDR,10.0.0.0/8,DIRECT,no-resolve
-  - IP-CIDR,172.16.0.0/12,DIRECT,no-resolve
-  - IP-CIDR,192.168.0.0/16,DIRECT,no-resolve
-  - IP-CIDR,169.254.0.0/16,DIRECT,no-resolve
-  - DOMAIN-SUFFIX,ts.net,DIRECT
-  - DOMAIN-SUFFIX,local,DIRECT
-  - GEOSITE,category-ads-all,REJECT
-  - GEOSITE,cn,DIRECT
-  - GEOIP,CN,DIRECT
-  - MATCH,PROXY
+# Proxy groups, rule-providers and rules come from the external override
+# document. render.py splices them into the placeholders below.
+# __PROXY_GROUPS__
+
+# __RULES__

@@ -23,8 +23,10 @@
     ../../modules/host-services/mihomo.nix
   ];
 
-  # Local rule-based proxy with a dashboard and OpenObserve metrics.
+  # Local rule-based proxy with a dashboard and OpenObserve metrics. The
+  # dashboard binds to the tailnet address; the metrics collector follows it.
   hostServices.mihomo.enable = true;
+  hostServices.mihomo.controllerHost = "100.100.10.1";
 
   # Fedora NUC-specific packages
   home.packages =

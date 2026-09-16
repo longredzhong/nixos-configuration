@@ -28,6 +28,9 @@ let
       '${template}' \
       '${cfg.subscriptionUrlFile}' \
       '${cfg.customProxiesFile}' \
+      '${cfg.customRulesFile}' \
+      '${cfg.rulesOverrideUrl}' \
+      '${cfg.controllerHost}:${toString cfg.controllerPort}' \
       '${stateDir}'
   '';
 
@@ -46,7 +49,7 @@ let
   collectMetrics = pkgs.writeShellScript "mihomo-collect-metrics" ''
     set -euo pipefail
     exec '${pkgs.python3}/bin/python3' '${metricsScript}' \
-      'http://127.0.0.1:${toString cfg.controllerPort}' \
+      'http://${cfg.controllerHost}:${toString cfg.controllerPort}' \
       '${stateDir}/controller.secret' \
       '${cfg.metrics.otlpEndpoint}'
   '';
@@ -63,10 +66,20 @@ in
       description = "Local mixed HTTP/SOCKS proxy port.";
     };
 
+    controllerHost = lib.mkOption {
+      type = lib.types.str;
+      default = "127.0.0.1";
+      description = ''
+        Interface the RESTful controller and dashboard bind to. Set this to a
+        LAN or Tailscale address to expose the dashboard there; the metrics
+        collector follows the same address.
+      '';
+    };
+
     controllerPort = lib.mkOption {
       type = lib.types.port;
       default = 9091;
-      description = "Local RESTful controller and dashboard port (9090 is Cockpit on the NUC).";
+      description = "RESTful controller and dashboard port (9090 is Cockpit on the NUC).";
     };
 
     subscriptionUrlFile = lib.mkOption {
@@ -84,7 +97,31 @@ in
       default = "${configDir}/custom.yaml";
       description = ''
         Runtime file (mode 0600) containing custom proxies as Clash YAML.
-        A missing or empty file renders an empty provider.
+        They are rendered as top-level `proxies` so dialer-proxy chains between
+        them resolve; include-all groups still pick them up. A missing or empty
+        file renders an empty list.
+      '';
+    };
+
+    customRulesFile = lib.mkOption {
+      type = lib.types.str;
+      default = "${configDir}/rules.yaml";
+      description = ''
+        Runtime file (mode 0600) containing custom rules as a Clash YAML
+        `rules:` list. The entries are prepended to the rules from the
+        override document (Clash Party `+rules` semantics). A missing file adds
+        no custom rules.
+      '';
+    };
+
+    rulesOverrideUrl = lib.mkOption {
+      type = lib.types.str;
+      default = "https://raw.githubusercontent.com/mihomo-party-org/override-hub/main/yaml/ACL4SSR_Online_Full_WithIcon.yaml";
+      description = ''
+        URL of the Clash override document that supplies proxy-groups,
+        rule-providers and rules. The subscription provider only carries nodes.
+        The document is fetched at render time and cached; when it is
+        unreachable the last good copy is reused.
       '';
     };
 
@@ -119,7 +156,7 @@ in
 
       systemd.user.services.mihomo = {
         Unit = {
-          Description = "mihomo rule-based proxy (mixed 127.0.0.1:${toString cfg.mixedPort}, dashboard 127.0.0.1:${toString cfg.controllerPort})";
+          Description = "mihomo rule-based proxy (mixed :${toString cfg.mixedPort}, dashboard ${cfg.controllerHost}:${toString cfg.controllerPort})";
           After = [ "network-online.target" ];
           Wants = [ "network-online.target" ];
         };
