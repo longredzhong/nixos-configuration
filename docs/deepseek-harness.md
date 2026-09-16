@@ -153,6 +153,33 @@ route 保留用于兼容已有会话和默认模型。
   用量记录；
 - **ops stream**：`agent/error` 的 session、turn、step 和错误名。
 
+### OTLP Trace 与指标
+
+profile 还挂载 `dsh-otel`（`pkgs/dsh-otel`），把 agent loop 映射成 OpenTelemetry
+GenAI 语义约定的 trace 和指标：
+
+- trace：`invoke_agent`（turn，trace 根）、`dsh.step`、`chat {model}`、
+  `execute_tool {name}`，每个 span 带 `gen_ai.conversation.id`（= session id）；
+  模型调用 span 带 `gen_ai.usage.input_tokens`/`output_tokens`、
+  `gen_ai.usage.cache_read.input_tokens`、`gen_ai.usage.cache_creation.input_tokens`、
+  `gen_ai.request.model` 和 `gen_ai.response.model`，正好是 OpenObserve 的
+  LLM 可观测性读取的列；
+- 指标：`gen_ai.client.token.usage`、`gen_ai.client.operation.duration`、
+  `gen_ai.execute_tool.duration`。
+
+插件不发射 logs：harness 的 `dsh-session-telemetry-otel` 行负责 logs，`dsh-otel`
+不注册 `SessionTelemetryBackend`，两者不冲突。上游是
+[krimvp/dsh-otel](https://github.com/krimvp/dsh-otel)；本仓库在 Nix 里构建并用
+esbuild 打包成自包含 ESM，作为路径插件加载，不依赖运行时 npm 解析。
+
+导出走标准 `OTEL_*`：`startHarness` 用同一份 ingestion 凭据导出
+`OTEL_EXPORTER_OTLP_ENDPOINT`、`OTEL_EXPORTER_OTLP_HEADERS`（含
+`stream-name=<hostname>_dsh_llm`）、`OTEL_SERVICE_NAME` 和
+`OTEL_RESOURCE_ATTRIBUTES`，trace 与指标直接写入 `<hostname>_dsh_llm`；环境变量
+优先于插件 cordis 配置里的 `endpoint`。`captureContent` 保持 `false`：prompt、
+工具参数和工具结果不离开主机；要会话内容视图时必须显式开启，并同时限制该 stream 的
+访问和保留时间。
+
 ### 脱敏原则
 
 记录由**逐字段白名单**构造，而不是截取事件体后依赖规则清洗：消息正文、工具参数、

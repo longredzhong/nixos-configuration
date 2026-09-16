@@ -1,0 +1,15 @@
+# Mounts the dsh-otel OpenTelemetry row into the harness profile.
+#
+# The OTLP endpoint, headers, service name and resource attributes come from the
+# OTEL_* environment variables that deepseek-harness.nix exports for the unit;
+# the endpoint here is only the fallback when those variables are unset.
+#
+# Content capture stays off: the harness ledger already carries the scalar
+# accounting, and message/tool content must not leave the host by default.
+- insert:
+    - id: dsh-otel
+      name: dsh-otel
+      config:
+        serviceName: deepseek-harness
+        endpoint: http://127.0.0.1:4318
+        captureContent: false

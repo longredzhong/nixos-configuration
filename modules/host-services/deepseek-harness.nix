@@ -22,6 +22,8 @@ let
   sessionPluginPath = "${pkgs.deepseek-harness-opencode-session}/lib/node_modules/${sessionPluginName}";
   observabilityPluginName = "@longred/deepseek-harness-observability";
   observabilityPluginPath = "${pkgs.deepseek-harness-observability}/lib/node_modules/${observabilityPluginName}";
+  otelPluginName = "dsh-otel";
+  otelPluginPath = "${pkgs.dsh-otel}/lib/node_modules/${otelPluginName}";
 
   # Bundles this module contributes to the web profile, in patch order.
   profilePlugins = [
@@ -33,6 +35,10 @@ let
       name = observabilityPluginName;
       path = observabilityPluginPath;
     }
+    {
+      name = otelPluginName;
+      path = otelPluginPath;
+    }
   ];
 
   # Session telemetry destination. The credential is the OpenObserve ingestion
@@ -43,6 +49,8 @@ let
   openobserveEndpoint = "http://100.100.10.1:5080/api/default";
   openobserveLedgerStream = "nuc_dsh_ledger";
   openobserveOpsStream = "nuc_dsh_ops";
+  # GenAI traces and metrics emitted by the dsh-otel plugin over OTLP/HTTP.
+  openobserveOtlpStream = "nuc_dsh_llm";
   openobserveToken = config.age.secrets.openobserve-agent-token.path;
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
   settingsClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-ui-settings/lib/client.js";
@@ -265,6 +273,7 @@ let
     test -f "$entry"
     test -f '${sessionPluginPath}/package.json'
     test -f '${observabilityPluginPath}/package.json'
+    test -f '${otelPluginPath}/package.json'
   '';
 
   startHarness = pkgs.writeShellScript "deepseek-harness-start" ''
@@ -275,6 +284,20 @@ let
     # the value would depend on systemd's own variable expansion. Every other
     # service module in this repository resolves the same path the same way.
     export DSH_OBSERVABILITY_TOKEN_FILE="${openobserveToken}"
+
+    # dsh-otel exports GenAI traces and metrics over OTLP/HTTP. Point it at
+    # OpenObserve with the same ingestion credential and a stream-name header so
+    # the spans land in their own stream. The standard OTEL_* variables win over
+    # the plugin's cordis config; content capture stays off.
+    otel_auth="$(cat "${openobserveToken}")"
+    if [ -z "$otel_auth" ]; then
+      echo "deepseek-harness: OpenObserve authentication header is empty" >&2
+      exit 1
+    fi
+    export OTEL_EXPORTER_OTLP_ENDPOINT='${openobserveEndpoint}'
+    export OTEL_EXPORTER_OTLP_HEADERS="Authorization=$otel_auth,stream-name=${openobserveOtlpStream}"
+    export OTEL_SERVICE_NAME='deepseek-harness'
+    export OTEL_RESOURCE_ATTRIBUTES='service.namespace=longred,deployment.environment=home-lab,host.name=nuc'
 
     # systemd attaches StandardOutput/StandardError before it creates any
     # managed directory, so an append: target below %L (or %S) fails with
