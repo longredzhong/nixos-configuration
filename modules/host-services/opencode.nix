@@ -14,7 +14,10 @@ let
   opencodeConfig = "${config.home.homeDirectory}/.config/opencode/opencode.jsonc";
   pluginName = "@devtheops/opencode-plugin-otel";
   pluginPath = "${pkgs.opencode-plugin-otel}/lib/node_modules/${pluginName}";
-  pluginLink = "${config.home.homeDirectory}/.config/opencode/node_modules/${pluginName}";
+  # Where earlier generations symlinked the plugin for OpenCode's npm loader.
+  # The config now passes an absolute Nix store path, so the link is removed on
+  # the next service start.
+  legacyPluginLink = "${config.home.homeDirectory}/.config/opencode/node_modules/${pluginName}";
   openobserveEndpoint = "http://100.100.10.1:5080/api/default";
   # One stream name covers all three OTLP signals; OpenObserve keeps a separate
   # stream per signal type, so this becomes nuc_opencode (traces),
@@ -33,19 +36,21 @@ let
     set -euo pipefail
 
     config_file='${opencodeConfig}'
-    plugin_link='${pluginLink}'
-    plugin_path='${pluginPath}'
+    legacy_link='${legacyPluginLink}'
 
-    mkdir -p "$(dirname "$config_file")" "$(dirname "$plugin_link")"
-    if [ -e "$plugin_link" ] && [ ! -L "$plugin_link" ]; then
-      backup="$plugin_link.hm-backup.$(date +%s)"
-      mv "$plugin_link" "$backup"
-      echo "opencode: backed up existing plugin to $backup" >&2
+    mkdir -p "$(dirname "$config_file")"
+
+    # Older generations symlinked the plugin into OpenCode's npm node_modules
+    # and declared it by package name, which made OpenCode install the package
+    # from the npm registry on every start (and fail when the registry was not
+    # reachable). Drop that stale link; the config below points at the Nix store.
+    if [ -L "$legacy_link" ]; then
+      rm -f "$legacy_link"
     fi
-    ln -sfn "$plugin_path" "$plugin_link"
 
     O2_CONFIG="$config_file" \
       O2_PLUGIN_NAME='${pluginName}' \
+      O2_PLUGIN_PATH='${pluginPath}' \
       '${pkgs.python3}/bin/python3' - <<'PY'
     import json
     import os
@@ -90,12 +95,27 @@ let
         if not isinstance(config, dict):
             raise SystemExit(f"Existing OpenCode config root is not an object: {path}")
 
+    plugin_path = os.environ["O2_PLUGIN_PATH"]
+
     config.setdefault("$schema", "https://opencode.ai/config.json")
     plugins = config.get("plugin")
     if not isinstance(plugins, list):
         plugins = []
-    if plugin_name not in plugins:
-        plugins.append(plugin_name)
+    # Drop the legacy package-name spec (OpenCode would install it from npm on
+    # every start) and any stale store path from an older generation before
+    # adding the current absolute path.
+    plugins = [
+        entry
+        for entry in plugins
+        if entry != plugin_name
+        and not (
+            isinstance(entry, str)
+            and entry.startswith("/nix/store/")
+            and entry.endswith(plugin_name)
+        )
+    ]
+    if plugin_path not in plugins:
+        plugins.append(plugin_path)
     config["plugin"] = plugins
 
     if path.exists() and path.read_text(encoding="utf-8") == json.dumps(config, indent=2) + "\n":
@@ -130,26 +150,24 @@ let
       exit 1
     fi
 
-    # The plugin's current configuration interface uses OPENCODE_* variables.
-    # Keep the standard OTEL_* variables too for the bundled OTLP exporters.
+    # The plugin reads OPENCODE_* variables. Do not export
+    # OTEL_EXPORTER_OTLP_*: OpenCode's own Effect/AI-SDK tracing reads those and
+    # would export tens of thousands of internal spans (SessionProcessor.*,
+    # sql.execute, http.server, Plugin.trigger, ...) into the same stream. They
+    # carry no token accounting but still force OpenObserve to classify the
+    # stream as an LLM stream and bury the plugin's real LLM spans.
     #
     # Metrics and log events stay enabled on purpose: the token/cost counters
     # (`token.usage`, `cost.usage`, `session.token.total`, `session.cost.total`)
     # and the session lifecycle log events are the usage signals this service is
-    # observed for. Suppressing them leaves only trace spans, which a dashboard
-    # cannot aggregate the same way. Trace spans DO carry prompt and tool content
-    # (`gen_ai.input_messages`, `gen_ai.system_instructions`), and that capture
-    # has no per-field opt-out; see docs/openobserve.md before widening access.
+    # observed for. Trace spans DO carry prompt and tool content
+    # (`llm.input_messages`, `input.value`), and that capture has no per-field
+    # opt-out; see docs/openobserve.md before widening access.
     export OPENCODE_ENABLE_TELEMETRY=1
     export OPENCODE_OTLP_ENDPOINT='${openobserveEndpoint}'
     export OPENCODE_OTLP_PROTOCOL='http/protobuf'
     export OPENCODE_OTLP_HEADERS="Authorization=$auth,stream-name=${openobserveStream}"
     export OPENCODE_RESOURCE_ATTRIBUTES='service.namespace=longred,deployment.environment=home-lab,host.name=nuc'
-    export OTEL_EXPORTER_OTLP_ENDPOINT='${openobserveEndpoint}'
-    export OTEL_EXPORTER_OTLP_PROTOCOL='http/protobuf'
-    export OTEL_EXPORTER_OTLP_HEADERS="Authorization=$auth,stream-name=${openobserveStream}"
-    export OTEL_SERVICE_NAME='opencode'
-    export OTEL_RESOURCE_ATTRIBUTES="$OPENCODE_RESOURCE_ATTRIBUTES"
 
     exec '${opencodeBin}' serve --hostname 0.0.0.0 --port 4096 ${corsArgs}
   '';

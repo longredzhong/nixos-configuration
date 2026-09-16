@@ -80,8 +80,21 @@ hostmetrics 的 filesystem scraper 只报告挂载根等于 `/` 的文件系统�
 traces、metrics、logs 不会互相混淆。**不要**再用 `<hostname>_opencode_traces`
 这类带信号后缀的名字——它会被 logs 和 metrics 复用而名不副实。该插件默认导出
 token 与成本计数器和会话生命周期日志事件；禁用它们等于放弃用量观测。代价是 Trace
-span 会携带 prompt、工具输入输出和系统提示（`gen_ai.*` 系列字段），且没有按字段
-关闭的开关，因此限制该 stream 的访问范围和保留时间。
+span 会携带 prompt、工具输入输出（OpenInference 的 `llm.input_messages`、
+`output.value` 及映射出的 `gen_ai_*` 字段），且没有按字段关闭的开关，因此限制该
+stream 的访问范围和保留时间。
+
+插件在 `opencode.json` 的 `plugin` 里以 **Nix store 绝对路径**声明，而不是 npm 包名：
+包名会让 OpenCode 在每次启动时用 Bun 到 registry 安装，离线或代理未就绪时直接
+`failed to load plugin`，而本地路径走 file 插件加载、跳过兼容性和安装阶段。插件本身
+已自带依赖，不需要 `node_modules`。
+
+只导出 `OPENCODE_*` 变量，**不要**导出 `OTEL_EXPORTER_OTLP_*`。OpenCode 内置的
+Effect/AI-SDK tracing 读取后者，会向同一个 stream 写入大量内部 span
+（`SessionProcessor.*`、`sql.execute`、`http.server`、`Plugin.trigger` 等）；这些 span
+没有 token 记账，却会让 OpenObserve 把 stream 判定为 LLM stream，淹没插件真正需要的
+`opencode.llm` span。插件发出的是 OpenInference + GenAI 属性（`llm.token_count.*`、
+`gen_ai.provider.name` 等），OpenObserve 会映射成 `gen_ai_*` 列并计算成本。
 
 DeepSeek Harness 的会话遥测不经过 Collector：Harness 进程直接用原生 JSON
 ingestion 接口写入 `<hostname>_dsh_ledger`（会话事件与 token 记账）和
