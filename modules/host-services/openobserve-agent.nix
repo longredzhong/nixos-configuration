@@ -46,6 +46,30 @@ let
     ]
   );
 
+  # Multi-disk / btrfs monitoring fix. gopsutil (used by hostmetrics) treats
+  # every non-root mount of a device as a bind mount and drops it unless
+  # include_virtual_filesystems is enabled, which hides btrfs subvolumes such
+  # as "/" and "/home". Enabling it also exposes tmpfs, /proc, /sys and
+  # container overlays, so we filter those back out with the pseudo-filesystem
+  # and volatile mount-point patterns used by node_exporter and common Grafana
+  # dashboards. Subvolumes that share one device are de-duplicated in the
+  # dashboard queries instead of here.
+  filesystemScraperConfig = lib.concatStringsSep "\n" [
+    "          filesystem:"
+    "            include_virtual_filesystems: true"
+    "            metrics:"
+    "              system.filesystem.utilization:"
+    "                enabled: true"
+    "            exclude_fs_types:"
+    "              match_type: regexp"
+    "              fs_types:"
+    "                - '^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|efivarfs|erofs|fuse\\..*|fuse-overlayfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|ramfs|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tmpfs|tracefs)$'"
+    "            exclude_mount_points:"
+    "              match_type: regexp"
+    "              mount_points:"
+    "                - '^/(dev|proc|sys|mnt/wslg|snap/.+|var/lib/docker/.+|var/lib/containers/storage/.+|var/lib/kubelet/.+)(/.*)?$'"
+  ];
+
   logPipelineProcessors =
     [ "resource_detection/system" ]
     ++ lib.optional (excludedLogUnits != []) "filter/drop-excluded-logs"
@@ -102,7 +126,7 @@ let
             scrapers:
               cpu:
               disk:
-              filesystem:
+    ${filesystemScraperConfig}
               load:
               memory:
               network:

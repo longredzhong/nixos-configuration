@@ -344,7 +344,7 @@
           "queryType": "promql",
           "queries": [
             {
-              "query": "sum by (host_name, mountpoint) (system_filesystem_usage{state=\"used\"})",
+              "query": "max by (host_name, device) (system_filesystem_usage{state=\"used\"})",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
@@ -361,7 +361,7 @@
                 }
               },
               "config": {
-                "promql_legend": "{host_name}",
+                "promql_legend": "{host_name} {device}",
                 "layer_type": "scatter",
                 "weight_fixed": 1,
                 "limit": 0,

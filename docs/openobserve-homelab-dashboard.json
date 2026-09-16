@@ -691,7 +691,7 @@
           "id": "HL_Fs",
           "type": "line",
           "title": "文件系统使用率",
-          "description": "used / (used+free+reserved)，按挂载点",
+          "description": "按物理设备聚合（btrfs 子卷共享同一设备、避免重复计数），used / (used+free)，与 df 同口径",
           "config": {
             "show_legends": true,
             "legends_position": null,
@@ -727,11 +727,11 @@
           "queryType": "promql",
           "queries": [
             {
-              "query": "100 * system_filesystem_usage{state=\"used\"} / (system_filesystem_usage{state=\"used\"} + system_filesystem_usage{state=\"free\"} + system_filesystem_usage{state=\"reserved\"})",
+              "query": "100 * max by (host_name, device) (system_filesystem_utilization)",
               "vrlFunctionQuery": "",
               "customQuery": true,
               "fields": {
-                "stream": "system_filesystem_usage",
+                "stream": "system_filesystem_utilization",
                 "stream_type": "metrics",
                 "x": [],
                 "y": [],
@@ -744,7 +744,7 @@
                 }
               },
               "config": {
-                "promql_legend": "{host_name} {mountpoint}",
+                "promql_legend": "{host_name} {device}",
                 "layer_type": "scatter",
                 "weight_fixed": 1,
                 "limit": 0,

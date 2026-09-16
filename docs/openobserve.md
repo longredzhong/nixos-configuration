@@ -69,6 +69,12 @@ Collector 默认负责三类数据：
 
 Collector 会丢弃 `openobserve.service` 自身的 journald 日志，避免 OpenObserve 记录自己的接入日志形成自反馈；并对 Garage S3 Trace 做概率采样。两者分别由 `hostServices.openobserveAgent.excludeLogUnits` 和 `garageTraceSamplingPercentage` 控制。
 
+### 多磁盘与 btrfs 子卷
+
+hostmetrics 的 filesystem scraper 只报告挂载根等于 `/` 的文件系统；btrfs 子卷（例如 `/` 与 `/home` 共用同一个设备，但 subvolume root 不是 `/`）会被底层 gopsutil 视为 bind mount 并在默认配置下丢弃。因此 Collector 打开 `include_virtual_filesystems`，让这些物理子卷重新出现，再用与 node_exporter 相同的伪文件系统类型和易失挂载点正则过滤掉 tmpfs（含 `/run` 等）、`proc`/`sysfs`、容器 overlay 和 WSL 的 `/mnt/wslg`，避免图表被噪声淹没。
+
+同一设备上的多个子卷不能各自计入容量：btrfs 的 `/` 与 `/home`、bind mount 都报告同一个 filesystem 的用量，直接求和会把一块盘算两遍。看板查询用 `max by (host_name, device)` 按设备去重，而不是按 mountpoint 汇总。模块同时开启 `system.filesystem.utilization`，它等于 `used / (used + free)`，与 `df` 的 Use% 同口径；不要用 `used + free + reserved` 求和，reserved 是文件系统保留块，不代表已用空间。
+
 应用自身的信号按服务分 stream。OpenCode 的 OTel 插件一次导出三类信号，用一个
 `<hostname>_opencode` 名称即可：OpenObserve 按信号类型各建一个同名 stream，因此
 traces、metrics、logs 不会互相混淆。**不要**再用 `<hostname>_opencode_traces`
@@ -178,3 +184,5 @@ curl --fail http://<observe-host>:<http-port>/healthz
 - [Garage 快速开始](https://garagehq.deuxfleurs.fr/documentation/quick-start/)
 - [Garage 配置参考](https://garagehq.deuxfleurs.fr/documentation/reference-manual/configuration/)
 - [Garage 监控](https://garagehq.deuxfleurs.fr/documentation/cookbook/monitoring/)
+- [OpenTelemetry hostmetrics receiver](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/receiver/hostmetricsreceiver)
+- [Prometheus node_exporter filesystem collector](https://github.com/prometheus/node_exporter#filesystem-collector)
