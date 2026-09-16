@@ -16,6 +16,11 @@
 
     nix-index-database.url = "github:nix-community/nix-index-database";
     nix-index-database.inputs.nixpkgs.follows = "nixpkgs-unstable";
+
+    # Declarative disk partitioning. Only the longred-vm host uses it today, to
+    # describe its single-disk layout for nixos-anywhere.
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs";
   };
   outputs =
     inputs@{
@@ -94,11 +99,18 @@
     in
     {
       # ============================================================
-      # NixOS System Configurations (WSL)
+      # NixOS System Configurations (WSL and virtual machines)
       # ============================================================
       nixosConfigurations = {
         metacube-wsl = mkHost { hostname = "metacube-wsl"; };
         thinkbook-wsl = mkHost { hostname = "thinkbook-wsl"; };
+        # KVM guest on the adtiger virtualization host. It keeps the `dev`
+        # login user it was provisioned with, so `ssh dev@longred-vm` keeps
+        # working; every other host in this flake uses the default user.
+        longred-vm = mkHost {
+          hostname = "longred-vm";
+          username = "dev";
+        };
       };
 
       # ============================================================
