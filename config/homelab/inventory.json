@@ -274,23 +274,6 @@
         "数据库和缓存没有独立备份单元；数据丢失风险由 /data 上的数据盘承担。"
       ]
     },
-    {
-      "id": "anytype",
-      "name": "Anytype",
-      "category": "knowledge",
-      "summary": "Anytype 无头服务，为客户端提供本地 API。",
-      "details": "gRPC 及其 Web 代理绑定在 loopback，API 端口设计为对所有地址开放，以便其他 tailnet 主机访问。",
-      "units": ["anytype.service"],
-      "health": { "type": "tcp", "host": "127.0.0.1", "port": 31012 },
-      "direct": [
-        { "label": "gRPC", "scheme": "http", "host": "127.0.0.1", "port": 31010, "kind": "api" },
-        { "label": "gRPC Web", "scheme": "http", "host": "127.0.0.1", "port": 31011, "kind": "api" }
-      ],
-      "tags": ["笔记"],
-      "notes": [
-        "单元处于 active 只说明进程在运行。没有存储的账号密钥时服务会跳过自动登录，此时 API 端口不监听，探针会判定为不可用。"
-      ]
-    },
 
     {
       "id": "opencode",
