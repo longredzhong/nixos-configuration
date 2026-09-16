@@ -40,6 +40,25 @@
     "100.64.0.0/10"
   ];
 
+  # longred-vm is the home lab's Nix remote builder and signed binary cache,
+  # but this host cannot be pointed at it from this repository.
+  #
+  # The settings that matter (`substituters`, `trusted-public-keys`, `builders`)
+  # are restricted: Nix ignores them for an untrusted user. They therefore have
+  # to go in the daemon's own configuration, and the NUC runs Determinate Nix
+  # whose /etc/nix/nix.conf is root-owned and says to use nix.custom.conf — a
+  # file this repository cannot write (the account has no passwordless sudo).
+  #
+  # Worse, putting `substituters` in ~/.config/nix/nix.conf is actively harmful:
+  # the value replaces the default list, and then the single untrusted entry is
+  # dropped, leaving the machine with no substituter at all and building
+  # everything from source. So nothing is written here on purpose.
+  #
+  # Apply it by hand as root (see docs/nix-build-cache.md):
+  #
+  #   printf 'trusted-users = root longred\nbuilders = ssh-ng://root@longred-vm x86_64-linux /home/longred/.ssh/id_ed25519 8 1 big-parallel,kvm,nixos-test,benchmark\nbuilders-use-substitutes = true\n' >> /etc/nix/nix.custom.conf
+  #   systemctl restart nix-daemon
+
   # Fedora NUC-specific packages
   home.packages =
     with pkgs;

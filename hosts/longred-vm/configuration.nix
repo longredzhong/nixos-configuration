@@ -27,7 +27,9 @@
   imports = [
     inputs.home-manager.nixosModules.home-manager
     inputs.disko.nixosModules.disko
+    inputs.agenix.nixosModules.default
     ./disko.nix
+    ./garage-backup.nix
   ];
 
   system.stateVersion = "26.05";
@@ -91,15 +93,75 @@
   networking.firewall = {
     allowedTCPPorts = [ 22 ];
     trustedInterfaces = [ "tailscale0" ];
+    # The binary cache is published on the tailnet only. The rule is attached
+    # to the interface rather than allowedTCPPorts so the LAN and the libvirt
+    # NAT network cannot reach it.
+    interfaces.tailscale0.allowedTCPPorts = [ 5000 ];
   };
 
-  # --- remote access ------------------------------------------------------
+  # --- secrets ------------------------------------------------------------
+  # agenix decrypts with the machine's SSH host key. That key was carried over
+  # from the previous installation by nixos-anywhere --copy-host-keys, so the
+  # recipient below matches this host; the account key is a second recipient
+  # so the secret stays recoverable if the host key is ever regenerated.
+  age.identityPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  age.secrets.nix-binary-cache-key = {
+    file = ../../secrets/nix-binary-cache-key.age;
+    owner = "root";
+    mode = "0400";
+  };
+
+  # --- remote build -------------------------------------------------------
+  # Other machines in the lab use this host as a remote builder. Nix connects
+  # over SSH and drives nix-daemon there, and the daemon has to write to
+  # /nix/store, so the builder has to accept a root login — by key only. That
+  # is the standard arrangement for a build machine and the tailnet ACL is what
+  # actually decides who may reach it.
   services.openssh = {
     enable = true;
     settings = {
-      PermitRootLogin = "no";
+      # Key-only, including for root: remote builds need a root login because
+      # the Nix daemon writes to /nix/store.
+      PermitRootLogin = "prohibit-password";
       PasswordAuthentication = false;
     };
+  };
+  users.users.root.openssh.authorizedKeys.keys = [
+    # longred@nuc — the workstation that builds and deploys this repository
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBFpBt+r7xL1vyE1A2pUn72DEQy7wQ4hW6qhqYnZz2Fi longred@nuc"
+    # root@fedora-thinkbook — the LAN-local client, which is the fast path to
+    # this builder (the NUC reaches it only over a relayed tailnet link)
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHQSbxOhZstBps0KgTKARVN8brPnmU26bjmcXYFlAQGU root@fedora-thinkbook"
+  ];
+
+  nix.settings = {
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
+    # The daemon trusts root (implicitly) and wheel; that is what lets the
+    # connecting client request builds and extra substituters.
+    trusted-users = [
+      "root"
+      "@wheel"
+    ];
+    max-jobs = "auto";
+    cores = 0;
+    # Advertised to clients so they only schedule work this host can run.
+    system-features = [
+      "nixos-test"
+      "benchmark"
+      "big-parallel"
+      "kvm"
+    ];
+  };
+
+  # --- binary cache -------------------------------------------------------
+  # harmonia serves this host's store and signs the narinfos it hands out with
+  # the key above, so clients can verify what they substitute.
+  services.harmonia.cache = {
+    enable = true;
+    signKeyPaths = [ config.age.secrets.nix-binary-cache-key.path ];
   };
 
   # The tailscaled state from the previous installation is restored into the
@@ -124,6 +186,9 @@
     # enabled for this node.
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBFpBt+r7xL1vyE1A2pUn72DEQy7wQ4hW6qhqYnZz2Fi longred@nuc"
+      # The LAN-local workstation. Deployments to this guest go over the LAN
+      # rather than the relayed tailnet link.
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICw0USk2+Qy2+RJjNTinq8R293JmEpKJT1FUIKn0GWTf longred@fedora-thinkbook"
     ];
   };
 
@@ -132,16 +197,4 @@
   security.sudo.wheelNeedsPassword = false;
 
   programs.fish.enable = true;
-
-  # --- nix ----------------------------------------------------------------
-  nix.settings = {
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-    trusted-users = [
-      "root"
-      "@wheel"
-    ];
-  };
 }
