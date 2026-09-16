@@ -20,15 +20,34 @@ rg -n 'age\.secrets|age\.identityPaths' modules hosts users
 git status --short
 ```
 
-## 生成接收者
+## 接收者格式：使用 SSH 公钥
 
-使用管理员实际持有的 age 公钥，或把受信 SSH 公钥转换成 age 公钥。命令输出中的公钥可以记录在本地密码管理器中；不要把私钥复制进仓库。
+本仓库的 `secrets/*.age` 全部是 **`ssh-ed25519` 接收者**，必须由 `age -e -R <ssh-公钥文件>` 生成。原因是 agenix 的 `age.identityPaths` 指向 **SSH 私钥**，而上游 `age` 只在接收者本身是 `ssh-ed25519` 时才会用 SSH 私钥解密。
+
+当前使用的两个身份：
+
+| 目标类型 | `age.identityPaths` | 用来加密的公钥 |
+| --- | --- | --- |
+| Home Manager（Fedora 等） | `${config.home.homeDirectory}/.ssh/id_ed25519` | `~/.ssh/id_ed25519.pub` |
+| NixOS 主机 | `/etc/ssh/ssh_host_ed25519_key` | `/etc/ssh/ssh_host_ed25519_key.pub` |
+
+对齐真实目标时，直接读它的 `age.identityPaths`：
 
 ```bash
-# 从 SSH 公钥转换为 age 公钥
-ssh-to-age < ~/.ssh/id_ed25519.pub
+rg -n 'age\.identityPaths' modules hosts users
+```
 
-# 生成专用 age 身份时，私钥只保存到受保护的本机路径
+### 不要用 `ssh-to-age` 生成这里的接收者
+
+`ssh-to-age < ~/.ssh/id_ed25519.pub` 得到的是 `age1...` 形式的 X25519 公钥。把它交给 `age -r` 时，agenix 用 SSH 私钥解密会失败：
+
+```text
+age: error: no identity matched any of the recipients
+```
+
+需要专用 age 身份（非 SSH）时，才用 `age-keygen`，私钥只保存到受保护的本机路径：
+
+```bash
 age-keygen -o <private-key-path>
 chmod 600 <private-key-path>
 ```
@@ -43,21 +62,40 @@ chmod 600 <private-key-path>
 set -eu
 plain=$(mktemp)
 encrypted=$(mktemp --suffix=.age)
-trap 'shred -u "$plain" "$encrypted"' EXIT
+recipients=$(mktemp)
+trap 'shred -u "$plain" "$encrypted" "$recipients"' EXIT
+
+# 接收者文件：每行一个 SSH 公钥，只列真正需要解密该机密的目标。
+# 公钥本身不是机密，可以从各目标主机收集到本地。
+#   Home Manager 目标：~/.ssh/id_ed25519.pub
+#   NixOS 目标：/etc/ssh/ssh_host_ed25519_key.pub
+cat <ssh-pubkey-1> <ssh-pubkey-2> > "$recipients"
 
 # 编辑 "$plain"，只在本机短时间存在
 ${EDITOR:-vi} "$plain"
 
-age -r '<recipient-age-public-key>' \
-  -o "$encrypted" "$plain"
+# -R 读取 SSH 公钥文件；不要用 -r，那会写出 agenix 解不开的文件
+age -e -R "$recipients" -o "$encrypted" "$plain"
 
 # 经过接收者和目标路径复核后，替换仓库中的目标 .age 文件
 cp "$encrypted" secrets/<secret-name>.age
 ```
 
-如果一个机密需要多个身份，重复 `-r`，并在切换前验证每个目标身份都能解密。轮换时应先生成包含新旧接收者的文件、逐台部署并验证，再移除旧接收者；这样可以避免中途切换导致服务无法启动。
+替换仓库文件前，先确认接收者格式正确（应输出 `ssh-ed25519`，出现 `X25519` 说明用错了 `-r`）：
 
-复制前检查：
+```bash
+grep -ao 'ssh-ed25519\|X25519' secrets/<secret-name>.age | sort -u
+```
+
+如果一个机密需要多个身份，把它们都写进接收者文件（或重复 `-R`），并在切换前验证每个目标身份都能解密：
+
+```bash
+age -d -i <identity-private-key> -o /dev/null secrets/<secret-name>.age
+```
+
+轮换时应先生成包含**新旧接收者**的文件、逐台部署并验证，再移除旧接收者；这样可以避免中途切换导致服务无法启动。
+
+提交前检查：
 
 ```bash
 git diff --check
