@@ -7,12 +7,11 @@
 let
   tunnelToken = config.age.secrets.cloudflare-tunnel-nuc.path;
   cloudflaredConfig = "${config.xdg.configHome}/cloudflared/config.yml";
-in
-{
-  age.secrets.cloudflare-tunnel-nuc.file = ../../secrets/cloudflare-tunnel-nuc.age;
-  age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
 
-  home.file."${cloudflaredConfig}".text = ''
+  # ExecStart names this store path so a config-only change changes the systemd
+  # unit and Home Manager's sd-switch restarts cloudflared. The stable ~/.config
+  # path remains as a human-readable symlink.
+  cloudflaredConfigFile = pkgs.writeText "cloudflared-config.yml" ''
     ingress:
       - hostname: s3-alex.longred.work
         service: http://127.0.0.1:3900
@@ -20,6 +19,12 @@ in
         service: http://127.0.0.1:5000
       - service: http_status:404
   '';
+in
+{
+  age.secrets.cloudflare-tunnel-nuc.file = ../../secrets/cloudflare-tunnel-nuc.age;
+  age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+
+  home.file."${cloudflaredConfig}".source = cloudflaredConfigFile;
 
   systemd.user.services.cloudflared = {
     Unit = {
@@ -30,7 +35,7 @@ in
     Service = {
       ExecStart = pkgs.writeShellScript "cloudflared-start" ''
         exec ${pkgs.cloudflared}/bin/cloudflared tunnel \
-          --config ${cloudflaredConfig} \
+          --config ${cloudflaredConfigFile} \
           run \
           --token-file "${tunnelToken}"
       '';

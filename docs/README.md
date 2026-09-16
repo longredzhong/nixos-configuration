@@ -39,4 +39,10 @@ systemctl --user --no-pager status '<service>'
 journalctl --user -u '<service>' -n 100 --no-pager
 ```
 
+当前主机也可以直接用 `just apply`：它先跑 `check-fast`，再自动判断 NixOS /
+standalone Home Manager 并切换。Home Manager 默认用 `sd-switch`，会重启 systemd
+单元发生变化的用户服务；因此模块把生成的配置写成 store 文件并在 `ExecStart` 里引用
+该 store 路径（例如 `openobserve-agent`、`garage`、`cloudflared`），让"只改配置
+内容"也改变单元，从而触发重启。
+
 NixOS 目标使用 `just eval-host '<host>'`、`just build '<host>'` 或 `just switch-nixos '<host>'`。不要把真实目标参数复制回通用文档。

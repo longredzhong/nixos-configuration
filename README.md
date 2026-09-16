@@ -43,6 +43,10 @@ just check
 # 格式化 Nix
 just fmt
 
+# 一键更新当前主机：先 check-fast，再自动判断 NixOS / standalone HM 并切换
+# （配置内容变化会改变 systemd 单元，Home Manager 的 sd-switch 会重启对应服务）
+just apply
+
 # 预览或切换 standalone Home Manager
 just hm-dry-run '<user>@<host>'
 just hm-switch '<user>@<host>'

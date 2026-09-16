@@ -204,6 +204,13 @@ let
     ${garagePipelineConfig}
   '';
 
+  # Materialize the generated config as its own store file and reference that
+  # store path from ExecStart. With the stable ~/.config symlink in ExecStart a
+  # config-only change left the systemd unit byte-identical, so Home Manager
+  # (sd-switch) never restarted the collector. The store path changes with the
+  # content, so a config change now changes the unit and restarts the service.
+  collectorConfigFile = pkgs.writeText "opentelemetry-collector-config.yaml" collectorConfigText;
+
   startCollector = pkgs.writeShellScript "openobserve-agent-start" ''
     set -euo pipefail
 
@@ -214,7 +221,7 @@ let
     fi
 
     export OPENOBSERVE_AUTH="$auth"
-    exec '${collector}/bin/otelcol-contrib' --config '${collectorConfig}'
+    exec '${collector}/bin/otelcol-contrib' --config '${collectorConfigFile}'
   '';
 in
 {
@@ -273,7 +280,7 @@ in
     ];
 
     home.packages = [ collector ];
-    home.file."${collectorConfig}".text = collectorConfigText;
+    home.file."${collectorConfig}".source = collectorConfigFile;
 
     systemd.user.services.openobserve-agent = {
       Unit = {

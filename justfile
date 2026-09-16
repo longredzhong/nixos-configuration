@@ -158,3 +158,9 @@ secret-check:
 # Safe switch (check secrets first)
 switch-safe host=DEFAULT_HOST:
     just secret-check && just switch {{host}}
+
+# One-command update for this host: pre-check the flake, then switch it.
+# Home Manager's sd-switch restarts every user service whose unit changed.
+apply host=DEFAULT_HOST target=DEFAULT_TARGET:
+    just check-fast
+    just switch {{host}} {{target}}

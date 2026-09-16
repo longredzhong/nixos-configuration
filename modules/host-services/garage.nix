@@ -10,14 +10,11 @@ let
   garageDataDir = "/data/garage/data";
   garageMetaDir = "/data/garage/meta";
   garageCfgDir = "${config.xdg.configHome}/garage";
-in
-{
-  # RPC secret shared by cluster nodes (single node here), decrypted via agenix
-  age.secrets.garage-rpc-secret.file = ../../secrets/garage-rpc-secret.age;
-  age.secrets.garage-admin-token.file = ../../secrets/garage-admin-token.age;
-  age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
 
-  home.file."${garageCfgDir}/garage.toml".text = ''
+  # ExecStart names this store path so a config-only change changes the systemd
+  # unit and Home Manager's sd-switch restarts Garage. The stable ~/.config
+  # path remains as a human-readable symlink.
+  garageConfigFile = pkgs.writeText "garage.toml" ''
     metadata_dir = "${garageMetaDir}"
     data_dir = "${garageDataDir}"
 
@@ -42,6 +39,14 @@ in
     # openobserve-agent. The agent owns OpenObserve authentication.
     trace_sink = "http://127.0.0.1:4319"
   '';
+in
+{
+  # RPC secret shared by cluster nodes (single node here), decrypted via agenix
+  age.secrets.garage-rpc-secret.file = ../../secrets/garage-rpc-secret.age;
+  age.secrets.garage-admin-token.file = ../../secrets/garage-admin-token.age;
+  age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+
+  home.file."${garageCfgDir}/garage.toml".source = garageConfigFile;
 
   systemd.user.services.garage = {
     Unit = {
@@ -55,7 +60,7 @@ in
       ];
       ExecStart = pkgs.writeShellScript "garage-start" ''
         exec ${pkgs.garage_2}/bin/garage \
-          -c ${garageCfgDir}/garage.toml \
+          -c ${garageConfigFile} \
           --admin-token-file "${config.age.secrets.garage-admin-token.path}" \
           --rpc-secret-file "${config.age.secrets.garage-rpc-secret.path}" \
           server
