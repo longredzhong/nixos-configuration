@@ -262,25 +262,30 @@ let
     print(f"deepseek-harness: enabled Tailscale identity authentication in {path}")
     PY
 
-    # Keep the launch-token URL out of journald: stdout and stderr are appended
-    # to a 0600 file owned by this user, and pin the mode even when systemd
-    # created the file before this script ran.
-    log_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness"
-    install -d -m 0700 "$log_dir"
-    touch "$log_dir/web.log"
-    chmod 600 "$log_dir/web.log"
-
     test -f "$entry"
     test -f '${sessionPluginPath}/package.json'
     test -f '${observabilityPluginPath}/package.json'
   '';
 
   startHarness = pkgs.writeShellScript "deepseek-harness-start" ''
+    set -euo pipefail
+
     # agenix publishes the ingestion credential under ''${XDG_RUNTIME_DIR}, so
     # the path is expanded here rather than in the unit's Environment=, where
     # the value would depend on systemd's own variable expansion. Every other
     # service module in this repository resolves the same path the same way.
     export DSH_OBSERVABILITY_TOKEN_FILE="${openobserveToken}"
+
+    # systemd attaches StandardOutput/StandardError before it creates any
+    # managed directory, so an append: target below %L (or %S) fails with
+    # status=209/STDOUT on a first start and restart-loops forever. Keep the
+    # unit on journald and redirect the launch-token log here instead, where
+    # this script has already created the directory. The token still stays out
+    # of journald.
+    log_dir="''${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness"
+    install -d -m 0700 "$log_dir"
+    touch "$log_dir/web.log"
+    chmod 600 "$log_dir/web.log"
 
     # Nix-built Node cannot provide the loader internals through the native
     # fallback used by the current HMR dependency. Pass this Node-only flag
@@ -299,7 +304,8 @@ let
       --port 3080 \
       --trusted-host ${serviceHost} \
       --trusted-host ${serviceHost}:443 \
-      --no-open
+      --no-open \
+      >>"$log_dir/web.log" 2>&1
   '';
 in
 {
@@ -344,13 +350,9 @@ in
         "DISPLAY="
         "WAYLAND_DISPLAY="
       ];
-      # The harness prints its launch-token URL to stdout. Append it to a
-      # user-owned log instead of journald so the token does not persist in a
-      # log readable beyond this account; ensureRuntime pins the file to 0600.
-      LogsDirectory = "deepseek-harness";
-      LogsDirectoryMode = "0700";
-      StandardOutput = "append:%L/deepseek-harness/web.log";
-      StandardError = "append:%L/deepseek-harness/web.log";
+      # The harness prints its launch-token URL to stdout. startHarness creates
+      # the 0600 log file and redirects the Node process to it, so the token
+      # does not persist in journald (see the ordering note there).
       Restart = "always";
       RestartSec = "5s";
       TimeoutStartSec = "15min";

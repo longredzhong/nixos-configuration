@@ -67,6 +67,8 @@ Collector 默认负责三类数据：
 - 主机指标：按 metric family 建立 `system_*` stream，并用 `host.name` 或等价 resource attribute 区分主机；
 - OTLP logs/metrics/traces：由应用或其他 Collector 发送到 OpenObserve。
 
+Collector 会丢弃 `openobserve.service` 自身的 journald 日志，避免 OpenObserve 记录自己的接入日志形成自反馈；并对 Garage S3 Trace 做概率采样。两者分别由 `hostServices.openobserveAgent.excludeLogUnits` 和 `garageTraceSamplingPercentage` 控制。
+
 应用自身的信号按服务分 stream。OpenCode 的 OTel 插件一次导出三类信号，用一个
 `<hostname>_opencode` 名称即可：OpenObserve 按信号类型各建一个同名 stream，因此
 traces、metrics、logs 不会互相混淆。**不要**再用 `<hostname>_opencode_traces`
@@ -119,10 +121,11 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://<observe-host>:<http-port>/api/<organization>
 
 ## 看板模板
 
-仓库提供两个可导入模板：
+仓库提供三个可导入模板：
 
 - [Garage 看板](openobserve-garage-dashboard.json)：依赖 Garage Prometheus 指标和独立 Trace stream；
-- [机器状态看板](openobserve-machine-dashboard.json)：按 `host_name` 聚合系统指标。
+- [机器状态看板](openobserve-machine-dashboard.json)：按 `host_name` 聚合系统指标；
+- [Home Lab 服务与负载看板](openobserve-homelab-dashboard.json)：Garage/mihomo 可用性、服务日志活动和全部机器负载。
 
 导入后在目标组织中检查 stream 名称和 metric labels。模板不包含账号、密码、地址或运行时看板 ID；不要把从生产 UI 导出的带 owner、URL 或权限信息的 JSON 直接提交。
 

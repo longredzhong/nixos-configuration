@@ -216,7 +216,7 @@ curl -i https://<service-domain>/
 ## 状态和回滚
 
 - npm runtime：模块定义的用户运行时目录。
-- 服务日志：`%L/deepseek-harness/web.log`（`0600`），不写入 journald。
+- 服务日志：`${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log`（`0600`），由启动脚本创建并重定向，不写入 journald（systemd 的 `LogsDirectory`/`%L` 重定向会在首次启动时因目录未创建而失败）。
 - Harness 数据：模块定义的 `DSH_HOME` 目录；其中包括会话、Settings 和 credentials。
 - 会话遥测：写入 OpenObserve 的 ledger 和 ops 两个 stream。ingestion 凭据与
   `openobserve-agent` 共用同一份 agenix 机密：OpenObserve 的 ingestion token 是

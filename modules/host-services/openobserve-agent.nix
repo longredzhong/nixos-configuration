@@ -11,7 +11,6 @@
   ...
 }:
 let
-  inherit (config.hostServices) proxyEnvironment;
   inherit (config.hostServices.openobserveAgent) endpoint journaldStream tracesStream;
 
   collector = pkgs.opentelemetry-collector-contrib;
@@ -20,6 +19,37 @@ let
   requiresLocalOpenObserve = config.hostServices.openobserveAgent.requiresLocalOpenObserve;
   garageTelemetryEnabled = hostname == "nuc";
   garageTracesStream = "${hostname}_garage_traces";
+  traceSamplingPercentage = config.hostServices.openobserveAgent.garageTraceSamplingPercentage;
+  excludedLogUnits = config.hostServices.openobserveAgent.excludeLogUnits;
+
+  # Drop high-volume, self-referential journald sources before export:
+  # OpenObserve's own access logs otherwise dominate nuc_journald.
+  logFilterProcessorConfig = lib.optionalString (excludedLogUnits != []) (
+    lib.concatStringsSep "\n" (
+      [
+        "      filter/drop-excluded-logs:"
+        "        error_mode: ignore"
+        "        log_conditions:"
+      ]
+      ++ map (
+        unit: "          - 'log.body[\"_SYSTEMD_USER_UNIT\"] == \"${unit}\" or log.body[\"_SYSTEMD_UNIT\"] == \"${unit}\"'"
+      ) excludedLogUnits
+    )
+  );
+
+  # Garage emits millions of S3 request spans per day; sample them before
+  # batching so traces stay useful without dominating storage.
+  garageSamplerProcessorConfig = lib.optionalString garageTelemetryEnabled (
+    lib.concatStringsSep "\n" [
+      "      probabilistic_sampler/garage-traces:"
+      "        sampling_percentage: ${toString traceSamplingPercentage}"
+    ]
+  );
+
+  logPipelineProcessors =
+    [ "resource_detection/system" ]
+    ++ lib.optional (excludedLogUnits != []) "filter/drop-excluded-logs"
+    ++ [ "memory_limiter" "batch" ];
 
   garageReceiverConfig = lib.optionalString garageTelemetryEnabled (
     lib.concatStringsSep "\n" [
@@ -32,6 +62,7 @@ let
       "          scrape_configs:"
       "            - job_name: garage"
       "              scrape_interval: 30s"
+      "              scrape_timeout: 25s"
       "              static_configs:"
       "                - targets:"
       "                    - 127.0.0.1:3903"
@@ -56,7 +87,7 @@ let
       "          exporters: [otlp_http/openobserve-metrics]"
       "        traces/garage:"
       "          receivers: [otlp/garage]"
-      "          processors: [resource_detection/system, resource/garage, memory_limiter, batch]"
+      "          processors: [resource_detection/system, resource/garage, probabilistic_sampler/garage-traces, memory_limiter, batch]"
       "          exporters: [otlp_http/openobserve-garage-traces]"
     ]
   );
@@ -108,6 +139,8 @@ let
           batch:
             send_batch_size: 1000
             timeout: 10s
+    ${logFilterProcessorConfig}
+    ${garageSamplerProcessorConfig}
 
         extensions:
           zpages:
@@ -138,7 +171,7 @@ let
               exporters: [otlp_http/openobserve-metrics]
             logs:
               receivers: [journald]
-              processors: [resource_detection/system, memory_limiter, batch]
+              processors: [${lib.concatStringsSep ", " logPipelineProcessors}]
               exporters: [otlp_http/openobserve-logs]
             traces:
               receivers: [otlp]
@@ -180,6 +213,25 @@ in
       description = "OpenObserve stream receiving OTLP traces.";
     };
 
+    garageTraceSamplingPercentage = lib.mkOption {
+      type = lib.types.ints.between 1 100;
+      default = 1;
+      description = ''
+        Percentage of Garage S3 spans kept by the probabilistic sampler.
+        Garage emits millions of spans per day; lowering this shrinks trace
+        volume while keeping a representative sample.
+      '';
+    };
+
+    excludeLogUnits = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "openobserve.service" ];
+      description = ''
+        systemd units whose journald records are dropped before export.
+        OpenObserve's own access logs otherwise dominate the journald stream.
+      '';
+    };
+
     requiresLocalOpenObserve = lib.mkOption {
       type = lib.types.bool;
       default = hostname == "nuc";
@@ -212,7 +264,13 @@ in
         Wants = [ "network-online.target" ];
       };
       Service = {
-        Environment = proxyEnvironment;
+        # The collector only talks to Tailscale/loopback endpoints. Keep proxy
+        # variables unset so OTLP exports do not take an extra local-proxy hop,
+        # which previously showed up as export timeouts and failed scrapes.
+        Environment = [
+          "no_proxy=localhost,127.0.0.1,::1,100.64.0.0/10,172.16.100.10"
+          "NO_PROXY=localhost,127.0.0.1,::1,100.64.0.0/10,172.16.100.10"
+        ];
         ExecStart = startCollector;
         Restart = "always";
         RestartSec = "10s";

@@ -20,13 +20,22 @@ def main() -> int:
     secret = pathlib.Path(secret_file).read_text(encoding="utf-8").strip()
     headers = {"Authorization": f"Bearer {secret}"}
 
-    def first_json(path: str, timeout: float = 4.0):
+    def nth_json(path: str, index: int = 0, timeout: float = 4.0):
+        """Return the index-th non-empty JSON object from a streaming endpoint.
+
+        Streaming endpoints such as /memory push an initial zero sample before
+        the settled value, so callers that need a real reading pass index=1.
+        """
         request = urllib.request.Request(base + path, headers=headers)
         with urllib.request.urlopen(request, timeout=timeout) as response:
+            seen = 0
             for raw in response:
                 text = raw.decode("utf-8").strip()
-                if text:
+                if not text:
+                    continue
+                if seen == index:
                     return json.loads(text)
+                seen += 1
         return None
 
     def snapshot_json(path: str, timeout: float = 4.0):
@@ -57,7 +66,7 @@ def main() -> int:
     ):
         name, sampler = sampler
         try:
-            sampler(gauge, first_json, snapshot_json)
+            sampler(gauge, nth_json, snapshot_json)
         except Exception as error:  # noqa: BLE001 - a failed sample must not abort the others
             print(f"mihomo-metrics: {name} sample failed: {error}", file=sys.stderr)
 
@@ -95,8 +104,8 @@ def main() -> int:
     return 0
 
 
-def _traffic_point(gauge, first_json, _snapshot_json) -> None:
-    traffic = first_json("/traffic")
+def _traffic_point(gauge, nth_json, _snapshot_json) -> None:
+    traffic = nth_json("/traffic")
     if not traffic:
         return
     gauge("mihomo_traffic_up_bytes_per_second", "By/s", traffic.get("up", 0))
@@ -105,8 +114,9 @@ def _traffic_point(gauge, first_json, _snapshot_json) -> None:
     gauge("mihomo_traffic_down_total_bytes", "By", traffic.get("downTotal", 0))
 
 
-def _memory_point(gauge, first_json, _snapshot_json) -> None:
-    memory = first_json("/memory")
+def _memory_point(gauge, nth_json, _snapshot_json) -> None:
+    # The first /memory sample is always {"inuse": 0}; take the next one.
+    memory = nth_json("/memory", 1)
     if not memory:
         return
     gauge("mihomo_memory_inuse_bytes", "By", memory.get("inuse", 0))
