@@ -1,13 +1,11 @@
 # mihomo runtime configuration template for the NUC.
 #
-# The render script (config/mihomo/render.py) substitutes these markers and
-# writes the result to the state directory with mode 0600:
-#   __CONTROLLER_SECRET__       controller/dashboard bearer secret
-#   __CONTROLLER_ENDPOINT__     controller/dashboard bind address
-#   # __PROXY_PROVIDERS__      replaced by the subscription provider block
-#   # __CUSTOM_PROXIES__       replaced by the runtime custom proxies
-#   # __PROXY_GROUPS__         replaced by the rules-override proxy-groups
-#   # __RULES__                replaced by the rules-override rules
+# The render script (config/mihomo/render.py) substitutes the placeholder
+# tokens for the controller secret, the controller bind address, the mixed-port
+# LAN switch, the LAN allow list, the subscription provider block, the runtime
+# custom proxies, and the override proxy-groups/rules. Substituted values must
+# never appear literally in this header, so the tokens are only spelled out at
+# their use sites below.
 #
 # The subscription only carries proxy nodes; proxy groups, rule-providers and
 # rules come from an external Clash override document fetched by render.py.
@@ -19,8 +17,8 @@ mixed-port: 7890
 mode: rule
 log-level: info
 ipv6: false
-allow-lan: true
-find-process-mode: off
+allow-lan: __ALLOW_LAN__
+__LAN_ALLOWED_IPS__find-process-mode: off
 unified-delay: true
 tcp-concurrent: true
 
@@ -50,14 +48,26 @@ dns:
   default-nameserver:
     - 223.5.5.5
     - 119.29.29.29
-  # Resolve everything through China-friendly DoH. A fallback list of
-  # 1.1.1.1 / dns.google is unreachable here and makes rules and providers on
-  # non-CN CDNs fail to resolve, so resolution stays on the domestic servers.
+  # Domestic DoH resolves CN names; non-CN names that the primary servers
+  # answer with non-CN IPs are re-resolved through a trusted foreign DoH. The
+  # foreign servers are only used for names that actually resolve abroad, so
+  # CN CDNs (including the rule-provider mirror) keep resolving domestically.
   nameserver:
     - https://doh.pub/dns-query
     - https://dns.alidns.com/dns-query
+  fallback:
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+  fallback-filter:
+    geoip: true
+    geoip-code: CN
+    ipcidr:
+      - 240.0.0.0/4
+  # Node server hostnames (and the subscription URL host) must resolve
+  # directly through domestic DNS so they never loop back through the tunnel.
   proxy-server-nameserver:
     - https://doh.pub/dns-query
+    - https://dns.alidns.com/dns-query
 
 # __PROXY_PROVIDERS__
 

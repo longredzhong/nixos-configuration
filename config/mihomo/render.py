@@ -3,7 +3,7 @@
 
 Arguments (in order):
   template, subscription-url-file, custom-proxies-file, custom-rules-file,
-  override-url, controller-endpoint, state-dir
+  override-url, controller-endpoint, allow-lan, lan-allowed-ips, state-dir
 
 The subscription URL and any node credentials never enter the Nix store: the
 URL is read from a runtime file and the rendered config is written with mode
@@ -189,6 +189,14 @@ def prepend_rules(custom_lines: list[str], base_section: str) -> str:
     return "rules:\n" + "\n".join(custom_lines) + "\n" + base_section
 
 
+def lan_allowed_ips_block(cidrs: list[str]) -> str:
+    """Render the `lan-allowed-ips` line when a LAN allow list is configured."""
+    if not cidrs:
+        return ""
+    entries = "\n".join(f"  - {cidr}" for cidr in cidrs)
+    return f"lan-allowed-ips:\n{entries}\n"
+
+
 def fallback_groups() -> str:
     return (
         "proxy-groups:\n"
@@ -227,8 +235,10 @@ def main() -> int:
         custom_rules_path,
         override_url,
         controller_endpoint,
+        allow_lan,
+        lan_allowed_ips,
         state_dir,
-    ) = sys.argv[1:8]
+    ) = sys.argv[1:10]
     template = pathlib.Path(template_path).read_text(encoding="utf-8")
 
     state = pathlib.Path(state_dir)
@@ -252,7 +262,7 @@ def main() -> int:
             "      url: https://www.gstatic.com/generate_204\n"
             "      interval: 300\n"
             "      timeout: 5000\n"
-            "      lazy: true\n"
+            "      lazy: false\n"
             "      expected-status: 204\n"
             "    override:\n"
             "      udp: true\n"
@@ -292,6 +302,11 @@ def main() -> int:
         os.chmod(secret_file, 0o600)
     config = config.replace("__CONTROLLER_ENDPOINT__", controller_endpoint)
     config = config.replace("__CONTROLLER_SECRET__", secret)
+    config = config.replace("__ALLOW_LAN__", "true" if allow_lan == "true" else "false")
+    config = config.replace(
+        "__LAN_ALLOWED_IPS__",
+        lan_allowed_ips_block([c for c in lan_allowed_ips.split(",") if c]),
+    )
 
     config_path = state / "config.yaml"
     config_path.write_text(config, encoding="utf-8")

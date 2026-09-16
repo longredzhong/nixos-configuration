@@ -14,16 +14,24 @@
 let
   cfg = config.hostServices.mihomo;
 
+  # Track nixpkgs-unstable so the controller/API security fixes land without
+  # waiting for the stable channel.
+  mihomoPkg = pkgs.unstable.mihomo;
+
   template = ../../config/mihomo/config.template.yaml;
   renderer = ../../config/mihomo/render.py;
   metricsScript = ../../config/mihomo/metrics.py;
 
+  # Secrets the user drops in themselves (subscription URL, custom nodes and
+  # rules) live under XDG config; everything mihomo writes at runtime (rendered
+  # config, controller secret, provider/rule caches, GEO databases) lives under
+  # the systemd StateDirectory, which is separate and private.
+  secretDir = "${config.xdg.configHome}/mihomo";
   stateDir = "${config.xdg.stateHome}/mihomo";
-  configDir = "${config.xdg.configHome}/mihomo";
 
   renderConfig = pkgs.writeShellScript "mihomo-render-config" ''
     set -euo pipefail
-    install -d -m 0700 '${configDir}' '${stateDir}' '${stateDir}/providers'
+    install -d -m 0700 '${stateDir}' '${stateDir}/providers'
     exec '${pkgs.python3}/bin/python3' '${renderer}' \
       '${template}' \
       '${cfg.subscriptionUrlFile}' \
@@ -31,6 +39,8 @@ let
       '${cfg.customRulesFile}' \
       '${cfg.rulesOverrideUrl}' \
       '${cfg.controllerHost}:${toString cfg.controllerPort}' \
+      '${if cfg.allowLan then "true" else "false"}' \
+      '${lib.concatStringsSep "," cfg.lanAllowedIps}' \
       '${stateDir}'
   '';
 
@@ -40,7 +50,7 @@ let
     # that may point back at this very listener.
     unset http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY
     export no_proxy=localhost,127.0.0.1,::1 NO_PROXY=localhost,127.0.0.1,::1
-    exec '${lib.getExe pkgs.mihomo}' \
+    exec '${lib.getExe mihomoPkg}' \
       -d '${stateDir}' \
       -f '${stateDir}/config.yaml' \
       -ext-ui '${pkgs.metacubexd}'
@@ -82,9 +92,29 @@ in
       description = "RESTful controller and dashboard port (9090 is Cockpit on the NUC).";
     };
 
+    allowLan = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether the mixed proxy port accepts LAN clients. When enabled, only
+        addresses in lanAllowedIps may use the proxy unless the list is empty.
+      '';
+    };
+
+    lanAllowedIps = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "127.0.0.0/8" "100.64.0.0/10" ];
+      description = ''
+        CIDRs allowed to use the mixed proxy port when allowLan is enabled.
+        Empty means mihomo's default (any reachable host), which is only
+        suitable on a trusted network.
+      '';
+    };
+
     subscriptionUrlFile = lib.mkOption {
       type = lib.types.str;
-      default = "${configDir}/subscription.url";
+      default = "${secretDir}/subscription.url";
       description = ''
         Runtime file (mode 0600) containing the subscription URL.
         A missing file starts mihomo with custom nodes and DIRECT only.
@@ -94,7 +124,7 @@ in
 
     customProxiesFile = lib.mkOption {
       type = lib.types.str;
-      default = "${configDir}/custom.yaml";
+      default = "${secretDir}/custom.yaml";
       description = ''
         Runtime file (mode 0600) containing custom proxies as Clash YAML.
         They are rendered as top-level `proxies` so dialer-proxy chains between
@@ -105,7 +135,7 @@ in
 
     customRulesFile = lib.mkOption {
       type = lib.types.str;
-      default = "${configDir}/rules.yaml";
+      default = "${secretDir}/rules.yaml";
       description = ''
         Runtime file (mode 0600) containing custom rules as a Clash YAML
         `rules:` list. The entries are prepended to the rules from the
@@ -152,26 +182,72 @@ in
 
   config = lib.mkIf cfg.enable (lib.mkMerge [
     {
-      home.packages = [ pkgs.mihomo ];
+      home.packages = [ mihomoPkg ];
+
+      # The runtime inputs are credentials. The service runs with
+      # ProtectHome=read-only so it cannot tighten them itself; do it once per
+      # activation instead (this runs outside the service sandbox).
+      home.activation.mihomoSecrets = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        run mkdir -p -m 0700 '${secretDir}'
+        for f in '${cfg.subscriptionUrlFile}' '${cfg.customProxiesFile}' '${cfg.customRulesFile}'; do
+          if [ -e "$f" ]; then
+            run chmod 0600 "$f"
+          fi
+        done
+      '';
 
       systemd.user.services.mihomo = {
         Unit = {
           Description = "mihomo rule-based proxy (mixed :${toString cfg.mixedPort}, dashboard ${cfg.controllerHost}:${toString cfg.controllerPort})";
           After = [ "network-online.target" ];
           Wants = [ "network-online.target" ];
+          # A broken config makes mihomo exit immediately; without a start
+          # limit that becomes an endless restart storm (hundreds of attempts).
+          StartLimitIntervalSec = 180;
+          StartLimitBurst = 10;
         };
         Service = {
           ExecStartPre = renderConfig;
           ExecStart = startMihomo;
           StateDirectory = "mihomo";
           StateDirectoryMode = "0700";
-          Restart = "always";
-          RestartSec = "5s";
-          TimeoutStartSec = "60s";
+          Restart = "on-failure";
+          RestartSec = "10s";
+          TimeoutStartSec = "90s";
           UMask = "0077";
-          LimitNOFILE = 65535;
+          LimitNOFILE = 1000000;
+
+          # Hardening mirroring the non-TUN parts of the NixOS mihomo module.
+          # mihomo is a Go binary (no JIT), so MemoryDenyWriteExecute is safe.
           NoNewPrivileges = true;
           PrivateTmp = true;
+          PrivateDevices = true;
+          ProtectSystem = "strict";
+          ProtectHome = "read-only";
+          ProtectClock = true;
+          ProtectControlGroups = true;
+          ProtectHostname = true;
+          ProtectKernelLogs = true;
+          ProtectKernelModules = true;
+          ProtectKernelTunables = true;
+          ProtectProc = "invisible";
+          ProcSubset = "pid";
+          LockPersonality = true;
+          MemoryDenyWriteExecute = true;
+          RestrictRealtime = true;
+          RestrictSUIDSGID = true;
+          RestrictNamespaces = true;
+          RestrictAddressFamilies = [
+            "AF_INET"
+            "AF_INET6"
+          ];
+          SystemCallArchitectures = "native";
+          SystemCallFilter = [
+            "@system-service"
+            "bpf"
+          ];
+          DeviceAllow = "";
+          ReadWritePaths = [ stateDir ];
         };
         Install.WantedBy = [ "default.target" ];
       };

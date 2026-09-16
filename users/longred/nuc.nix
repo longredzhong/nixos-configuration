@@ -25,8 +25,15 @@
 
   # Local rule-based proxy with a dashboard and OpenObserve metrics. The
   # dashboard binds to the tailnet address; the metrics collector follows it.
+  # The mixed port accepts LAN clients, but only from the tailnet and the
+  # local host, so an untrusted LAN neighbour cannot use the proxy.
   hostServices.mihomo.enable = true;
   hostServices.mihomo.controllerHost = "100.100.10.1";
+  hostServices.mihomo.allowLan = true;
+  hostServices.mihomo.lanAllowedIps = [
+    "127.0.0.0/8"
+    "100.64.0.0/10"
+  ];
 
   # Fedora NUC-specific packages
   home.packages =
