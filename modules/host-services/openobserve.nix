@@ -443,6 +443,18 @@ in
         "garage.service"
       ];
       Wants = [ "network-online.target" ];
+
+      # `Requires=openobserve.service` on a dependent unit only pulls the
+      # dependency in when that dependent starts; it does not bring the
+      # dependent back when openobserve comes up. Home Manager applies a changed
+      # unit as a separate stop and start, so restarting this service left the
+      # telemetry agent and the opencode server stopped with nothing to restart
+      # them. Upholds keeps them running for as long as this unit is up.
+      # Both units are imported alongside this one in users/longred/nuc.nix.
+      Upholds = [
+        "openobserve-agent.service"
+        "opencode.service"
+      ];
     };
     Service = {
       Environment = proxyEnvironment;
