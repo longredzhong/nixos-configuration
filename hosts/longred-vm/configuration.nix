@@ -30,6 +30,7 @@
     inputs.agenix.nixosModules.default
     ./disko.nix
     ./garage-backup.nix
+    ./ntfy.nix
   ];
 
   system.stateVersion = "26.05";

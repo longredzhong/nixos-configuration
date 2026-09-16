@@ -6,6 +6,7 @@
 # OpenObserve itself is bound to the NUC's Tailscale address only.
 {
   config,
+  lib,
   pkgs,
   ...
 }:
@@ -31,6 +32,207 @@ let
   grep = "${pkgs.gnugrep}/bin/grep";
   awk = "${pkgs.gawk}/bin/awk";
   openssl = "${pkgs.openssl}/bin/openssl";
+
+  # --- alerting -----------------------------------------------------------
+  # Alert rules and their notification destination are provisioned through the
+  # OpenObserve API so that they live in this repository and survive a rebuild.
+  # The routes below were verified against the running instance: alert rules
+  # live under /api/v2/<org>/alerts, while message templates and destinations
+  # live under /api/<org>/alerts/.
+  alertOrg = "default";
+  alertTemplateName = "ntfy";
+  alertDestinationName = "ntfy";
+
+  # Publishing topic on the notification host. hosts/longred-vm/ntfy.nix grants
+  # anonymous write-only access to exactly this topic.
+  alertTopic = "homelab-alerts";
+  ntfyPublishUrl = "https://longred-vm.tail388af.ts.net/${alertTopic}";
+
+  curl = "${pkgs.curl}/bin/curl";
+  cut = "${coreutils}/cut";
+  seq = "${coreutils}/seq";
+
+  # The destination POSTs the rendered body to the topic path, where the body
+  # becomes the notification text; the rest of the notification metadata travels
+  # as headers. Only template variables confirmed against the running instance
+  # are used here.
+  alertTemplateFile = pkgs.writeText "openobserve-alert-template.json" (
+    builtins.toJSON {
+      name = alertTemplateName;
+      type = "http";
+      body = ''
+        {alert_level}: {alert_name}
+        {alert_description}
+        threshold {alert_operator} {alert_threshold}, current {alert_agg_value}
+        stream {stream_name} at {alert_trigger_time_str}'';
+    }
+  );
+
+  alertDestinationFile = pkgs.writeText "openobserve-alert-destination.json" (
+    builtins.toJSON {
+      name = alertDestinationName;
+      type = "http";
+      url = ntfyPublishUrl;
+      method = "post";
+
+      # Required for an alert destination: without a template the destination is
+      # stored as a pipeline destination and cannot be attached to an alert.
+      template = alertTemplateName;
+
+      skip_tls_verify = false;
+      headers = {
+        Title = "OpenObserve alert";
+        Priority = "4";
+        Tags = "rotating_light";
+        "Content-Type" = "text/plain; charset=utf-8";
+      };
+    }
+  );
+
+  # Thresholds are set against measured baselines rather than round numbers: the
+  # NUC's 1-minute load peaked at 20.01 with the disks idle enough that most of
+  # it is wait time, its /data volume keeps roughly 1.37 TB free, and the
+  # thinkbook's / already sits near 79% used.
+  alertRules = [
+    {
+      name = "node_disk_space_low";
+      stream = "system_filesystem_usage";
+      description = "Free space below 50 GiB on a monitored mountpoint.";
+      operator = ">=";
+      threshold = 1;
+      silence = 360;
+      sql = ''
+        SELECT count(*) AS low_mountpoints FROM "system_filesystem_usage"
+        WHERE state = 'free' AND value < 50000000000
+          AND (mountpoint = '/' OR mountpoint = '/data' OR mountpoint = '/home')
+      '';
+    }
+    {
+      name = "node_load_average_high";
+      stream = "system_cpu_load_average_1m";
+      description = "1-minute load average reached 32; the measured peak on the NUC is about 20 and is dominated by disk wait.";
+      operator = ">=";
+      threshold = 32;
+      silence = 60;
+      sql = ''
+        SELECT max(value) AS max_load FROM "system_cpu_load_average_1m"
+      '';
+    }
+    {
+      name = "garage_disk_available_low";
+      stream = "garage_local_disk_avail";
+      description = "Garage reports less than 200 GB available on its data volume.";
+      operator = "<";
+      threshold = 200000000000;
+      silence = 360;
+      sql = ''
+        SELECT min(value) AS available_bytes FROM "garage_local_disk_avail"
+        WHERE volume = 'data'
+      '';
+    }
+  ];
+
+  alertRuleFiles = map (rule: {
+    inherit (rule) name;
+    file = pkgs.writeText "openobserve-alert-${rule.name}.json" (
+      builtins.toJSON {
+        name = rule.name;
+        stream_type = "metrics";
+        stream_name = rule.stream;
+        is_real_time = false;
+        description = rule.description;
+        query_condition = {
+          type = "sql";
+          sql = rule.sql;
+        };
+        trigger_condition = {
+          period = 15;
+          operator = rule.operator;
+          threshold = rule.threshold;
+          frequency = 5;
+          frequency_type = "minutes";
+          silence = rule.silence;
+        };
+        destinations = [ alertDestinationName ];
+        enabled = true;
+      }
+    );
+  }) alertRules;
+
+  # One "<name> <payload-file>" line per rule, so the shell side stays a plain
+  # loop instead of a generated block of conditionals.
+  alertRuleManifest = pkgs.writeText "openobserve-alert-rules.manifest" (
+    lib.concatMapStrings (rule: "${rule.name} ${rule.file}\n") alertRuleFiles
+  );
+
+  provisionAlerts = pkgs.writeShellScript "openobserve-alerts-provision" ''
+    set -euo pipefail
+
+    env_file='${openobserveEnvFile}'
+    base='http://127.0.0.1:${toString httpPort}'
+    org='${alertOrg}'
+
+    # The root credential is generated on first start and stays on the data
+    # disk. Read it at runtime; never print it.
+    root_email="$('${grep}' -m1 '^ZO_ROOT_USER_EMAIL=' "$env_file" | '${cut}' -d= -f2-)"
+    root_password="$('${grep}' -m1 '^ZO_ROOT_USER_PASSWORD=' "$env_file" | '${cut}' -d= -f2-)"
+    if [ -z "$root_email" ] || [ -z "$root_password" ]; then
+      echo "openobserve-alerts: no root credential in $env_file" >&2
+      exit 1
+    fi
+
+    # A refused or half-open connection is expected while the container is
+    # still starting, so this probe stays silent and only reports the status
+    # code. The readiness loop below is what decides success.
+    status() {
+      '${curl}' -s --max-time 15 -o /dev/null -w '%{http_code}' \
+        -u "$root_email:$root_password" "$base$1" 2>/dev/null || true
+    }
+
+    get() {
+      '${curl}' -fsS -u "$root_email:$root_password" "$base$1"
+    }
+
+    post() {
+      '${curl}' -fsS -u "$root_email:$root_password" -X POST \
+        -H 'Content-Type: application/json' --data-binary "@$2" "$base$1" >/dev/null
+    }
+
+    # Probe an authenticated route rather than /healthz: a listener that accepts
+    # connections but cannot serve the API yet must not count as ready.
+    ready=""
+    for attempt in $('${seq}' 1 60); do
+      if [ "$(status "/api/$org/streams")" = "200" ]; then
+        ready=1
+        break
+      fi
+      sleep 2
+    done
+    if [ -z "$ready" ]; then
+      echo "openobserve-alerts: the API did not become reachable" >&2
+      exit 1
+    fi
+
+    if [ "$(status "/api/$org/alerts/templates/${alertTemplateName}")" != "200" ]; then
+      post "/api/$org/alerts/templates" '${alertTemplateFile}'
+      echo "openobserve-alerts: created template ${alertTemplateName}"
+    fi
+
+    if [ "$(status "/api/$org/alerts/destinations/${alertDestinationName}")" != "200" ]; then
+      post "/api/$org/alerts/destinations?module=alert" '${alertDestinationFile}'
+      echo "openobserve-alerts: created destination ${alertDestinationName}"
+    fi
+
+    alert_list="$(get "/api/v2/$org/alerts")"
+    while read -r name file; do
+      [ -n "$name" ] || continue
+      if printf '%s' "$alert_list" | '${grep}' -qF "\"$name\""; then
+        continue
+      fi
+      post "/api/v2/$org/alerts" "$file"
+      echo "openobserve-alerts: created alert rule $name"
+    done < '${alertRuleManifest}'
+  '';
 
   provisionOpenObserve = pkgs.writeShellScript "openobserve-provision" ''
     set -euo pipefail
@@ -77,6 +279,19 @@ let
       # stream retention policy.
       ensure_setting ZO_MAX_FILE_RETENTION_TIME 60
       ensure_setting ZO_FILE_PUSH_INTERVAL 10
+      # OpenObserve refuses to deliver an alert webhook to any address that
+      # resolves into private space, which includes loopback, the LAN and the
+      # Tailscale range. The only notification endpoint this deployment has is
+      # the self-hosted ntfy on the tailnet, so the guard has to be off for
+      # alerting to work at all.
+      #
+      # Compensating controls, because this disables a real protection:
+      #   - the HTTP listener binds the Tailscale address only (ZO_HTTP_ADDR),
+      #     so no LAN or public client can reach the API;
+      #   - the organization has a single root user, so the "untrusted tenant
+      #     makes the server fetch an internal URL" threat does not apply here.
+      # Revisit if a second user or an untrusted ingestion path is ever added.
+      ensure_setting ZO_SKIP_SSRF_CHECKS true
       '${coreutils}/chmod' 600 "$env_file"
       exit 0
     fi
@@ -148,6 +363,9 @@ let
       printf 'ZO_GRPC_PORT=%s\n' '${toString grpcPort}'
       printf 'ZO_WEB_URL=%s\n' 'http://${listenAddress}:${toString httpPort}'
       printf 'ZO_TELEMETRY=%s\n' 'false'
+      # See the note in the existing-file branch above: the alert destination is
+      # a tailnet address, which the SSRF guard would otherwise refuse.
+      printf 'ZO_SKIP_SSRF_CHECKS=%s\n' 'true'
       printf 'ZO_MMDB_DISABLE_DOWNLOAD=%s\n' 'true'
       printf 'RUST_LOG=%s\n' 'info'
     } >"$tmp_file"
@@ -238,6 +456,25 @@ in
       Restart = "always";
       RestartSec = "10s";
       TimeoutStartSec = "180s";
+    };
+    Install.WantedBy = [ "default.target" ];
+  };
+
+  # Additive on purpose: this unit only creates alert templates, destinations
+  # and rules through the API, so applying it leaves the running OpenObserve
+  # container untouched. `Wants` rather than `Requires` keeps a provisioning
+  # failure from taking the observability stack down with it; re-run it by hand
+  # with `systemctl --user start openobserve-alerts` once the cause is fixed.
+  systemd.user.services.openobserve-alerts = {
+    Unit = {
+      Description = "Provision OpenObserve alert templates, destinations and rules";
+      After = [ "openobserve.service" ];
+      Wants = [ "openobserve.service" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = provisionAlerts;
+      RemainAfterExit = false;
     };
     Install.WantedBy = [ "default.target" ];
   };
