@@ -20,6 +20,7 @@
 | [Tailscale Services](tailscale-services.md) | Service endpoint、TLS 终止、审批和本地应用 | `config/tailscale/nuc-services.hujson`、`modules/host-services/tailscale-services.nix` |
 | [Home Lab Portal](homelab-portal.md) | 服务清单与实时状态的只读门户，以及 Tailscale Service 与 Cloudflare Pages 的方案对比 | `modules/host-services/homelab-portal.nix`、`config/homelab/` |
 | [longred-vm](longred-vm.md) | 该 VM 的三种角色：Nix 远程构建机、带签名的二进制缓存、Garage 备份节点，以及它的部署路径 | `hosts/longred-vm/`、`secrets/nix-binary-cache-key.age` |
+| [Memoh](memoh.md) | 多智能体平台：为什么放在这台客户机、声明式构成、上游与环境的四个坑、暴露面与验证 | `hosts/longred-vm/memoh.nix`、`secrets/memoh-env.age` |
 | [Agenix 机密](../secrets/README.md) | 加密文件原则和运行时使用方式 | `secrets/*.age`、各服务模块的 `age.secrets` |
 | [Garage 观测看板模板](openobserve-garage-dashboard.json) | 可导入的 Garage 指标看板模板 | OpenObserve dashboard JSON |
 | [机器观测看板模板](openobserve-machine-dashboard.json) | 可导入的主机指标看板模板 | OpenObserve dashboard JSON |

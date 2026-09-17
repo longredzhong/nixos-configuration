@@ -32,10 +32,18 @@
     ./garage-backup.nix
     ./ntfy.nix
     ./cloudflared.nix
+    ./memoh.nix
   ];
 
   system.stateVersion = "26.05";
   networking.hostName = hostname;
+
+  # The Memoh compose stack bind-mounts /etc/localtime into several containers.
+  # Without `time.timeZone` NixOS never creates that path, Docker then invents an
+  # empty *directory* for the missing bind source, and every container start
+  # fails with "not a directory: Are you trying to mount a directory onto a
+  # file". UTC keeps the timestamps this guest already reports.
+  time.timeZone = "UTC";
 
   # --- boot ---------------------------------------------------------------
   boot.loader.grub = {
