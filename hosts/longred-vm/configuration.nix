@@ -31,6 +31,7 @@
     ./disko.nix
     ./garage-backup.nix
     ./ntfy.nix
+    ./cloudflared.nix
   ];
 
   system.stateVersion = "26.05";

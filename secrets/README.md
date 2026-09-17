@@ -121,8 +121,14 @@ git status --short
 }
 ```
 
-服务启动后在目标主机上检查服务和解密错误：
+NixOS 与 Home Manager 的差别不止身份路径：
 
+- **NixOS** 的 agenix 在 activation 阶段解密，**不会**产生 `agenix.service`，服务不该声明对它的依赖。
+- **Home Manager** 的 agenix 会生成 `agenix.service` 用户单元，而且只在确实有机密需要解密时才存在。
+
+把一侧的 `Requires=agenix.service` 抄到另一侧会让服务起不来（`Unit agenix.service not found`）。另外，Home Manager 下 `config.age.secrets.<name>.path` 的字面量是 `${XDG_RUNTIME_DIR}/agenix/<name>`，取用时必须放在**双引号**里交给 shell 展开；单引号会让 `cat` 找不到文件。
+
+服务启动后在目标主机上检查服务和解密错误：
 ```bash
 systemctl --user --no-pager status <service>
 journalctl --user -u <service> -n 100 --no-pager
