@@ -9,7 +9,7 @@
 | 层 | 职责 | 落点 | 状态 |
 | --- | --- | --- | --- |
 | L1 判定 | 指标、日志、Trace 的规则判定与抑制 | OpenObserve（NUC） | 本文档描述的 provision 已覆盖 |
-| L2 送达 | 把告警变成手机上的一条通知 | ntfy（`longred-vm`） | 见 `hosts/longred-vm/ntfy.nix` |
+| L2 送达 | 把告警变成手机上的一条通知 | ntfy（`longred-vm`），公网主机名经 Cloudflare Tunnel 发布 | 见 `hosts/longred-vm/ntfy.nix` 与 `hosts/longred-vm/cloudflared.nix` |
 | L3 死亡确认 | 主机或整个网络消失时仍然发出告警 | 外部服务的心跳 | **尚未实现**，见"已知缺口" |
 
 L1 与 L2 都在家里，因此它们只能证明"家里还活着"。没有 L3 时，断电、断网或整机故障表现为沉默，而沉默与"一切正常"无法区分。
@@ -101,7 +101,12 @@ Android 客户端可直接订阅主题并登录该用户；iOS 客户端还依�
 - **SSRF 防护被有意关闭。** OpenObserve 默认拒绝把告警 webhook 投递到**任何解析为私网地址的目标**——loopback、LAN 与 Tailscale 的 `100.64.0.0/10` 都在拒绝范围内（实测 `127.0.0.1` 与 tailnet 地址均返回 400，公网地址放行）。本部署唯一的通知端正好是 tailnet 地址，因此 `ZO_SKIP_SSRF_CHECKS=true` 是告警链路能工作的前提。这确实关掉了一层真实防护（该模块历史上有多起 SSRF 绕过 CVE）。补偿措施：HTTP 监听只绑 Tailscale 地址，LAN 与公网都到不了 API；组织内只有一个 root 用户，"低权限租户诱导服务端访问内网"这一威胁模型在此不成立。**一旦新增第二个用户、或引入不可信的摄入/富化路径，必须重新评估这一项。**
 - **投递是直连，不经过代理。** OpenObserve 容器以 `--http-proxy=false` 启动，podman 因此不会把宿主机的 `http_proxy`/`https_proxy` 注入容器；实测容器内没有任何代理变量，webhook 直接走 tailnet。**这一点必须保持**：实测把同一个请求交给本机代理时 TLS 握手会失败，若将来打开代理注入，通知链路会随之失效，届时需要把该域名加入 `no_proxy`。
 - **HTTPS 监听依赖已签发的证书。** `tailscale serve` 只发布监听、不负责取证书；证书缺失时 TCP 能建立但握手失败，表现为难查的 `unexpected eof`。因此 `tailscale-serve-ntfy` 在启动监听前用幂等的 `tailscale cert` 确保证书就位。
-- **iOS 推送经过第三方。** 自建服务器要支持 iOS 推送，必须设置 `base-url`（用于计算 Firebase poll_request 主题），推送路径经官方 `ntfy.sh` 转发。Android 无此限制。若 `base-url` 与客户端实际使用的 URL 不一致，iPhone 上会静默收不到通知而 Android 正常。
+- **iOS 推送经过第三方，并且需要两个设置同时正确。** Android 完全自足；iOS 无法在没有中心服务器的前提下收推送，所以自建服务器必须同时满足：
+
+  1. `base-url` 与客户端实际订阅的地址**逐字一致**（它参与 Firebase 主题的哈希计算，不一致时 iPhone 静默收不到而 Android 正常）；
+  2. `upstream-base-url` 指向一个有 APNs 通道的上游（这里用官方 `ntfy.sh`）。
+
+  第 2 条**不是内置默认值**：官方文档的配置表把它列成默认 `https://ntfy.sh`，但 `ntfy serve --help` 对它不显示默认值，源码里的判断是 `UpstreamBaseURL != ""`。不设置时一切看起来正常，只是 iPhone 的通知会退化成慢轮询（文档说法是"可能几小时"）。只有 Android 用户时这个坑不会暴露。
 - **附件保持启用。** nixpkgs 存在"禁用附件时切换报错"的已知问题（见上游参考），因此这里不改 `attachment-cache-dir`，由 nixpkgs 模块的默认值处理。
 - **覆盖范围受数据源限制。** 只有上报到 OpenObserve 的主机才能被判定；`longred-vm` 通过 `openobserve-agent.nix` 上报主机指标与 journald 之后即被覆盖。任何新增主机同样需要先接入采集器，否则规则对它是空的——注意"没有数据"和"一切正常"在这个判定模型里长得一样，规则不会因为主机消失而报警。
 - **新出现的流会有短暂的字段滞后。** OpenObserve 的字段 schema 是随记录逐步学出来的，因此新流刚建立时，引用新字段的规则会因为"字段不存在"报错。这不是配置问题，记录进来之后自愈；历史里会留下几条 `error` 记录。
@@ -144,6 +149,20 @@ curl -H "Title: test" -H "Priority: low" -d "alerting pipeline check" \
 1. **验证规则判定方向**：按上面的方式在同一个 SQL 引擎里跑规则的查询，确认健康时返回 0 行、把阈值调大做阳性对照时返回预期的行数。
 2. **验证会真触发**：临时建一条阈值必然满足的规则，等它评估，确认通知端计数增长、告警历史里 `status` 为 `firing` 且 `error` 为空，然后删掉这条临时规则。
 3. **验证通知确实送达手机**：前两步只能证明请求被接受，最后一段只有你看得见。
+
+iOS 那一跳可以独立验证，而且不需要 iPhone 在场。服务器会把每个消息转成一条 `poll_request` 发到上游的一个公开主题，主题名就是 `sha256("$baseUrl/$topic")`：
+
+```bash
+h=$(printf '%s' 'https://<公网主机名>/<topic>' | sha256sum | cut -d' ' -f1)
+( curl -sN "https://ntfy.sh/$h/json" > /tmp/poll.txt & )
+sleep 3
+# 在另一处发布一条消息
+curl -H "Authorization: Bearer <token>" -d "hello" https://<公网主机名>/<topic>
+sleep 5
+cat /tmp/poll.txt     # 应出现 {"event":"poll_request", ..., "poll_id":"..."}
+```
+
+注意这个主题**不能**用 `?poll=1` 读回历史：poll_request 不进可轮询的缓存，必须实时订阅才能观察到。找不到转发记录时，先确认 `upstream-base-url` 是否真的设置过。
 
 ## 参考
 

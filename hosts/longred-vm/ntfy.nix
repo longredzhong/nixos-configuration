@@ -13,15 +13,17 @@
   ...
 }:
 let
-  # Must be exactly the URL clients use. ntfy derives the Firebase poll topic
-  # that makes iOS push work on a self-hosted server from this value, so a wrong
-  # value fails silently on iPhones while Android keeps working.
-  baseUrl = "https://${config.networking.hostName}.tail388af.ts.net";
+  # Must be exactly the URL subscribers use. ntfy derives the Firebase poll
+  # topic that makes iOS push work on a self-hosted server from this value, so a
+  # value that differs from the address typed into the app makes iPhones fail
+  # silently while Android keeps working. This is the public hostname published
+  # by the Cloudflare tunnel in ./cloudflared.nix.
+  baseUrl = "https://ntfy.longred.work";
 
-  # The publishing topic is not declared here: it belongs to the publisher, and
-  # `modules/host-services/openobserve.nix` owns the destination URL that names
-  # it. Nothing on this side restricts topics any more, so there is no second
-  # place for the name to drift.
+  # Second, local-only path: `tailscale serve` publishes the same listener on the
+  # node's tailnet HTTPS name, which keeps publishing and the web UI reachable
+  # even if Cloudflare or the tunnel is down.
+  tailnetName = "${config.networking.hostName}.tail388af.ts.net";
 
   # The nixpkgs module defaults `listen-http` to this port; keeping the value
   # here means the serve target cannot drift from the listener.
@@ -29,7 +31,7 @@ let
 
   # Certificate name is the node's own tailnet DNS name, and tailscaled caches
   # certificates under this directory.
-  certName = "${config.networking.hostName}.tail388af.ts.net";
+  certName = tailnetName;
   certDir = "/var/lib/tailscale/certs";
 in
 {
@@ -43,6 +45,17 @@ in
       # Phones and laptops come back from suspend with dead connections; keep
       # messages long enough that a missed notification is still retrievable.
       cache-duration = "24h";
+
+      # Required for instant notifications on iOS, which cannot receive push
+      # without a central server: every incoming message makes this server POST a
+      # poll request to the upstream, which relays it through Firebase/APNs, and
+      # the phone then fetches the message body from here.
+      #
+      # This is NOT a built-in default even though the documentation's config
+      # table lists it as one: `ntfy serve --help` prints no default for the
+      # flag, and with it unset iOS delivery silently degrades to slow polling
+      # (the docs say "hours"). Android is unaffected either way.
+      upstream-base-url = "https://ntfy.sh";
 
       # Private instance: nothing is readable or writable without a credential.
       # Publishing used to be allowed anonymously on the one topic, which was
