@@ -1,9 +1,16 @@
-# longred-vm：Nix 构建机、二进制缓存与 Garage 备份节点
+# longred-vm：Nix 构建机、二进制缓存、Garage 备份节点与通知端
 
 [返回项目文档索引](README.md) · [返回项目 README](../README.md) · [返回修改约定](../AGENTS.md)
 
-本文说明 `longred-vm` 这台 KVM 虚拟机在家庭实验室里承担的三种角色：Nix 远程构建机、带签名的二进制缓存、
-以及 NUC 上 Garage 对象存储的备份节点。主机本身的定义在 `hosts/longred-vm/`。
+本文说明 `longred-vm` 这台 KVM 虚拟机在家庭实验室里承担的角色：Nix 远程构建机、带签名的二进制缓存、
+NUC 上 Garage 对象存储的备份节点，以及告警链路里的通知端与观测数据源。主机本身的定义在 `hosts/longred-vm/`。
+
+通知端与采集器是后来加入的，各自的理由写在它们自己的文档里：
+
+| 角色 | 模块 | 说明 |
+| --- | --- | --- |
+| ntfy 通知端 | `hosts/longred-vm/ntfy.nix` | 见 [告警与通知](alerting.md)；放在这里是因为 NUC 正是被监控的对象 |
+| 观测数据源 | `hosts/longred-vm/home.nix` → `modules/host-services/openobserve-agent.nix` | 上报主机指标与 journald；因为是用户级服务，`dev` 需要 `linger`，令牌由系统级 agenix 用主机密钥解密后按路径交给该用户服务 |
 
 ## 这台机器是什么
 

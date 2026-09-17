@@ -73,6 +73,12 @@ HAVING max(value) >= <threshold>
 
 规则里因此不再用聚合结果当阈值。判定端用同一个 SQL 引擎，可以直接用查询接口先验证：健康时应返回 **0 行**，把阈值调大做阳性对照时应返回对应数量的行。
 
+### 日志告警要读 `body_unit`，不是 `body__systemd_unit`
+
+判定"某个服务单元失败了"必须用 systemd 的 `UNIT=` 字段（流里是 `body_unit`），**不是** `_SYSTEMD_UNIT`（`body__systemd_unit`）。原因是报"某单元失败"的那几行日志由 PID 1 写出，它们的 `_SYSTEMD_UNIT` 是 `init.scope`，只有 `UNIT=` 才指向真正失败的单元。实测：按 `body__systemd_unit` 过滤永远匹配不到任何失败记录，换成 `body_unit` 立刻匹配到。
+
+同一族字段里 `body_unit_result` 只在单元**非正常退出**时才被写入（实测 26 小时内只出现过 `exit-code`，成功退出不写），所以"该字段非空"本身就是失败判据，不需要去正则匹配日志正文——那既脆弱又会把正文里出现 "failed" 的正常日志算进来。
+
 ## 首次启用
 
 在通知端主机上为订阅者（手机）创建一个用户：
@@ -97,7 +103,9 @@ Android 客户端可直接订阅主题并登录该用户；iOS 客户端还依�
 - **HTTPS 监听依赖已签发的证书。** `tailscale serve` 只发布监听、不负责取证书；证书缺失时 TCP 能建立但握手失败，表现为难查的 `unexpected eof`。因此 `tailscale-serve-ntfy` 在启动监听前用幂等的 `tailscale cert` 确保证书就位。
 - **iOS 推送经过第三方。** 自建服务器要支持 iOS 推送，必须设置 `base-url`（用于计算 Firebase poll_request 主题），推送路径经官方 `ntfy.sh` 转发。Android 无此限制。若 `base-url` 与客户端实际使用的 URL 不一致，iPhone 上会静默收不到通知而 Android 正常。
 - **附件保持启用。** nixpkgs 存在"禁用附件时切换报错"的已知问题（见上游参考），因此这里不改 `attachment-cache-dir`，由 nixpkgs 模块的默认值处理。
-- **覆盖范围受数据源限制。** 只有上报到 OpenObserve 的主机才能被这些规则覆盖；`longred-vm` 目前没有 OTel agent，因此 Garage 备份失败一类的事件不能在此判定。
+- **覆盖范围受数据源限制。** 只有上报到 OpenObserve 的主机才能被判定；`longred-vm` 通过 `openobserve-agent.nix` 上报主机指标与 journald 之后即被覆盖。任何新增主机同样需要先接入采集器，否则规则对它是空的——注意"没有数据"和"一切正常"在这个判定模型里长得一样，规则不会因为主机消失而报警。
+- **新出现的流会有短暂的字段滞后。** OpenObserve 的字段 schema 是随记录逐步学出来的，因此新流刚建立时，引用新字段的规则会因为"字段不存在"报错。这不是配置问题，记录进来之后自愈；历史里会留下几条 `error` 记录。
+- **流名会把 `-` 规范成 `_`。** 采集器按 `${hostname}_journald` 命名，实际落地为 `longred_vm_journald`；写规则时要用规范后的名字。
 - **告警规则只创建、不删除。** provision 幂等的方向是"缺失即创建"，不负责删除仓库中已移除的规则；需要清理时在控制台或 API 中删除。
 
 ## 加固路径

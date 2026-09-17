@@ -147,6 +147,37 @@ let
         HAVING min(value) < 200000000000
       '';
     }
+    {
+      # Unit state, not log text: systemd only sets UNIT_RESULT when a unit did
+      # not exit cleanly, so a row here means something actually failed rather
+      # than that a message merely contained the word "failed". The two units
+      # are the ones whose failure used to be invisible: the Garage mirror is a
+      # timer-driven oneshot (it once stopped at 841 MiB of 1.6 GB without
+      # anyone noticing) and harmonia serves the binary cache the build host
+      # depends on.
+      #
+      # The field is `body_unit` (systemd's own UNIT=), NOT `body__systemd_unit`.
+      # Messages about a unit are written by PID 1, so `_SYSTEMD_UNIT` is
+      # `init.scope` for exactly the failure lines this rule needs; only UNIT=
+      # names the unit that failed.
+      name = "guest_unit_failed";
+      streamType = "logs";
+      stream = "longred_vm_journald";
+      description = "A monitored systemd unit on the notification host ended in failure.";
+      operator = ">=";
+      threshold = 1;
+      silence = 60;
+      sql = ''
+        SELECT host_name, body_unit, max(body_unit_result) AS result
+        FROM "longred_vm_journald"
+        WHERE body_unit_result IS NOT NULL
+          AND body_unit IN (
+            'garage-backup-mirror.service',
+            'harmonia.service'
+          )
+        GROUP BY host_name, body_unit
+      '';
+    }
   ];
 
   alertRuleFiles = map (rule: {
@@ -154,7 +185,7 @@ let
     file = pkgs.writeText "openobserve-alert-${rule.name}.json" (
       builtins.toJSON {
         name = rule.name;
-        stream_type = "metrics";
+        stream_type = rule.streamType or "metrics";
         stream_name = rule.stream;
         is_real_time = false;
         description = rule.description;
@@ -274,6 +305,11 @@ let
         echo "openobserve-alerts: created alert rule $name"
         continue
       fi
+      # Only fields the list endpoint actually returns can be compared.
+      # `stream_name` and `stream_type` are absent from it, and adding them here
+      # would make every rule look changed on every run. They do not need
+      # comparing anyway: the stream is named in the query's FROM clause, so a
+      # stream change always shows up as an SQL change.
       unchanged="$(printf '%s' "$alert_list" | '${jq}' -r --arg n "$name" --slurpfile want "$file" '
         ((.list // [])[] | select(.name == $n)) as $cur
         | ($want[0]) as $w
@@ -281,8 +317,6 @@ let
           and ($cur.description == $w.description)
           and ($cur.enabled == $w.enabled)
           and ($cur.is_real_time == $w.is_real_time)
-          and ($cur.stream_name == $w.stream_name)
-          and ($cur.stream_type == $w.stream_type)
           and ($cur.trigger_condition.period == $w.trigger_condition.period)
           and ($cur.trigger_condition.operator == $w.trigger_condition.operator)
           and ($cur.trigger_condition.threshold == $w.trigger_condition.threshold)

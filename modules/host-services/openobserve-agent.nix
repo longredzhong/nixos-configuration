@@ -15,8 +15,16 @@ let
 
   collector = pkgs.opentelemetry-collector-contrib;
   collectorConfig = "${config.xdg.configHome}/opentelemetry-collector/config.yaml";
-  authHeader = config.age.secrets.openobserve-agent-token.path;
+  authHeader =
+    if config.hostServices.openobserveAgent.authHeaderFile != null then
+      config.hostServices.openobserveAgent.authHeaderFile
+    else
+      config.age.secrets.openobserve-agent-token.path;
   requiresLocalOpenObserve = config.hostServices.openobserveAgent.requiresLocalOpenObserve;
+  # Home Manager agenix only creates its user unit when there is at least one
+  # secret to decrypt, so requiring `agenix.service` unconditionally makes the
+  # agent unstartable on a host that reads the token from system level instead.
+  usesHomeManagerSecret = config.hostServices.openobserveAgent.secretFile != null;
   garageTelemetryEnabled = hostname == "nuc";
   garageTracesStream = "${hostname}_garage_traces";
   traceSamplingPercentage = config.hostServices.openobserveAgent.garageTraceSamplingPercentage;
@@ -268,30 +276,56 @@ in
       default = hostname == "nuc";
       description = "Whether this collector follows a local OpenObserve service.";
     };
+
+    secretFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      default = ../../secrets/openobserve-agent-token.age;
+      description = ''
+        Encrypted ingestion token declared as a Home Manager agenix secret.
+        Set to null on a host that decrypts the token at system level instead,
+        where the identity can be the machine's SSH host key; a user service
+        cannot read that key, so the two paths cannot be mixed on one host.
+      '';
+    };
+
+    authHeaderFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = ''
+        Path to an already-decrypted ingestion token. Required when secretFile
+        is null, and ignored otherwise.
+      '';
+    };
   };
 
   imports = [ ./proxy.nix ];
 
-  config = {
-    age.secrets.openobserve-agent-token.file = ../../secrets/openobserve-agent-token.age;
-    age.identityPaths = [
-      "${config.home.homeDirectory}/.ssh/id_ed25519"
-      "/etc/ssh/ssh_host_ed25519_key"
-    ];
-
-    home.packages = [ collector ];
+  config = lib.mkMerge [
+    # `mkIf`, not `optionalAttrs`: an attribute-set conditional would have to
+    # read `config` while `config` is still being built. The tradeoff is that
+    # the Home Manager agenix options must exist even on a host that declares
+    # no user secret, so such a host imports the agenix Home Manager module.
+    (lib.mkIf (config.hostServices.openobserveAgent.secretFile != null) {
+      age.secrets.openobserve-agent-token.file = config.hostServices.openobserveAgent.secretFile;
+      age.identityPaths = [
+        "${config.home.homeDirectory}/.ssh/id_ed25519"
+        "/etc/ssh/ssh_host_ed25519_key"
+      ];
+    })
+    {
+      home.packages = [ collector ];
     home.file."${collectorConfig}".source = collectorConfigFile;
 
     systemd.user.services.openobserve-agent = {
       Unit = {
         Description = "OpenObserve ${hostname} host telemetry agent";
         PartOf = lib.optional requiresLocalOpenObserve "openobserve.service";
-        After = [
-          "agenix.service"
-          "network-online.target"
-        ]
+        After = [ "network-online.target" ]
+        ++ lib.optional usesHomeManagerSecret "agenix.service"
         ++ lib.optional requiresLocalOpenObserve "openobserve.service";
-        Requires = [ "agenix.service" ] ++ lib.optional requiresLocalOpenObserve "openobserve.service";
+        Requires =
+          lib.optional usesHomeManagerSecret "agenix.service"
+          ++ lib.optional requiresLocalOpenObserve "openobserve.service";
         Wants = [ "network-online.target" ];
       };
       Service = {
@@ -309,5 +343,6 @@ in
       };
       Install.WantedBy = [ "default.target" ];
     };
-  };
+    }
+  ];
 }

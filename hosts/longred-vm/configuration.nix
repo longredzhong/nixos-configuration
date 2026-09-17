@@ -111,6 +111,14 @@
     owner = "root";
     mode = "0400";
   };
+  # The telemetry agent runs as a user service, but a user service cannot read
+  # the root-only host key, so the token is decrypted here at system level and
+  # handed to the `dev` account by path. See hosts/longred-vm/home.nix.
+  age.secrets.openobserve-agent-token = {
+    file = ../../secrets/openobserve-agent-token-longred-vm.age;
+    owner = "${username}";
+    mode = "0400";
+  };
 
   # --- remote build -------------------------------------------------------
   # Other machines in the lab use this host as a remote builder. Nix connects
@@ -182,6 +190,9 @@
       "wheel"
       "systemd-journal"
     ];
+    # The telemetry agent is a user service, so the user manager has to outlive
+    # the last login for it to keep exporting after a reboot.
+    linger = true;
     # The key that already reaches this machine over the tailnet. Keeping it
     # here means `ssh dev@longred-vm` does not depend on Tailscale SSH being
     # enabled for this node.
