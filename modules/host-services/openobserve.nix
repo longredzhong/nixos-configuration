@@ -90,6 +90,20 @@ let
     }
   );
 
+  # The bearer token is deliberately absent from the file above: that file is a
+  # store path, and a store path is world-readable. The provisioning script
+  # injects the header at runtime from the agenix secret instead.
+  injectPublishToken = ''
+    destination_payload="$('${coreutils}/mktemp')"
+    '${coreutils}/chmod' 600 "$destination_payload"
+    # Double quotes are required: the Home Manager agenix path is the literal
+    # string ''${XDG_RUNTIME_DIR}/agenix/<name>, which only the shell expands.
+    '${jq}' --arg auth "Bearer $(cat "${config.age.secrets.ntfy-publish-token.path}")" \
+      '.headers.Authorization = $auth' '${alertDestinationFile}' >"$destination_payload"
+    cleanup_destination() { '${coreutils}/rm' -f "$destination_payload"; }
+    trap cleanup_destination EXIT
+  '';
+
   # OpenObserve evaluates a SQL alert on the NUMBER OF ROWS the query returns,
   # not on the value of the aggregate it selects. Every rule below is therefore
   # written so that one row means one violation, and the trigger threshold is
@@ -283,9 +297,29 @@ let
       echo "openobserve-alerts: created template ${alertTemplateName}"
     fi
 
-    if [ "$(status "/api/$org/alerts/destinations/${alertDestinationName}")" != "200" ]; then
-      post "/api/$org/alerts/destinations?module=alert" '${alertDestinationFile}'
+    # The token is read here so that rotating it re-writes the destination on
+    # the next apply; a create-only step would keep publishing with the old one
+    # until someone deleted the destination by hand.
+    ${injectPublishToken}
+    if [ "$(status "/api/$org/alerts/destinations/${alertDestinationName}?module=alert")" != "200" ]; then
+      post "/api/$org/alerts/destinations?module=alert" "$destination_payload"
       echo "openobserve-alerts: created destination ${alertDestinationName}"
+    else
+      current_destination="$(get "/api/$org/alerts/destinations/${alertDestinationName}?module=alert")"
+      destination_unchanged="$(printf '%s' "$current_destination" | '${jq}' -r --slurpfile want "$destination_payload" '
+        . as $cur
+        | ($want[0]) as $w
+        | ($cur.url == $w.url)
+          and ($cur.method == $w.method)
+          and ($cur.type == $w.type)
+          and ($cur.template == $w.template)
+          and ($cur.skip_tls_verify == $w.skip_tls_verify)
+          and (($cur.headers // {}) == ($w.headers // {}))
+      ' 2>/dev/null || true)"
+      if [ "$destination_unchanged" != "true" ]; then
+        put "/api/$org/alerts/destinations/${alertDestinationName}?module=alert" "$destination_payload"
+        echo "openobserve-alerts: updated destination ${alertDestinationName}"
+      fi
     fi
 
     # Rules are reconciled, not just created: a rule that already exists but no
@@ -526,6 +560,10 @@ in
 
   age.secrets.garage-rpc-secret.file = ../../secrets/garage-rpc-secret.age;
   age.secrets.garage-admin-token.file = ../../secrets/garage-admin-token.age;
+  # Bearer token the alert destination uses to publish. It is a dedicated
+  # account credential rather than the admin password, so it can be revoked on
+  # its own.
+  age.secrets.ntfy-publish-token.file = ../../secrets/ntfy-publish-token.age;
   age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
 
   systemd.user.services.openobserve = {

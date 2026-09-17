@@ -18,10 +18,10 @@ let
   # value fails silently on iPhones while Android keeps working.
   baseUrl = "https://${config.networking.hostName}.tail388af.ts.net";
 
-  # Publishing topic. Not a secret: the access rule below lets anyone who can
-  # reach the service publish to it, while reading requires an authenticated
-  # user. Keep it in sync with the OpenObserve destination URL.
-  topic = "homelab-alerts";
+  # The publishing topic is not declared here: it belongs to the publisher, and
+  # `modules/host-services/openobserve.nix` owns the destination URL that names
+  # it. Nothing on this side restricts topics any more, so there is no second
+  # place for the name to drift.
 
   # The nixpkgs module defaults `listen-http` to this port; keeping the value
   # here means the serve target cannot drift from the listener.
@@ -44,16 +44,12 @@ in
       # messages long enough that a missed notification is still retrievable.
       cache-duration = "24h";
 
-      # Private instance: nothing is readable or writable unless the entry below
-      # or an authenticated user grants it.
+      # Private instance: nothing is readable or writable without a credential.
+      # Publishing used to be allowed anonymously on the one topic, which was
+      # defensible while the service was tailnet-only. It is not once the service
+      # is published on a public hostname, so the destination now authenticates
+      # with a bearer token and no anonymous entry exists at all.
       auth-default-access = "deny-all";
-
-      # OpenObserve publishes anonymously from the NUC. This grants write-only
-      # access to exactly one topic, so an anonymous client can inject noise
-      # into that topic but can neither read it nor touch anything else. Replace
-      # it with a bearer token once a publisher token exists; see
-      # docs/alerting.md.
-      auth-access = [ "*:${topic}:write-only" ];
     };
   };
 

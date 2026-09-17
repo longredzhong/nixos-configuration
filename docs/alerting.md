@@ -32,7 +32,7 @@ NUC 是 OpenObserve 监控的对象。把通知端放在被监控的机器上，
 访问控制按"私有实例"配置：
 
 - `auth-default-access = "deny-all"`：默认既不可读也不可写。
-- `auth-access = [ "*:<topic>:write-only" ]`：只对发布主题开放匿名**写入**。匿名客户端因此可以往这一个主题灌噪音，但读不到它，也碰不到其他主题。
+- `auth-default-access = "deny-all"`：默认既不可读也不可写，且**没有任何匿名条目**。发布端用 bearer token，订阅端用账号或令牌。早先允许匿名写入发布主题，那在服务只存在于 tailnet 内时是可接受的，一旦挂上公网主机名就不再成立。
 
 > 主题名不是机密。它出现在仓库的配置与文档里，安全性由上面的 ACL 提供，而不是靠"没人知道主题名"。
 
@@ -108,13 +108,13 @@ Android 客户端可直接订阅主题并登录该用户；iOS 客户端还依�
 - **流名会把 `-` 规范成 `_`。** 采集器按 `${hostname}_journald` 命名，实际落地为 `longred_vm_journald`；写规则时要用规范后的名字。
 - **告警规则只创建、不删除。** provision 幂等的方向是"缺失即创建"，不负责删除仓库中已移除的规则；需要清理时在控制台或 API 中删除。
 
-## 加固路径
+## 发布端凭据
 
-匿名发布是当前唯一的宽松点。收紧步骤：在通知端创建发行专用用户与 token，然后
+发布端不使用匿名写入。通知目标带 `Authorization: Bearer` 头，取值来自 `secrets/ntfy-publish-token.age`，由 `config.age.secrets.ntfy-publish-token.path` 在运行时读出。
 
-1. 把 `auth-access` 改为 `/` 由用户承担，`auth-default-access` 保持 `deny-all`；
-2. 在通知目标上加 `Authorization: Bearer` 头，token 通过 `age -e -R <ssh-公钥文件>` 加密后由 `config.age.secrets.<name>.path` 提供（注意 `secrets/README.md` 中的接收者格式要求）；
-3. 重新运行 provision（目标已存在时按名称跳过，需先删除旧目标或改为更新语义）。
+这个 token **不写进目标配置的 store 文件**：目标 payload 是先 `builtins.toJSON` 写进 `/nix/store` 的，而 store 路径全局可读，所以脚本在运行时用 `jq` 把头部注入一份 `mktemp` 出来的临时副本再提交。同理，agenix 在 Home Manager 下的路径是**字面量** `${XDG_RUNTIME_DIR}/agenix/<name>`，取用时必须放在双引号里让 shell 展开，单引号会让 `cat` 找不到文件。
+
+provision 会比对目标的 `url`/`method`/`type`/`template`/`skip_tls_verify`/`headers`，不一致就 `PUT` 更新——因此**轮换 token 后重新 apply 即可生效**，不需要手工删除目标。用 `ntfy token add --label=<name> <user>` 生成新 token 时，注意 `ntfy token list` 会把 token 明文打印出来，不要在会被记录的地方执行它。
 
 ## 验证
 
