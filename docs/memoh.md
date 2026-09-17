@@ -42,12 +42,23 @@
 | 8080 | `127.0.0.1` | 平台 API |
 | 8082 | `127.0.0.1` | Web UI |
 | 8443 | tailnet（`tailscale serve`） | Web UI 的对外入口 |
+| 1455 | `127.0.0.1` | OAuth 回调端口 |
+| 30000/udp | tailnet 地址 | Agent 桌面的 WebRTC 媒体（ICE） |
 
 端口必须显式收回到 loopback：**Docker 会自行插入 iptables 规则，绕过 `networking.firewall`**，所以沿用上游的 `8080:8080` / `8082:8082` 会把管理界面直接发布到该客户机的实验室局域网口上。这里用 compose 的 `!override` 替换而不是追加端口列表。
 
 Web UI 走 `tailscale serve --https=8443`：这条节点上 443 已经被 ntfy 占用，所以另开一个端口，仍然只对 tailnet 开放。
 
-**未接线**：`1455` 与 WebRTC 的 UDP 30000 未发布，因此 Agent 桌面的远程串流尚不可用。
+### Agent 桌面的远程串流
+
+两个要求，缺一不可：
+
+1. **ICE 媒体端口要发布到客户端能到达的地址。** display 服务把所有会话复用到**一个** UDP 端口（`MEMOH_DISPLAY_WEBRTC_UDP_PORT=30000`），这里把它绑到 tailnet 地址而不是 `0.0.0.0`，因此只有 tailnet 内的浏览器能用。
+2. **必须设置 `MEMOH_DISPLAY_WEBRTC_NAT_IPS`。** 否则服务器交给浏览器的 ICE 候选是**容器自己的网桥地址**，外部浏览器永远连不上——端口发布了也没用。它与上面那个地址必须是同一个值。上游 compose **没有**列出这个变量，所以本仓库在自己的叠加层里补上。
+
+因此浏览器设备必须在 tailnet 内（Web UI 走 8443、媒体走该 UDP 端口，两者同属 tailnet）。ICE 候选地址是写死在模块里的常量：构建期没有办法向 Tailscale 查询它，所以准备脚本里加了一次等待，地址对不上时会让单元直接失败而不是静默降级。
+
+`1455` 是**OAuth 回调端口**，与桌面无关：提供方默认回调到 `http://localhost:1455/auth/callback`，也就是说它只有在浏览器与服务在同一台机器上时才有意义。这里保持在 loopback，需要时用 `ssh -L 1455:127.0.0.1:1455` 把它映射到客户端的 localhost。
 
 ## 使用
 
@@ -78,13 +89,17 @@ sudo docker exec memoh-server ...   # 或从宿主直接打 127.0.0.1:8080/auth/
 
 # 工作区后端（嵌套 containerd）是否活着
 sudo docker exec memoh-server ls /run/containerd/containerd.sock
+
+# 桌面串流的两处接线：容器内应有 NAT IP，宿主上 UDP 端口应绑在 tailnet 地址
+sudo docker inspect memoh-server --format '{{range .Config.Env}}{{println .}}{{end}}' | grep MEMOH_DISPLAY
+ss -lunp | grep :30000
 ```
 
 > 登录路由是 `/auth/login`，不在 `/api/` 前缀下；`/api/*` 是需要 JWT 的另一套接口，用错前缀会得到 `missing or malformed jwt` 而不是凭据错误。
 
 ## 已知限制
 
-- **Agent 工作区尚未端到端验证。** 已验证平台能启动、迁移完成、可登录，以及嵌套 containerd 存活；但真正拉起一个 Agent workspace 需要先在界面里配置模型 API Key，属于用户侧步骤。
+- **Agent 工作区尚未端到端验证。** 已验证平台能启动、迁移完成、可登录、嵌套 containerd 存活，以及桌面串流的端口与 ICE 候选地址都已接好；但真正拉起一个 Agent workspace（并首次拉取 `memohai/workspace` 镜像）需要先在界面里配置模型 API Key，属于用户侧步骤。桌面串流本身也需要建好一个 Agent 后才能观察到完整的 SDP。
 - `server` 与 `web` 使用 `:latest` 标签，升级是手工动作，不是声明式的。
 - 本仓库只有这一个服务使用 rootful Docker；其余服务一律走 rootless podman，两者互不影响，但排查时要分清。
 

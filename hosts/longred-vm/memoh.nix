@@ -30,6 +30,13 @@ let
   };
 
   stateDir = "/var/lib/memoh";
+
+  # The guest's own tailnet address. It is the only address the browser-based
+  # agent desktop can be reached on, and it has to be the same value in two
+  # places: the published ICE port and the candidate the server advertises.
+  # There is no build-time way to ask Tailscale for it, so it is written down;
+  # the wait in `prepare` fails loudly if it ever stops matching.
+  tailnetAddress = "100.79.246.83";
   composeFiles = [
     "${memohSrc}/docker-compose.yml"
     "${memohSrc}/docker/docker-compose.cn.yml"
@@ -58,6 +65,21 @@ let
       server:
         ports: !override
           - "127.0.0.1:8080:8080"
+          # Upstream also publishes 1455. That port is the OAuth callback the
+          # *browser* is redirected to (the provider defaults to
+          # http://localhost:1455/auth/callback), so it is only useful through an
+          # SSH tunnel that maps the client's localhost:1455 here. Keeping it on
+          # loopback preserves that without adding exposure.
+          - "127.0.0.1:1455:8080"
+          # ICE media for the browser-based agent desktop. The display service
+          # multiplexes every session onto this one UDP port. It binds the
+          # tailnet address rather than 0.0.0.0 so the lab LAN cannot reach it.
+          - "${tailnetAddress}:30000:30000/udp"
+        environment:
+          # Without this the ICE candidate handed to the browser is the
+          # container's own bridge address, which no remote browser can reach, so
+          # the desktop never connects even with the port published.
+          MEMOH_DISPLAY_WEBRTC_NAT_IPS: "${tailnetAddress}"
       web:
         ports: !override
           - "127.0.0.1:8082:8082"
@@ -141,6 +163,18 @@ let
     # doubles as the environment for every service.
     '${pkgs.coreutils}/bin/install' -m 600 '${config.age.secrets.memoh-env.path}' '${stateDir}/.env'
 
+    # Compose binds the ICE UDP port to the tailnet address above. If tailscaled
+    # has not finished bringing the interface up, the container fails to start
+    # with "cannot assign requested address" and a oneshot unit cannot be told to
+    # retry, so wait for the address here instead.
+    for _ in $('${pkgs.coreutils}/bin/seq' 1 60); do
+      if '${pkgs.iproute2}/bin/ip' -4 addr show dev tailscale0 2>/dev/null \
+        | '${pkgs.gnugrep}/bin/grep' -q '${tailnetAddress}/'; then
+        break
+      fi
+      '${pkgs.coreutils}/bin/sleep' 2
+    done
+
     '${pkgs.python3}/bin/python3' '${generateConfig}'
   '';
 
@@ -170,9 +204,13 @@ in
     after = [
       "docker.service"
       "network-online.target"
+      "tailscaled.service"
     ];
     requires = [ "docker.service" ];
-    wants = [ "network-online.target" ];
+    wants = [
+      "network-online.target"
+      "tailscaled.service"
+    ];
     serviceConfig = {
       Type = "oneshot";
       RemainAfterExit = true;
