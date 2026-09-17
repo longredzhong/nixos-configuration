@@ -47,19 +47,45 @@ ntfy 支持在 `server.yml` 里声明 `auth-users` / `auth-tokens`。本仓库**
 
 ### 判定端（OpenObserve，NUC）
 
-`modules/host-services/openobserve.nix` 里新增的 `openobserve-alerts` 单元通过 API 幂等地创建消息模板、通知目标和告警规则。它是**追加式**的：不修改 `openobserve` 单元本身，因此应用这个模块不会重启正在运行的 OpenObserve 容器。
+`modules/host-services/openobserve.nix` 里新增的 `openobserve-alerts` 单元通过 API 幂等地调和（reconcile）消息模板、通知目标和告警规则：缺失则创建，已存在但与仓库不一致则更新。它是**追加式**的：不修改 `openobserve` 单元本身，因此应用这个模块不会重启正在运行的 OpenObserve 容器。
 
 单元用 `Wants` 而非 `Requires` 依赖 `openobserve.service`：provision 失败不应该连带把观测栈拖下去。修复原因后用 `systemctl --user start openobserve-alerts` 重跑即可。
 
-目标 URL 里的路径就是发布主题路径，模板渲染出的正文会成为通知正文，标题、优先级与标签通过 `headers` 传递。三个阈值都不是整数偏好，而是对着实测基线定的：NUC 的 1 分钟负载峰值约 20 且以磁盘等待为主；`/data` 常留约 1.37 TB 空闲；`fedora-thinkbook` 的 `/` 已接近 79% 使用率。
+目标 URL 里的路径就是发布主题路径，模板渲染出的正文会成为通知正文，标题、优先级与标签通过 `headers` 传递。
+
+### SQL 告警按**返回行数**判定，不是按聚合值
+
+这是本页最容易踩错、且不会报错的一点。OpenObserve 用查询**返回的行数**去和 `trigger_condition` 比较，`SELECT` 出来的聚合值不参与判定。实测：`SELECT 0.5 AS v ... LIMIT 1` 得到的 `actual_value` 是 `1`。
+
+后果是双向的，且都属于"看起来正常"的失败：
+
+- `SELECT max(value) ...` 永远只返回一行，因此**永远触发不了**（除非阈值恰好 ≤ 1）；
+- `SELECT count(*) ...` 也永远只返回一行，配 `>= 1` 就是**无条件误报**。
+
+正确的写法是让**一行代表一次越限**，阈值固定为 1：
+
+```sql
+SELECT host_name, max(value) AS load1
+FROM "<metric-stream>"
+GROUP BY host_name
+HAVING max(value) >= <threshold>
+```
+
+规则里因此不再用聚合结果当阈值。判定端用同一个 SQL 引擎，可以直接用查询接口先验证：健康时应返回 **0 行**，把阈值调大做阳性对照时应返回对应数量的行。
 
 ## 首次启用
 
-在通知端主机上为订阅者（手机）创建一个用户，然后重启服务：
+在通知端主机上为订阅者（手机）创建一个用户：
 
 ```bash
-sudo ntfy user -c /etc/ntfy/server.yml add --role=admin <user>
-systemctl status ntfy-sh
+sudo ntfy user add --role=admin <user>
+```
+
+CLI 没有 `-c/--config` 这类全局参数；它自行读取本机的 `/etc/ntfy/server.yml`（即 nixpkgs 模块生成的配置），因此不需要指定 `auth-file`。创建后核对：
+
+```bash
+sudo ntfy user list
+sudo ntfy access
 ```
 
 Android 客户端可直接订阅主题并登录该用户；iOS 客户端还依赖 `base-url` 与上游转发，见下文。
@@ -105,7 +131,11 @@ curl -H "Title: test" -H "Priority: low" -d "alerting pipeline check" \
   https://<ntfy-host>.<tailnet>.ts.net/<topic>
 ```
 
-告警规则自身的验证只能证明"规则存在"，不能证明"会触发"。要证明后者，需在 `trigger_condition.period` 窗口内构造一次真实越限，并确认通知实际到达。
+"规则存在"不等于"会触发"，"接口可达"也不等于"链路通"。至少要做三件事：
+
+1. **验证规则判定方向**：按上面的方式在同一个 SQL 引擎里跑规则的查询，确认健康时返回 0 行、把阈值调大做阳性对照时返回预期的行数。
+2. **验证会真触发**：临时建一条阈值必然满足的规则，等它评估，确认通知端计数增长、告警历史里 `status` 为 `firing` 且 `error` 为空，然后删掉这条临时规则。
+3. **验证通知确实送达手机**：前两步只能证明请求被接受，最后一段只有你看得见。
 
 ## 参考
 

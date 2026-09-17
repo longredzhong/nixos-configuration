@@ -50,6 +50,7 @@ let
 
   curl = "${pkgs.curl}/bin/curl";
   cut = "${coreutils}/cut";
+  jq = "${pkgs.jq}/bin/jq";
   seq = "${coreutils}/seq";
 
   # The destination POSTs the rendered body to the topic path, where the body
@@ -89,10 +90,17 @@ let
     }
   );
 
-  # Thresholds are set against measured baselines rather than round numbers: the
-  # NUC's 1-minute load peaked at 20.01 with the disks idle enough that most of
-  # it is wait time, its /data volume keeps roughly 1.37 TB free, and the
-  # thinkbook's / already sits near 79% used.
+  # OpenObserve evaluates a SQL alert on the NUMBER OF ROWS the query returns,
+  # not on the value of the aggregate it selects. Every rule below is therefore
+  # written so that one row means one violation, and the trigger threshold is
+  # the tolerated row count (1). This is not optional: an aggregate-only query
+  # is accepted without complaint but silently wrong, because `SELECT max(...)`
+  # returns exactly one row whatever the data says. Measured on this instance:
+  # `SELECT 0.5 AS v ... LIMIT 1` reported an actual value of 1.
+  #
+  # Thresholds follow measured baselines: the NUC's 1-minute load peaked at
+  # 26.98 with most of it disk wait, its /data volume keeps roughly 1.37 TB
+  # free, and the thinkbook's / sits near 79% used.
   alertRules = [
     {
       name = "node_disk_space_low";
@@ -102,32 +110,41 @@ let
       threshold = 1;
       silence = 360;
       sql = ''
-        SELECT count(*) AS low_mountpoints FROM "system_filesystem_usage"
-        WHERE state = 'free' AND value < 50000000000
+        SELECT host_name, mountpoint, min(value) AS free_bytes
+        FROM "system_filesystem_usage"
+        WHERE state = 'free'
+          AND value < 50000000000
           AND (mountpoint = '/' OR mountpoint = '/data' OR mountpoint = '/home')
+        GROUP BY host_name, mountpoint
       '';
     }
     {
       name = "node_load_average_high";
       stream = "system_cpu_load_average_1m";
-      description = "1-minute load average reached 32; the measured peak on the NUC is about 20 and is dominated by disk wait.";
+      description = "1-minute load average reached 48 on a host; the measured peak on the NUC is about 27 and is dominated by disk wait.";
       operator = ">=";
-      threshold = 32;
+      threshold = 1;
       silence = 60;
       sql = ''
-        SELECT max(value) AS max_load FROM "system_cpu_load_average_1m"
+        SELECT host_name, max(value) AS load1
+        FROM "system_cpu_load_average_1m"
+        GROUP BY host_name
+        HAVING max(value) >= 48
       '';
     }
     {
       name = "garage_disk_available_low";
       stream = "garage_local_disk_avail";
       description = "Garage reports less than 200 GB available on its data volume.";
-      operator = "<";
-      threshold = 200000000000;
+      operator = ">=";
+      threshold = 1;
       silence = 360;
       sql = ''
-        SELECT min(value) AS available_bytes FROM "garage_local_disk_avail"
+        SELECT volume, min(value) AS available_bytes
+        FROM "garage_local_disk_avail"
         WHERE volume = 'data'
+        GROUP BY volume
+        HAVING min(value) < 200000000000
       '';
     }
   ];
@@ -193,10 +210,27 @@ let
       '${curl}' -fsS -u "$root_email:$root_password" "$base$1"
     }
 
-    post() {
-      '${curl}' -fsS -u "$root_email:$root_password" -X POST \
-        -H 'Content-Type: application/json' --data-binary "@$2" "$base$1" >/dev/null
+    # Writes are retried because this API intermittently answers
+    # 500 "Failed to acquire connection from pool: Connection pool timed out"
+    # while it is busy. Without the retry a transient pool timeout aborts
+    # provisioning halfway through the rule list.
+    write() {
+      local method="$1" path="$2" file="$3" attempt
+      for attempt in $('${seq}' 1 5); do
+        if '${curl}' -fsS -u "$root_email:$root_password" -X "$method" \
+          -H 'Content-Type: application/json' --data-binary "@$file" "$base$path" >/dev/null; then
+          return 0
+        fi
+        echo "openobserve-alerts: $method $path failed on attempt $attempt" >&2
+        sleep 5
+      done
+      echo "openobserve-alerts: $method $path failed after 5 attempts" >&2
+      return 1
     }
+
+    post() { write POST "$1" "$2"; }
+
+    put() { write PUT "$1" "$2"; }
 
     # Probe an authenticated route rather than /healthz: a listener that accepts
     # connections but cannot serve the API yet must not count as ready.
@@ -223,14 +257,44 @@ let
       echo "openobserve-alerts: created destination ${alertDestinationName}"
     fi
 
+    # Rules are reconciled, not just created: a rule that already exists but no
+    # longer matches the payload in this repository would otherwise never pick
+    # up a corrected query or threshold. Only the fields this repository owns
+    # are compared, so unrelated server-side state does not cause a rewrite.
     alert_list="$(get "/api/v2/$org/alerts")"
     while read -r name file; do
       [ -n "$name" ] || continue
-      if printf '%s' "$alert_list" | '${grep}' -qF "\"$name\""; then
+      # Collecting into an array and taking the first element keeps this a
+      # single jq invocation; piping jq into head would let SIGPIPE fail the
+      # pipeline under `set -o pipefail`.
+      alert_id="$(printf '%s' "$alert_list" | '${jq}' -r --arg n "$name" \
+        '[ (.list // [])[] | select(.name == $n) | .alert_id ] | first // ""')"
+      if [ -z "$alert_id" ]; then
+        post "/api/v2/$org/alerts" "$file"
+        echo "openobserve-alerts: created alert rule $name"
         continue
       fi
-      post "/api/v2/$org/alerts" "$file"
-      echo "openobserve-alerts: created alert rule $name"
+      unchanged="$(printf '%s' "$alert_list" | '${jq}' -r --arg n "$name" --slurpfile want "$file" '
+        ((.list // [])[] | select(.name == $n)) as $cur
+        | ($want[0]) as $w
+        | ($cur.condition.sql == $w.query_condition.sql)
+          and ($cur.description == $w.description)
+          and ($cur.enabled == $w.enabled)
+          and ($cur.is_real_time == $w.is_real_time)
+          and ($cur.stream_name == $w.stream_name)
+          and ($cur.stream_type == $w.stream_type)
+          and ($cur.trigger_condition.period == $w.trigger_condition.period)
+          and ($cur.trigger_condition.operator == $w.trigger_condition.operator)
+          and ($cur.trigger_condition.threshold == $w.trigger_condition.threshold)
+          and ($cur.trigger_condition.frequency == $w.trigger_condition.frequency)
+          and ($cur.trigger_condition.frequency_type == $w.trigger_condition.frequency_type)
+          and ($cur.trigger_condition.silence == $w.trigger_condition.silence)
+      ' 2>/dev/null || true)"
+      if [ "$unchanged" = "true" ]; then
+        continue
+      fi
+      put "/api/v2/$org/alerts/$alert_id" "$file"
+      echo "openobserve-alerts: updated alert rule $name"
     done < '${alertRuleManifest}'
   '';
 
