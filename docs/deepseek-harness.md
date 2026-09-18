@@ -1,6 +1,6 @@
 # DeepSeek Harness
 
-[返回文档索引](README.md) · [返回项目 README](../README.md)
+[返回文档索引](README.md) · [返回项目 README](../README.md) · 开发机上的 ACP 接入见 [DeepSeek Harness ACP（Zed）](deepseek-harness-acp.md)
 
 ## 作用范围
 

@@ -1,0 +1,27 @@
+# DeepSeek Harness 模型配置种子 —— settings.yaml 的仓库侧权威定义
+#
+# 本文件不包含任何机密：provider 只引用凭据的**变量名**（apiKeyEnv），真实值来自
+# 启动环境、$DSH_HOME/.credentials.yaml 或 $DSH_HOME/.env。
+#
+# 合并语义（见 modules/host-services/deepseek-harness-acp.nix）：本文件提到的键由
+# 仓库**拥有**，部署时递归覆盖 settings.yaml 里的对应键（种子优先）。本文件没有
+# 提到的键一律不动，因此下面这些不会被影响：
+#   - 插件写入的 opencode-go-live-chat / -responses / -messages 受管路由
+#   - UI 偏好（ui-*）
+#   - 各机自己的 agent-default-model
+#
+# 一条 route 注册成功不等于它能工作：apiKeyEnv 解析不到值时第一次请求就失败，所以
+# **不要声明本机没有凭据的路由**。需要具体凭据的路由分别放在另外的种子里，由各机
+# 按自己拿得到的 key 选择加载：
+#   settings.seed.opencode.yaml           OpenCode Go（OPENCODE_GO_API_KEY）
+#   settings.seed.<host>.yaml             该机自己的网关或默认路由
+
+# DeepSeek 官方适配器，route 名固定为 deepseek-official（由 dsh-llm-deepseek 提供）。
+#
+# baseURL 显式写出来是刻意的：它的默认值就是 https://api.deepseek.com/anthropic，
+# 但某台机器上遗留的旧覆盖必须由种子清掉——否则官方 route 会悄悄指向别的网关，
+# 症状是每个请求都 401，而 key 其实没问题。
+llm-deepseek:
+  protocol: messages
+  apiKeyEnv: DEEPSEEK_API_KEY
+  baseURL: https://api.deepseek.com/anthropic

@@ -14,6 +14,7 @@
 | 主题 | 内容 | 主要来源 |
 | --- | --- | --- |
 | [DeepSeek Harness](deepseek-harness.md) | Web 服务、Tailscale 身份认证、token 回退、远程 Settings 和回滚 | `modules/host-services/deepseek-harness.nix` |
+| [DeepSeek Harness ACP（Zed）](deepseek-harness-acp.md) | 开发机的 ACP 进程模型、开发配置/模型配置/全局记忆三条同步线、机密处理、模块设计与桥接选型 | `modules/host-services/deepseek-harness.nix` |
 | [OpenObserve 与 OpenTelemetry](openobserve.md) | OpenObserve、Garage、Collector、OTLP 和观测验证 | `modules/host-services/openobserve*.nix`、`modules/host-services/garage.nix` |
 | [告警与通知](alerting.md) | 告警分层、ntfy 通知端的放置理由与访问控制、OpenObserve 告警的幂等调和与验证 | `modules/host-services/openobserve.nix`、`hosts/longred-vm/ntfy.nix`、`modules/host-services/openobserve-agent.nix` |
 | [mihomo（Clash Meta）](mihomo.md) | 本机代理、订阅与自定义节点、Web 面板和 OpenObserve 指标 | `modules/host-services/mihomo.nix`、`config/mihomo/` |

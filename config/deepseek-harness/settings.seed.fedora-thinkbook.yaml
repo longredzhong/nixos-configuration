@@ -1,0 +1,73 @@
+# fedora-thinkbook 专属的模型配置种子
+#
+# 这台机器能访问公司网关 ten-rings，而 NUC 没有它的凭据，所以这条 route 放在
+# host 种子而不是共享种子里：共享种子会把它推到没有凭据的机器上，变成"选中就
+# 失败"的死路由。要在 NUC 上也启用，先把 TEN_RINGS_API_KEY 放进那边的凭据来源，
+# 再决定是否把这段搬到共享种子。
+#
+# route 名 ten-rings 就是模型选择器里的分组名，改动会让旧会话记录的 provider 失效。
+
+llm-pi-ai:
+  providers:
+    ten-rings:
+      apiKeyEnv: TEN_RINGS_API_KEY
+      api: openai-responses
+      baseURL: https://api.ten-rings.adtensor.com/llm/v1
+      models:
+        # reasoningEfforts 的键是 DSH 的等级（off/low/high/max），值是网关侧的取值；
+        # 空值表示该等级不发送 reasoning 参数。声明了就等于暴露给选择器，所以只写
+        # 网关真正接受的取值——错的值会让请求 400。这四档已逐个发过真实请求验证。
+        - id: gpt-5.6-luna
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+        - id: gpt-5.6-sol
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+        - id: gpt-5.6-terra
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+        - id: google/gemma-4-12B-it
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+        - id: deepseek-v4-flash
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+        - id: deepseek-v4-pro
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+        - id: qwen3.7-plus
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+        - id: qwen3.6-plus
+          reasoningEfforts:
+            off:
+            low: low
+            high: medium
+            max: high
+
+# 这台机器的默认路由，覆盖 headless 等不显式选模型的入口。ACP 会话另有 profile
+# patch 固定同一条 route。
+agent-default-model:
+  provider: ten-rings
+  model: gpt-5.6-terra

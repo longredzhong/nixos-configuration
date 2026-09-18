@@ -1,0 +1,13 @@
+# OpenCode Go 的静态回退路由
+#
+# 只有能解析 OPENCODE_GO_API_KEY 的机器才应该加载本文件：否则模型选择器里会出现
+# 一条选中即失败的 route。模块的 openCodeRoutes.enable 同时控制本文件和
+# @longred/deepseek-harness-opencode-session 插件的加载。
+#
+# 按协议拆分的动态路由（opencode-go-live-chat / -responses / -messages）由插件从
+# 实时目录写入 settings.yaml 并由插件管理，不在这里维护。
+
+llm-pi-ai:
+  providers:
+    opencode-go:
+      apiKeyEnv: OPENCODE_GO_API_KEY

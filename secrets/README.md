@@ -11,9 +11,22 @@
 
 ## 当前配置方式
 
-这个 checkout 没有提交 `secrets/secrets.nix` 接收者清单。实际机密声明位于各服务模块的 `age.secrets` 属性中，身份路径由对应 Home Manager/NixOS 配置设置。因此旧版 `scripts/secretctl.py` 及 `just secret-*` 命令依赖的清单目前不是可用的仓库工作流；不要用示例公钥或虚构清单生成新机密。
+这个 checkout 没有提交 `secrets/secrets.nix`。实际机密声明位于各服务模块的 `age.secrets` 属性中，身份路径由对应 Home Manager/NixOS 配置设置。因此旧版 `scripts/secretctl.py` 及 `just secret-*` 命令依赖的清单仍然不是可用的仓库工作流；不要用示例公钥或虚构清单生成新机密。
 
-新增或轮换机密前，先检查：
+DeepSeek Harness 的凭据走单独一条明确的路径：
+
+- `secrets/recipients.txt` 是这些凭据的接收者清单（当前两台 Home Manager 目标的 `~/.ssh/id_ed25519.pub`），提交它是刻意的——接收者就是访问控制，必须可审查。**它只描述 DSH 凭据**；其他机密按各自模块的 `age.secrets` 与 `age.identityPaths` 单独核对。
+- `scripts/dsh-credentials.py` 用该清单加密、解密校验并可选更新运行时凭据库：
+
+  ```bash
+  scripts/dsh-credentials.py list            # 查看密文状态与库里的值长度（不显示值）
+  scripts/dsh-credentials.py set OPENCODE_API_KEY
+  scripts/dsh-credentials.py verify
+  ```
+
+  值只经不回显的交互输入，直接被管道送进 `age`，不落明文文件、不打印、不进 argv。`list` 显示的长度可以直接暴露占位符或被截断的值。
+
+新增或轮换其他机密前，先检查：
 
 ```bash
 rg -n 'age\.secrets|age\.identityPaths' modules hosts users
