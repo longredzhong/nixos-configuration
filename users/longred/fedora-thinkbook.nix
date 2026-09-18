@@ -34,8 +34,9 @@
 
     # Stay on the shipped bridge. `bridge = "enhanced"` does deliver the
     # permission/agent-mode/plan selectors -- verified on the wire -- but
-    # dsh-acp-enhanced 0.7.0 emits no assistant text against harness
-    # 0.1.6-alpha.1: a prompt settles with stopReason end_turn, usage_update
+    # dsh-acp-enhanced 0.7.0 emitted no assistant text against the then-pinned
+    # harness 0.1.6-alpha.1 (not yet re-tested on 0.1.6-alpha.2): a prompt
+    # settles with stopReason end_turn, usage_update
     # reports output tokens, and no agent_message_chunk ever arrives. Tested
     # with the standard and minimal presets, the ten-rings and deepseek-official
     # routes, and Zed's exact client capabilities. That makes it unusable here,

@@ -27,7 +27,12 @@ let
     dshHome
     openobserveEndpoint
     ;
-  node = pkgs.nodejs_22;
+  # dsh 0.1.6-alpha.2 boots profiles through node-addon-require-builtin, whose
+  # native prebuild only recognizes the official nodejs.org V8 layout; nixpkgs'
+  # nodejs build fails closed (`Unsupported/no-getter`) during host preparation.
+  # See pkgs/nodejs-official. npm only drives `npm install`, so it stays on
+  # nixpkgs.
+  node = pkgs.nodejs-official;
   npm = pkgs.nodejs-slim_22.npm;
   webProfileDir = "${dshHome}/profiles/web";
   webProfileManifest = "${webProfileDir}/package.json";
@@ -394,7 +399,7 @@ in
 
     dshVersion = lib.mkOption {
       type = lib.types.str;
-      default = "0.1.6-alpha.1";
+      default = "0.1.6-alpha.2";
       description = "Pinned @deepseek-ai/dsh version installed into the user runtime.";
     };
 

@@ -6,6 +6,8 @@
 
 `modules/host-services/deepseek-harness.nix` 在 standalone Home Manager 目标上创建用户级 `deepseek-harness.service`，由 `hostServices.deepseekHarness.enable` 按主机打开。服务从 npm 安装固定版本的 `@deepseek-ai/dsh`，运行时和 Harness 数据分别保存在用户目录；实际版本、端口和路径以 Nix 模块为准。
 
+运行时 Node 用官方 nodejs.org 构建（`pkgs/nodejs-official`），不是 nixpkgs 的 `nodejs_22`：从 dsh 0.1.6-alpha.2 起，启动任何 profile 都会经过 `node-addon-require-builtin` 的 `requireBuiltin`，其 linux-x64-gnu 原生预编译只识别官方 Node 的 V8 布局；nixpkgs 的源码构建（22 与 24 都实测过）会以 `Unsupported/no-getter` 在 host preparation 阶段失败，进程甚至来不及监听端口。npm 只负责 `npm install`，仍来自 nixpkgs。
+
 所有与部署绑定的名字都是 `hostServices.deepseekHarness` 的选项，默认值描述参考部署（NUC），主机配置只覆盖差异：
 
 | 主机 | `serviceHost` / `appCapability` | web `runtimeDir` / `dshHome` |
@@ -88,7 +90,7 @@ Messages 三种协议。OpenCode 官方文档说明模型列表会随服务端�
 [`pi.dev/api/models/providers/opencode-go`](https://pi.dev/api/models/providers/opencode-go)
 目录获取模型 ID、协议、endpoint、上下文长度、输入模态和兼容参数。
 
-DSH `0.1.6-alpha.1` 的 Settings provider route 在 route 层保存 `api` 和
+DSH `0.1.6-alpha.2` 的 Settings provider route 在 route 层保存 `api` 和
 `baseURL`，所以插件把目录按协议写入三个受管理的 route：
 
 | Provider route | 协议 | Base URL |

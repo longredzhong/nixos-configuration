@@ -19,6 +19,7 @@ in
       deepseek-harness-observability = prev.callPackage ../pkgs/deepseek-harness-observability { };
       dsh-acp-enhanced = prev.callPackage ../pkgs/dsh-acp-enhanced { };
       dsh-otel = prev.callPackage ../pkgs/dsh-otel { };
+      nodejs-official = prev.callPackage ../pkgs/nodejs-official { };
       opentelemetry-collector-contrib = prev.callPackage ../pkgs/opentelemetry-collector-contrib { };
       opencode-plugin-otel = prev.callPackage ../pkgs/opencode-plugin-otel { };
     })

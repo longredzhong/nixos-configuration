@@ -58,7 +58,7 @@ const COMPAT_KEYS = new Set([
 
 /**
  * These routes are owned by this plugin. A separate route is required for
- * each protocol because dsh 0.1.6-alpha.1 stores `api` and `baseURL` at the
+ * each protocol because dsh 0.1.6-alpha.2 stores `api` and `baseURL` at the
  * provider level, while the OpenCode Go catalog is mixed-protocol.
  */
 export const OPENCODE_GO_LIVE_ROUTES = Object.freeze({
