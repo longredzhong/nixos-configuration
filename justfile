@@ -151,9 +151,9 @@ secret-generate type name:
 secret-edit file identity="":
     ./scripts/secretctl.py edit {{file}} {{if identity != "" { "--identity " + identity } else { "" } }}
 
-# Check secrets consistency
+# Check secrets consistency (declarations vs secrets/*.age)
 secret-check:
-    ./scripts/secretctl.py check
+    ./scripts/secret-check.py
 
 # Safe switch (check secrets first)
 switch-safe host=DEFAULT_HOST:

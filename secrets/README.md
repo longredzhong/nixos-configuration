@@ -11,7 +11,17 @@
 
 ## 当前配置方式
 
-这个 checkout 没有提交 `secrets/secrets.nix`。实际机密声明位于各服务模块的 `age.secrets` 属性中，身份路径由对应 Home Manager/NixOS 配置设置。因此旧版 `scripts/secretctl.py` 及 `just secret-*` 命令依赖的清单仍然不是可用的仓库工作流；不要用示例公钥或虚构清单生成新机密。
+这个 checkout 没有提交 `secrets/secrets.nix`。实际机密声明位于各服务模块的 `age.secrets` 属性中，身份路径由对应 Home Manager/NixOS 配置设置。
+
+一致性校验按这个模型工作，不依赖任何清单文件：
+
+```bash
+just secret-check
+```
+
+`scripts/secret-check.py` 检查四件事：模块引用与 `secrets/*.age` 是否对齐（被引用但没有文件是错误，有文件但无人引用是警告）；每个密文是否是 age v1 且带 `ssh-ed25519` 接收者；`secrets/recipients.txt` 是否只含 SSH 公钥；以及**当前主机入口文件跟随 `imports` 后可达的机密能否用本机身份解密**。解密结果直接丢弃，不落盘、不打印。它是 `just switch-safe` 的前置检查。
+
+旧版 `scripts/secretctl.py` 的 `list`/`generate`/`edit` 等子命令仍然依赖已删除的清单文件，`just secret-list`、`just secret-generate`、`just secret-edit` 因此不可用。不要用示例公钥或虚构清单生成新机密：新增或轮换按下面的 `age -e -R` 流程处理，DeepSeek Harness 凭据走 `scripts/dsh-credentials.py`。
 
 DeepSeek Harness 的凭据走单独一条明确的路径：
 
