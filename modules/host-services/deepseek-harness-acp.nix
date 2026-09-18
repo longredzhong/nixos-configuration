@@ -187,6 +187,8 @@ let
   provisionStamp = "${cfg.dshVersion}:${
     builtins.hashString "sha256" (
       builtins.toJSON profilePlugins
+      + builtins.toJSON removeBundles
+      + builtins.toJSON ensureBundles
       + builtins.readFile profilePatchFile
       + builtins.readFile globalPatchFile
       + lib.concatMapStrings builtins.readFile settingsSeeds
