@@ -40,16 +40,16 @@ NUC 上的 `svc:deepseek-harness` 存在，是因为它要暴露 **web** profile
 | --- | --- |
 | 在 thinkbook 上用 Zed 编辑 thinkbook 的代码 | 本地 `dsh --profile acp`，**不需要**任何 Service |
 | 在任意设备用浏览器操作 **NUC** 上的会话 | 复用 NUC 已有的 `svc:deepseek-harness`，无需新工作 |
-| 在任意设备用浏览器操作 **thinkbook** 上的会话 | 需要在 thinkbook 上跑 **web** profile，并新增一个 Service |
+| 在任意设备用浏览器操作 **thinkbook** 上的会话 | 已由 `svc:deepseek-harness-thinkbook` 提供（见下） |
 | 在别的机器上编辑 **thinkbook** 的代码 | ACP 不做这件事；用 Zed 的远程项目或 SSH，agent 仍要在代码所在机器上跑 |
 
-第三行是一个独立的决策，**不建议在第一步就做**：
+第三行曾经是"不建议在第一步就做"的独立决策，现在 thinkbook 已经通过仓库模块启用了 web profile（`users/longred/fedora-thinkbook.nix` 里的 `hostServices.deepseekHarness`，访问方式见 [DeepSeek Harness](deepseek-harness.md)）。当时列出的三个顾虑这样处理：
 
-- 它要求 thinkbook 同时跑 `web` 和 `acp` 两个进程，而两者共用同一个 `$DSH_HOME`。会话日志有 `flock` 保护，但 `storages/` 的 JSON 后端没有跨进程锁，属于"最后写入者胜出"。这不一定会出问题，但它是一个未被上游文档支持的用法。
-- web 面需要 NUC 那套版本敏感的运行时补丁（settings client 的 host mirror、connection client 的身份认证），升级 DSH 时要重新验证；ACP 面完全不需要这些补丁。
-- 每一台暴露的机器都要在管理端单独写 grants，并按主机命名 Service（例如 `svc:deepseek-harness-<host>`），否则同 tailnet 的任意设备都会被应用视为已认证。
+- web 与 ACP 是两个进程，但**不共用** `$DSH_HOME`：web 用模块默认的 `~/.local/share/deepseek-harness/home`，ACP 用本机既有的 `~/.dsh`；`runtimeDir` 也分开（web 是 `web-runtime`），因为两个模块会安装并补丁同一棵 npm 树。因此 `storages/` 没有跨进程锁这件事不再构成风险。
+- web 面那套版本敏感的运行时补丁不复制、不改写：两台主机 import 同一个 `modules/host-services/deepseek-harness.nix`，补丁只在模块里维护一份；升级 DSH 时按该文档验证一次即可。ACP 面仍然不需要这些补丁，两条线可以独立回滚（`hostServices.deepseekHarness.enable = false`）。
+- 每台暴露的机器在管理端单独写 grants，并用主机专属的 Service 名和 capability（thinkbook：`svc:deepseek-harness-thinkbook` + `example.com/cap/deepseek-harness-thinkbook`）。
 
-如果确实需要，做法是复用现有模块的 web 部分：在 thinkbook 上启用 web 服务，在 `config/tailscale/` 增加该主机的 endpoint 声明，并在管理端为它单独授权。这与 ACP 的配置互不依赖，可以后加。
+它与 ACP 的配置互不依赖，停掉 web 服务不影响 Zed 里的 ACP 会话。
 
 **不要做的事**：不要试图把 thinkbook 的 Zed 指向 NUC 上的 ACP（例如 `ssh <nuc> dsh --profile acp`）。stdio 确实能穿过 SSH，但 agent 的工作目录会落在 NUC 上，编辑的是 NUC 的文件——对本地开发没有意义。
 

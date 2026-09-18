@@ -1,9 +1,9 @@
-# fedora-thinkbook 专属的模型配置种子
+# ten-rings 网关的模型配置种子（NUC 与 fedora-thinkbook 共用）
 #
-# 这台机器能访问公司网关 ten-rings，而 NUC 没有它的凭据，所以这条 route 放在
-# host 种子而不是共享种子里：共享种子会把它推到没有凭据的机器上，变成"选中就
-# 失败"的死路由。要在 NUC 上也启用，先把 TEN_RINGS_API_KEY 放进那边的凭据来源，
-# 再决定是否把这段搬到共享种子。
+# 这条 route 只给**能访问该网关并持有 TEN_RINGS_API_KEY 的主机**加载：两台主机
+# 都已经把密钥放进凭据来源（各自 `age.secrets` 里的 `ten-rings-api-key`），所以
+# 两端共用这一份。将来若出现没有该凭据的机器，它必须改用独立种子——把死路由推进
+# 模型选择器会"选中即失败"，而 ACP 客户端会记住上次的选择。
 #
 # route 名 ten-rings 就是模型选择器里的分组名，改动会让旧会话记录的 provider 失效。
 
