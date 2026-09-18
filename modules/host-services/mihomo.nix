@@ -29,8 +29,21 @@ let
   secretDir = "${config.xdg.configHome}/mihomo";
   stateDir = "${config.xdg.stateHome}/mihomo";
 
+  # Both scripts below reach the network: the renderer fetches the subscription
+  # and the rules override, and mihomo downloads providers at startup. Neither
+  # may consult an ambient proxy, because on a host that sets one system-wide
+  # (NixOS `networking.proxy`, so that its nix daemon can reach a cache) that
+  # proxy is this very listener -- which is not up yet on the first start. The
+  # fetch would fail and the service would come up with no nodes at all.
+  noAmbientProxy = ''
+    unset http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY
+    unset ftp_proxy FTP_PROXY rsync_proxy RSYNC_PROXY
+    export no_proxy=localhost,127.0.0.1,::1 NO_PROXY=localhost,127.0.0.1,::1
+  '';
+
   renderConfig = pkgs.writeShellScript "mihomo-render-config" ''
     set -euo pipefail
+    ${noAmbientProxy}
     install -d -m 0700 '${stateDir}' '${stateDir}/providers'
     exec '${pkgs.python3}/bin/python3' '${renderer}' \
       '${template}' \
@@ -46,10 +59,7 @@ let
 
   startMihomo = pkgs.writeShellScript "mihomo-start" ''
     set -euo pipefail
-    # Never let mihomo (or its provider downloads) consult an ambient proxy
-    # that may point back at this very listener.
-    unset http_proxy https_proxy all_proxy HTTP_PROXY HTTPS_PROXY ALL_PROXY
-    export no_proxy=localhost,127.0.0.1,::1 NO_PROXY=localhost,127.0.0.1,::1
+    ${noAmbientProxy}
     exec '${lib.getExe mihomoPkg}' \
       -d '${stateDir}' \
       -f '${stateDir}/config.yaml' \

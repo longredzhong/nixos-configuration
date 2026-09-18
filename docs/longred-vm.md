@@ -13,6 +13,7 @@ NUC 上 Garage 对象存储的备份节点，以及告警链路里的通知端�
 | 观测数据源 | `hosts/longred-vm/home.nix` → `modules/host-services/openobserve-agent.nix` | 上报主机指标与 journald；因为是用户级服务，`dev` 需要 `linger`，令牌由系统级 agenix 用主机密钥解密后按路径交给该用户服务 |
 | 公网入口 | `hosts/longred-vm/cloudflared.nix` | Cloudflare Tunnel，**凭证托管**模式：只传 tunnel token，公网主机名在 Zero Trust 仪表盘配置。这里**故意不写本地 ingress**——托管模式下本地 ingress 不生效，现有 `modules/host-services/cloudflared.nix` 就是这种情况 |
 | 多智能体平台 | `hosts/longred-vm/memoh.nix` | 见 [Memoh](memoh.md)。本仓库**唯一**使用 rootful Docker 的服务，放在这台隔离客户机而不是 NUC，原因是它的 `server` 容器是 privileged + `pid: host` |
+| 出口代理 | `hosts/longred-vm/home.nix` → `modules/host-services/mihomo.nix` | 见 [mihomo](mihomo.md)。这台客户机直连公网只有约 9 KB/s（`cache.nixos.org` 实测 289 ms RTT），而它的 `nix-daemon` 必须靠替换器工作，所以它跑自己的代理并让**系统服务走本机** `127.0.0.1:7890`（`hosts/longred-vm/configuration.nix` 的 `networking.proxy`）；不要再把它指向 NUC 的监听器，那会把每次取包都变成跨网段往返 |
 
 ## 这台机器是什么
 

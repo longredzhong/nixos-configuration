@@ -38,6 +38,20 @@
   system.stateVersion = "26.05";
   networking.hostName = hostname;
 
+  # System services -- above all nix-daemon, which performs the substitutions on
+  # this host -- must use the mihomo listener that home.nix runs locally. The
+  # direct route to cache.nixos.org from here is unusable (measured: 289 ms RTT
+  # and ~9 KB/s, against hundreds of KB/s through a proxy), and delegating the
+  # fetch to this host as a remote builder only moves the problem onto it.
+  #
+  # The tailnet has to stay direct, and it has to be excluded by name as well as
+  # by address range: NO_PROXY is matched against the host in the URL, so the
+  # CGNAT entry alone would send a short name such as `longred-vm` to the proxy.
+  networking.proxy = {
+    default = "http://127.0.0.1:7890";
+    noProxy = (import ../../lib/tailnet.nix).noProxy;
+  };
+
   # The Memoh compose stack bind-mounts /etc/localtime into several containers.
   # Without `time.timeZone` NixOS never creates that path, Docker then invents an
   # empty *directory* for the missing bind source, and every container start

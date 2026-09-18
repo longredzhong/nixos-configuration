@@ -8,6 +8,10 @@
 
 实际端口、路径和开关以 Nix 模块为准。当前机器上 `9090` 已被 Cockpit 占用，因此 controller 默认使用 `9091`。
 
+**目前两台主机各跑一份**：NUC（standalone Home Manager，`users/longred/nuc.nix`）与 `longred-vm`（NixOS 内嵌 Home Manager，`hosts/longred-vm/home.nix`）。VM 上那份是必需的，不是复制粘贴的偏好：这台客户机直连公网的路由很慢（实测 `cache.nixos.org` 289 ms RTT、约 9 KB/s），而它的 `nix-daemon` 又要靠替换器工作，所以 `hosts/longred-vm/configuration.nix` 用 `networking.proxy` 把系统服务（含 `nix-daemon`）指向**本机** `127.0.0.1:7890`，不再绕经 NUC。VM 那份 `controllerHost` 保持 `127.0.0.1`、`allowLan = false`，对 tailnet 的面仍然只有 NUC 那一个。
+
+这个组合暴露过一处陷阱，已在模块里修掉：`networking.proxy` 会把代理写进**系统环境**，于是 mihomo 自己的 `ExecStartPre`（渲染脚本要抓订阅和覆写文档）也会继承 `http_proxy=127.0.0.1:7890`——而那个监听器此时还没起来，首次启动会渲染出一个没有任何节点的配置。现在 `renderConfig` 与 `startMihomo` 共用同一段 `noAmbientProxy` 前置（unset 所有代理变量 + 只保留回环 `no_proxy`），两个步骤都不再受环境代理影响。
+
 ## 组件
 
 | 组件 | 作用 | 来源 |
