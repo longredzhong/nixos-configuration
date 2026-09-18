@@ -94,13 +94,37 @@ Fedora 上的 Nix 由发行版管理，daemon 配置在 `/etc/nix/nix.conf`。�
 
 ```ini
 trusted-users = root <user>
-substituters = https://cache.nixos.org/ http://<host>:5000
+substituters = http://<host>:5000 https://cache.nixos.org/
 trusted-public-keys = cache.nixos.org-1:... <host>-cache-1:...
 builders = ssh-ng://root@<host> x86_64-linux /root/.ssh/id_ed25519 8 1 big-parallel,kvm,nixos-test,benchmark
 builders-use-substitutes = true
 ```
 
 并确保 `!include nix.custom.conf` 出现在 `nix.conf` 里，然后重启 `nix-daemon`。
+
+**本地缓存排在前面**：命中时完全不出网，未命中才回退到 `cache.nixos.org`。
+
+**`builders-use-substitutes` 决定这次构建从哪里出网。** 为 `true` 时客户端**不下载输入**，改由
+builder 从**它自己**的 substituter 取。于是 builder 的出口质量就是整条构建路径的质量：本 lab 实测
+直连 `cache.nixos.org` 是 289 ms RTT、约 9 KB/s，经代理约 690 KB/s（约 25 倍）。更隐蔽的是，这些
+字节**不会出现在客户端主机的代理里**——客户端的 `http_proxy` 只对它自己发起的请求有效，而在这个
+模式下它根本不发请求。看到"构建很慢、代理里却一片安静"，先怀疑这里。
+
+判断卡在哪一侧：
+
+```bash
+# 客户端：它与 builder 的 ssh-ng 连接
+ss -tnp | grep nix-daemon
+# builder：它自己的出口（连着境外 :443 且只有几 KB/s = builder 在慢慢拉）
+ssh <builder> 'ss -tnp | grep -E "nix-daemon.*:443"'
+```
+
+选择：
+
+- builder 出口正常（例如这台 guest 自带 mihomo 且 `networking.proxy` 指向它）→ 保留 `true`，
+  输入只在 builder 上取一次，之后命中它自己的 store。
+- builder 出口不好 → 设为 `false`，让客户端用它自己可用的代理取，再经 1 ms 局域网传给 builder。
+- 不想改系统文件时的一次性覆盖：`NIX_CONFIG='builders-use-substitutes = false' just switch`。
 
 ### NUC（Determinate Nix）
 

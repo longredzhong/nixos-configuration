@@ -74,6 +74,17 @@ tailscale serve get-config --all
 tailscale serve status --json
 ```
 
+第一行的 `--operator` 是**一次性前置条件**，不做的话该单元必然失败：tailscaled 只允许 root 或
+operator 写 serve 配置，而单元跑在用户级。症状是日志里出现
+
+```text
+Access denied: prefs write access denied
+To not require root, use 'sudo tailscale set --operator=$USER' once.
+```
+
+设过 operator 的主机（例如 NUC）不会有这个报错，所以同一份配置在一台机器上 `active`、在另一台上
+`failed`——先查这一条，再查管理端审批。
+
 验证时使用已批准 Service 的域名：
 
 ```bash
