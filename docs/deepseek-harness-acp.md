@@ -372,6 +372,27 @@ provider 侧的取值：
 2. **不要用 `dsh plugin add` 联网动态安装。** 照抄仓库既有做法（`pkgs/deepseek-harness-opencode-session` 等）：固定 commit → Nix 构建 → profile `file:` 依赖软链。这样没有运行时联网安装，也没有供应链漂移。
 3. **先官方、后升级。** 官方 profile 足以跑通整条链路（进程、密钥、settings、记忆、Zed 接入）；等 plans/历史/slash 命令确实影响日常使用，再引桥接。
 
+### 实测结论：`dsh-acp-enhanced` 在 dsh 0.1.6-alpha.1 上不可用
+
+本仓库把 `dsh-acp-enhanced@0.7.0` 打包成 `pkgs/dsh-acp-enhanced`（固定 tarball + sha256，自带嵌套
+`node_modules`，无需运行时 `npm install`），模块侧用 `bridge = "enhanced"` 切换。**评估结果是它在本
+仓库当前的 dsh 版本上不能交付回答**，所以模块默认值保持 `"official"`，thinkbook 也停留在官方桥接。
+
+它确实补上了缺的控件：`session/new` 返回 `permission_preset`（`category: mode`，3 个预设）、
+`agent_preset`（`category: model_config`，4 个 preset）、`plan_mode`（`category: plan`），
+`agentCapabilities.loadSession` 也为真。但**助手文本永远到不了客户端**：
+
+- 用与 Zed 完全相同的 `clientCapabilities` 起进程，`session/prompt` 正常返回 `stopReason: end_turn`；
+- `usage_update` 报告非零的 output tokens，说明模型侧确实生成了内容；
+- 在 `end_turn` 之后再等 8 秒，仍然收不到任何 `agent_message_chunk`。
+
+`standard` / `minimal` 两种 preset、`ten-rings` 与 `deepseek-official` 两条 route 都试过，症状相同；
+同机同 settings 下官方桥接逐字返回，所以不是客户端、密钥或网关的问题。
+
+**结论有时效性**：它只约束 `dsh 0.1.6-alpha.1` + `dsh-acp-enhanced 0.7.0` 这个组合。dsh 升级后按
+「[验证](#验证)」一节跑一次真实 prompt，只要能看到 `agent_message_chunk`，把 `bridge` 改成
+`"enhanced"` 即可——模块会自动更换 bundle 清单并重新 provision。
+
 ## 最佳实践
 
 - **`!!js` 表达式不能以反引号开头。** 用户 patch 文件由 js-yaml 以 `JSON_SCHEMA` + `!!js` 标量标签解析，而 `!!js \`Bearer ${...}\`` 这种以反引号开头的字面量会让标量解析失败，报 `cannot resolve a node with !<tag:yaml.org,2002:js>`。写 `!!js process.env.X`（把完整 header 值放进环境变量），或 `!!js process.env.A + process.env.B`。
@@ -382,6 +403,11 @@ provider 侧的取值：
 - **验证脚本要能压出 stdout 纯净性问题**：客户端必须把任何非 JSON 行计为失败，而不是忽略。
 - **别在 Zed 里用一次会话做判断**：`dev: open acp logs` 里有握手、capabilities 和 agent stderr；`patchReload: startup` 意味着改配置后要重启 agent 进程。
 - **两个 dsh 进程共用一个 `$DSH_HOME` 要谨慎**：会话日志有 `flock` 保护，但 `storages/` 的 JSON 后端没有跨进程锁。要在同一台机器同时跑 `web` 和 `acp`，要么接受这个风险，要么拆成两个 `$DSH_HOME`（代价是不共享会话与 settings）。
+- **provision 的版本戳必须包含 bundle 清单。** provision 命中戳就直接返回，如果戳只覆盖插件与生成的
+  patch、不含 `removeBundles` / `ensureBundles`，那么改 `bridge`（或改任何 bundle 增减）都不会触发重
+  provision：服务照样 `active`、握手照样成功，但 profile 的 `dsh.profile.bundles` 仍是上一代，控件面
+  悄悄停在旧的那一层。诊断入口是 provision 的 stderr——它每次增删都会打印 `removed plugin …` /
+  `restored bundle …`，一行都没有就说明根本没跑。
 - **不要在仓库里放名为 `AGENTS.md` 的全局记忆源文件。**`$DSH_HOME/AGENTS.md` 是目标路径，但只要源文件在仓库里叫 `AGENTS.md`，DSH 就会把它当成该目录的**项目级**指令文件：任何对该目录的读写都会让这份"全局"内容以项目指令的身份注入当前会话。源文件必须用一个非magic 名字（本仓库用 `user-instructions.md`），由模块安装到目标路径。
 
 ## 验证
