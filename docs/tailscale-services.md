@@ -93,6 +93,36 @@ curl -i https://<service>.<tailnet-domain>/
 
 Web 服务通常应返回应用响应或应用自己的认证状态；原始协议端口应使用对应客户端检查。Service 配置成功不等于后端应用健康，仍需检查后端 systemd 单元和健康接口。
 
+## 为什么还在生成 legacy serve 配置
+
+模块把源 huJSON 转换成 `tailscale serve status --json` 那种 raw 形态，再交给 `set-config --all`，所以每次应用都会打印一条 deprecation 警告。这是**当前 CLI 限制下的选择**，不是遗漏。以下都是在 tailscale **1.102.3** 上实测的：
+
+| 尝试 | 结果 |
+| --- | --- |
+| versioned 文件里写 `appCaps` | `json: cannot unmarshal … unknown object member name "appCaps" within "/services/<svc>"` |
+| versioned 文件里写 `acceptAppCaps`（CLI 内部字段名） | 同样被拒：`unknown object member name "acceptAppCaps"` |
+| 对已生效 `AcceptAppCaps` 的 Service 跑 `get-config --all=true` | **不输出**任何能力字段——versioned 格式既不写也不读这一项 |
+| versioned 文件（仅 endpoints，含远程 `tcp://`）`set-config --all` | `service "svc:openobserve": failed to apply TCP serve: unable to expand target: must be a URL starting with one of the supported schemes: [tcp unix]` |
+| imperative：`tailscale serve --service=<svc> --accept-app-caps=<cap> --https=<port> <target>` | 成功，`status --json` 随即出现 `AcceptAppCaps` |
+| raw 形态 `set-config --all`（模块当前做法） | 成功（仅警告），能力与远程 TCP 端点都保留 |
+
+结论：versioned **文件格式**在 1.102.3 既表达不了 `AcceptAppCaps`，也应用不了本仓库用到的远程 `tcp://` 端点；能力只能用命令行的 `--accept-app-caps` 单独设置。直接降到 versioned 会**静默丢掉** tagged 设备认证所依赖的 app capability，所以这里保留 raw 形态。
+
+一个 CLI 细节陷阱：`get-config` 不接受裸 `--all`，必须写 `--all=true`，否则报 `must specify either --service=svc:<service-name> or --all`。
+
+升级 tailscale 后按三条判据重新验证，全过才可以迁移：
+
+```bash
+# 1) versioned 文件接受能力字段（字段名以报错信息为准）
+tailscale serve set-config --all <versioned-with-caps.json>
+# 2) get-config 能读回能力
+tailscale serve get-config --all=true | grep -i cap
+# 3) 远程 tcp:// 端点能应用
+tailscale serve set-config --all <versioned-with-remote-tcp.json>
+```
+
+迁移时先在**一台**主机上应用并逐条核对 `tailscale serve status --json`（NUC 上同时有 8 个 Service，含两个远程 `tcp://` 和一个能力端点），确认无误再改模块。
+
 ## 故障排查
 
 | 现象 | 优先检查 |

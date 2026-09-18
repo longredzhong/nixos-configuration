@@ -116,10 +116,26 @@ let
     }
     // lib.optionalAttrs (web != { }) { Web = web; };
 
-  # Tailscale 1.102.x can represent TLS-terminated TCP in its raw Serve
-  # state, but set-config cannot apply the equivalent versioned endpoint
-  # directly. Generate the raw shape for the CLI while keeping the checked-in
-  # huJSON file as the source of truth.
+  # Keep generating the raw ServeConfig instead of feeding `set-config` the
+  # versioned file directly. Verified against tailscale 1.102.3 -- re-check on
+  # upgrade, see docs/tailscale-services.md:
+  #
+  # * The versioned file format has no member for app capabilities. `set-config`
+  #   rejects both `appCaps` and `acceptAppCaps` with `unknown object member
+  #   name ... within "/services/<svc>"`, and `get-config` emits no such member
+  #   even for a service that has `AcceptAppCaps` applied. Only the imperative
+  #   form can set it:
+  #     tailscale serve --service=<svc> --accept-app-caps=<cap> --https=<port> <target>
+  #   so moving to the versioned file would silently drop the capability that
+  #   lets tagged devices authenticate.
+  # * Applying this host's endpoints in the versioned format fails outright on
+  #   the remote raw-TCP endpoint: `service "svc:openobserve": failed to apply
+  #   TCP serve: unable to expand target: must be a URL starting with one of the
+  #   supported schemes: [tcp unix]`.
+  #
+  # `set-config --all` still accepts the raw shape and applies it faithfully
+  # (with a deprecation warning), so the checked-in huJSON stays the source of
+  # truth and this conversion stays until the file format can express both.
   rawServeConfigFile = pkgs.writeText "tailscale-services-raw.json" (
     builtins.toJSON {
       Services = lib.mapAttrs rawService serviceConfig.services;
