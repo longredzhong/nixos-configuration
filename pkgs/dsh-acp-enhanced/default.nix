@@ -20,12 +20,21 @@
   lib,
   stdenvNoCC,
   fetchurl,
+  fetchgit,
   gnutar,
   gzip,
 }:
 
 let
-  version = "0.7.0";
+  # 0.8.0 is not on npm yet: it is the fork's fix for the zero-text bug that
+  # made this bundle unusable against harness 0.1.6-alpha.2 (the host stopped
+  # emitting `assistant/chunk`, so the streaming path had nothing to forward).
+  # Upstream `grunmin/dsh-acp-enhanced` is still at 0.7.0; swap this back to the
+  # npm tarball below once the fix is released there.
+  #
+  # See docs/deepseek-harness-acp.md for the diagnosis this pin unblocks.
+  version = "0.8.0";
+  rev = "97d175a28bc37bf4566b3d8be971e8dbc3d71b06";
 
   mkTarball =
     {
@@ -38,10 +47,10 @@ let
       name = "${name}.tgz";
     };
 
-  plugin = mkTarball {
-    name = "dsh-acp-enhanced-${version}";
-    url = "https://registry.npmjs.org/dsh-acp-enhanced/-/dsh-acp-enhanced-${version}.tgz";
-    hash = "sha256-XAITZzgqGHJBmGWsmaUhHWLfn0FTPqigpPQw06BslI4=";
+  plugin = fetchgit {
+    url = "https://github.com/longredzhong/dsh-acp-enhanced";
+    inherit rev;
+    hash = "sha256-6Lk28NAhUkulHV0NzORG0raiotV8pQKZWDoTZwdQDQ4=";
   };
 
   # Pinned to what npm resolves from the ranges in the bundle's package.json
@@ -108,7 +117,16 @@ stdenvNoCC.mkDerivation {
       cp -r "$scratch/package/." "$2/"
     }
 
-    unpack_tgz ${plugin} "$root"
+    # The plugin itself is a git checkout, not an npm tarball: copy the files
+    # npm would publish (`package.json` `files`, plus the manifest) and leave
+    # the repo's dev-only trees (scripts, docs, profile, assets, node_modules)
+    # out of the store path. `lib/` carries the bridge, `cordis.patch.yml` the
+    # bundle patch the profile loader applies.
+    install -m 0644 ${plugin}/package.json "$root/package.json"
+    cp -r ${plugin}/lib "$root/lib"
+    install -m 0644 ${plugin}/cordis.patch.yml "$root/cordis.patch.yml"
+    chmod -R u+w "$root"
+
     ${lib.concatMapStrings (dep: ''
       unpack_tgz ${dep.tarball} "$root/node_modules/${dep.path}"
     '') deps}
@@ -127,7 +145,7 @@ stdenvNoCC.mkDerivation {
 
   meta = {
     description = "Interactive ACP transport bundle for DeepSeek Harness (Zed agent panel)";
-    homepage = "https://github.com/grunmin/dsh-acp-enhanced";
+    homepage = "https://github.com/longredzhong/dsh-acp-enhanced";
     license = lib.licenses.mit;
     platforms = lib.platforms.unix;
   };

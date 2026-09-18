@@ -322,15 +322,16 @@ Harness 解析顺序是**显式配置 > `$DSH_HOME` > `~/.dsh`**。模块的 `ds
 
 ### Zed 编辑器里能看到哪些控件
 
-Zed 的输入框把 agent 的 ACP `configOptions` 渲染成选择器。官方 automation-only 桥接实际只提供
-两个选项，因此**能否出现控件完全取决于 `session/new` 当时声明了什么**：
+Zed 的输入框把 agent 的 ACP `configOptions` 渲染成选择器，因此**能否出现控件完全取决于
+`session/new` 当时声明了什么**。两个桥接的差别如下（本仓库现在用 enhanced）：
 
-| 控件 | 是否出现 | 条件 |
-| --- | --- | --- |
-| 模型 | 是 | 总是；选项来自实时 LLM 目录，按 provider 分组 |
-| 思考强度 | **有条件** | 只有**当前选中的那个模型**声明了 `reasoningEfforts` 时才声明该选项 |
-| 权限预设 | 否 | 桥接不声明 permission/mode 选项 |
-| 模式（plan 等） | 否 | 桥接不实现 ACP modes |
+| 控件 | 官方桥 | 增强桥 | 条件 |
+| --- | --- | --- | --- |
+| 模型 | 是 | 是 | 总是；选项来自实时 LLM 目录，按 provider 分组 |
+| 思考强度 | **有条件** | **有条件** | 只有**当前选中的那个模型**声明了 `reasoningEfforts` 时才声明该选项 |
+| 权限预设 | 否 | 是 | 增强桥挂载了 `permission-presets`，三档：`read-only` / `workspace-write` / `danger-full-access` |
+| Agent 预设 | 否 | 是 | 会话工具/提示词组合；**非空会话锁定**，切换需新会话 |
+| 模式（plan 等） | 否 | 是 | `plan_mode`，category `plan` |
 
 思考强度这条最容易误判成"坏了"：模型选择器换了 provider 之后控件会消失，因为新 provider 的模型没声明
 effort。修法是在 `settings.yaml` 里给该 route 的模型加 `reasoningEfforts`，键是 DSH 的等级、值是
@@ -351,12 +352,14 @@ provider 侧的取值：
 **只声明 provider 真正接受的取值**：声明了就意味着选择器会把它发出去，错的值会让请求 400。落地时逐个
 等级发一次最小请求验证。
 
-权限和模式在这条路径上没有对应控件，只能：
+权限和模式在**官方桥**下没有对应控件，那里只能：
 
 - 用**启动时**的 `DSH_PERMISSION_MODE`（`read-only` / `workspace-write` / `danger-full-access`）
   固定整台机器的沙箱与审批策略——这是模块选项，不是 per-thread 开关；
-- 或者换成声明了权限预设与模式的交互式桥接（见下一节）；
 - 或者用 web profile 的界面，那里有完整的设置面。
+
+本仓库现已改用增强桥（`bridge = "enhanced"`），上述三档权限、agent 预设和 `plan_mode` 都在编辑器里可
+选，`DSH_PERMISSION_MODE` 只作为初始值。
 
 ## 桥接选型
 
@@ -376,37 +379,38 @@ provider 侧的取值：
 2. **不要用 `dsh plugin add` 联网动态安装。** 照抄仓库既有做法（`pkgs/deepseek-harness-opencode-session` 等）：固定 commit → Nix 构建 → profile `file:` 依赖软链。这样没有运行时联网安装，也没有供应链漂移。
 3. **先官方、后升级。** 官方 profile 足以跑通整条链路（进程、密钥、settings、记忆、Zed 接入）；等 plans/历史/slash 命令确实影响日常使用，再引桥接。
 
-### 实测结论（dsh 0.1.6-alpha.1 与 alpha.2）：`dsh-acp-enhanced` 不可用
+### `dsh-acp-enhanced`：从上游缺陷到本仓库的 fork 补丁
 
-本仓库把 `dsh-acp-enhanced@0.7.0` 打包成 `pkgs/dsh-acp-enhanced`（固定 tarball + sha256，自带嵌套
-`node_modules`，无需运行时 `npm install`），模块侧用 `bridge = "enhanced"` 切换。**评估结果是它在本
-仓库当前的 dsh 版本上不能交付回答**，所以模块默认值保持 `"official"`，thinkbook 也停留在官方桥接。
+本仓库把增强桥打包成 `pkgs/dsh-acp-enhanced`（自带嵌套 `node_modules`，无需运行时 `npm install`），
+模块侧用 `bridge = "enhanced"` 切换。**该 bundle 现在固定在本仓库作者维护的 fork 上**，因为上游 0.7.0
+在 harness 0.1.6-alpha.2 上不能交付回答。
 
-它确实补上了缺的控件：`session/new` 返回 `permission_preset`（`category: mode`，3 个预设）、
-`agent_preset`（`category: model_config`，4 个 preset）、`plan_mode`（`category: plan`），
-`agentCapabilities.loadSession` 也为真。但**助手文本永远到不了客户端**：
-
-- 用与 Zed 完全相同的 `clientCapabilities` 起进程，`session/prompt` 正常返回 `stopReason: end_turn`；
-- `usage_update` 报告非零的 output tokens，说明模型侧确实生成了内容；
-- 在 `end_turn` 之后再等 8 秒，仍然收不到任何 `agent_message_chunk`。
-
-`standard` / `minimal` 两种 preset、`ten-rings` 与 `deepseek-official` 两条 route 都试过，症状相同；
-同机同 settings 下官方桥接逐字返回，所以不是客户端、密钥或网关的问题。
-
-**根因（2026-09-18 在 alpha.2 上用 `ACP_DEBUG=1` 定位）：事件契约不匹配，不是配置问题。** 增强桥只
-在一条路径上把流式内容变成 ACP chunk：`ctx.on('session/event')` 里 `case 'assistant/chunk'` →
-`handleChunk()`，由 `block-start` / `text-delta` / `block-end` 累积并发出 `agent_message_chunk`；另一处
-`assistant/message` 分支只用于 `session/load` 的历史回放。alpha.2 上一轮真实 prompt 的事件流是
+**上游缺陷（2026-09-18 用 `ACP_DEBUG=1` 定位）：事件契约不匹配，不是配置问题。** 增强桥只在一处把
+流式内容变成 ACP chunk：`ctx.on('session/event')` 的 `case 'assistant/chunk'` → `handleChunk()`，由
+`block-start` / `text-delta` / `block-end` 累积并发出 `agent_message_chunk`；另一个 `assistant/message`
+分支当时只做 usage 统计与图片占位符，**文本转发只存在于 `session/load` 的历史回放路径**。而 alpha.2
+的一轮真实 prompt 事件流是
 `turn/start → step/start → user/message → assistant/message → step/end → turn/end(reason=completed)`——
-**`assistant/message` 到了，`assistant/chunk` 一条都没有**，于是文本永远不上线。佐证：在 alpha.2 的整个
-runtime 里，`assistant/chunk` 只出现在 `dsh-session-format-*` 的迁移器和 JSONL 持久化 worker 里，**已经
-没有实时 emit 方**——它是个遗留事件，新版事件模型不再发它。对照实验：同一 route、同一 harness、同一
-探针，官方桥接 `TEXT_LEN: 8` / `agent_message_chunk` 正常，切到增强桥即 `TEXT_LEN: 0`。
+**`assistant/message` 到了，`assistant/chunk` 一条都没有**。佐证：在 alpha.2 的整个 runtime 里，
+`assistant/chunk` 只出现在 `dsh-session-format-*` 的迁移器和 JSONL 持久化 worker 中，**已经没有实时
+emit 方**，它是被新版事件模型淘汰的遗留事件。症状是 turn 以 `stopReason: end_turn` 结束、`usage_update`
+报告非零 output tokens，而客户端一条 `agent_message_chunk` 都收不到（面板空白）；控件面则完全正常
+（`permission_preset` category=`mode`、`agent_preset` category=`model_config`、`plan_mode` category=`plan`、
+`loadSession: true`）。对照实验钉死了归因：同一 route、同一 harness、同一探针，官方桥 `TEXT_LEN: 8`，
+增强桥 `TEXT_LEN: 0`。
 
-**结论有时效性**：它约束 `dsh-acp-enhanced 0.7.0` 与 `0.1.6-alpha.1` / `alpha.2` 两个组合，alpha.2 上
-已重测且症状相同（原因已定位，不再是"原因不明"）。要重新评估，按「[验证](#验证)」一节跑一次真实
-prompt，并打开 `ACP_DEBUG=1` 看事件流：只要仍看不到 `assistant/chunk`，换 `bridge` 也没有意义；等到
-该 bundle 改成从当前事件模型发 chunk 之后再试。
+**本仓库的补丁**：`pkgs/dsh-acp-enhanced` 现在用 `fetchgit` 固定
+`longredzhong/dsh-acp-enhanced@97d175a`（0.8.0），该提交在实时路径补了 `emitMessageFallback()`——把已提交的
+`assistant/message` 中**流式尚未送达的部分**转发给客户端。去重按内容前缀比较（`streamedText` /
+`streamedThought` 每个 step 累积自所有上线路径，含 `block-end` 提交与 `delta` 合并刷新），因此发
+`assistant/chunk` 的宿主不受影响：既不重复也不丢内容；前缀比较而非块下标匹配，是因为重试会重启块下标。
+上游仍未合入，所以这是一个**本地 pin**：等上游发布修复后，把 `pkgs/dsh-acp-enhanced/default.nix` 换回
+npm tarball 即可（文件里那段注释写明了切换点）。
+
+**当前状态（2026-09-18，fedora-thinkbook，harness 0.1.6-alpha.2）**：`bridge = "enhanced"`，
+`AGENT: deepseek-harness-acp-enhanced 0.8.0`；探针拿到三档权限模式、全部五个 config option，以及
+`agent_message_chunk: PROBE-OK`（`TEXT_LEN: 8`、`DIRTY_STDOUT_LINES: 0`、exit 0）；`scripts/acp-client.mjs`
+全套 PASS。也就是说**"选择器"与"能回答"现在同时成立**，这正是当初切回 official 时放弃的目标。
 
 ## 最佳实践
 
@@ -503,3 +507,5 @@ Zed 侧：`dev: open acp logs` 看握手、capabilities 和 stderr；确认线�
 2026-09-18，目标主机 fedora-thinkbook（Fedora，standalone Home Manager）：Zed 以 `~/.nix-profile/bin/dsh --profile acp` 启动 agent，打开的项目工作目录里有一份为 direnv 准备的 `.env`，含 `https_proxy` / `no_proxy`。症状是 ACP server 立刻 `exit status 1`，stderr 为 `dsh: <项目目录>/.env sets "https_proxy", which only the launching environment may set ...; export https_proxy, or put it in <$DSH_HOME>/.env`；同一个目录里 `dsh --help` 正常退出 0。把两个代理变量移到 `.env.proxy`、`.envrc` 改为 `dotenv_if_exists .env` + `dotenv_if_exists .env.proxy` 并 `direnv allow` 后：`.env` 中不再有代理类名字，`direnv exec` 仍导出 `https_proxy`（项目侧行为不变），同目录 `dsh --profile acp` 以 EOF stdin 启动退出 0，`scripts/dsh-acp-probe.py --command "$(command -v dsh)"` 在项目工作目录内跑通握手并收到 `agent_message_chunk`（`TEXT: PROBE-OK`，`DIRTY_STDOUT_LINES: 0`，退出 0）。以上为方法可复现的结论，具体版本与命令输出以目标机当前状态为准。
 
 2026-09-18，目标主机 fedora-thinkbook：按上一节流程把 `bridge` 切到 `"enhanced"` 并在 `0.1.6-alpha.2` 上复测。切换本身干净：provision 把 bundle 栈换成 `[dsh-base, opencode-session, dsh-acp-enhanced]` 并写入 `- id: acp-enhanced` patch。`scripts/dsh-acp-probe.py` 结果：控件面齐全（`MODES` 三档 `read-only`/`workspace-write`/`danger-full-access`，`permission_preset` category=mode、`agent_preset` category=model_config、`plan_mode` category=plan，`loadSession: true`，图片 prompt 为真），但 `TEXT_LEN: 0`、`UPDATE_KINDS` 无 `agent_message_chunk`，探针 exit 1。A/B 对照（同 route `ten-rings`/`gpt-5.6-terra`、同 harness、同探针）：官方桥 `TEXT_LEN: 8` 且收到 `agent_message_chunk`，exit 0。`ACP_DEBUG=1` 事件流显示 `assistant/message` 到达而 `assistant/chunk` 一条未发（详见「桥接选型」一节的根因）。已回滚 `bridge = "official"` 并重新 switch，回滚后 bundle 栈恢复 `[dsh-base, opencode-session, dsh-acp-app]`，探针再次 exit 0。
+
+2026-09-18（同日续），目标主机 fedora-thinkbook：把上游零文本缺陷修好后重新启用增强桥。诊断在隔离 `$DSH_HOME` 下复现（fork 检出 + 手动 profile：`fetchgit` 的源码目录直接挂成 `node_modules/dsh-acp-enhanced`），修复提交为 `longredzhong/dsh-acp-enhanced@97d175a`（0.8.0）。`pkgs/dsh-acp-enhanced` 随之从 npm tarball 改为 `fetchgit` 固定该 rev，构建产物为 `dsh-acp-enhanced-0.8.0` 且含 `emitMessageFallback`。`home-manager switch` 后：profile bundle 栈 = `[dsh-base, opencode-session, dsh-acp-enhanced]`，home 内副本版本 0.8.0。验证：`scripts/dsh-acp-probe.py` 报告 `MODES` 三档、五个 config option（model / reasoning_effort / permission_preset / agent_preset / plan_mode）、`CHUNK: PROBE-OK`、`TEXT_LEN: 8`、`DIRTY_STDOUT_LINES: 0`、exit 0；`scripts/acp-client.mjs` 对该 profile 全套 PASS。回归对照：修复前的 fork HEAD 在同一隔离环境下稳定复现 `TEXT_LEN: 0`。已知无关失败：`scripts/acp-smoke-keyless.mjs` 与 `scripts/acp-resume-test.mjs` 在本机 dsh 宿主上失败，已用 `git stash` 验证其在修复前后同样失败——前者是 `dsh plugin add` 新建 profile 缺少 `subagent-model-selection-settings` 行（本文档前述已知问题），后者 FATAL 出现在 `session/list` / `session/delete` 阶段。

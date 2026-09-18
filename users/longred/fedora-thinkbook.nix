@@ -32,20 +32,19 @@
   hostServices.deepseekHarnessAcp = {
     enable = true;
 
-    # Stay on the shipped bridge. `bridge = "enhanced"` does deliver the
-    # permission/agent-mode/plan selectors -- re-verified on the wire against
-    # 0.1.6-alpha.2 -- but the enhanced bridge still emits no assistant text,
-    # and the cause is an event-contract mismatch, not configuration: the
-    # bridge turns streaming into ACP chunks only from `assistant/chunk`
-    # events (handleChunk), plus `assistant/message` on history replay. On
-    # alpha.2 a live turn emits `assistant/message` but never `assistant/chunk`,
-    # so the reply never reaches the wire. ACP_DEBUG=1 on a real turn shows
-    # exactly that, while the shipped bridge under the same route and probe
-    # streams normally. `assistant/chunk` survives in the runtime only inside
-    # the session-format migrators and the JSONL persistence worker, i.e. it is
-    # a legacy event with no live emitter left. Revisit when dsh-acp-enhanced
-    # emits from the current event model.
-    bridge = "official";
+    # The enhanced bridge, on the fork pin that fixes its zero-text bug.
+    #
+    # Upstream 0.7.0 delivers the permission/agent-mode/plan selectors but no
+    # assistant text on harness 0.1.6-alpha.2: the host stopped emitting
+    # `assistant/chunk`, which was the bridge's only live text source, so a
+    # turn settled with usage reported and nothing on the wire. pkgs/dsh-acp-enhanced
+    # now pins longredzhong/dsh-acp-enhanced@97d175a (0.8.0), which forwards the
+    # committed `assistant/message` for whatever streaming did not deliver.
+    #
+    # Re-verified on this host after the pin: the selectors are present, the
+    # probe receives agent_message_chunk, and the repo smoke suite passes.
+    # Switch back to "official" and unpin the package if the fork regresses.
+    bridge = "enhanced";
 
     # This host already had a harness home in interactive use under the
     # harness's own default (`~/.dsh`), holding its own settings, provider
