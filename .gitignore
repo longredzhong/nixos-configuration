@@ -1,2 +1,9 @@
 # Flake build output symlink created by `nix build`.
 /result
+
+# Scratch directory used while probing Nix and the harness (evaluation cache,
+# generated patches, ACP transcripts). Local only, never repository content.
+/.nix-probe-cache/
+
+# Python bytecode from the scripts in scripts/.
+__pycache__/
