@@ -1,21 +1,34 @@
-# DeepSeek Harness Web UI as an HM user-level systemd service (Fedora NUC).
+# DeepSeek Harness Web UI as an HM user-level systemd service.
 #
 # The npm distribution is installed once into a user-owned runtime directory so
-# the service can use the same Home Manager target on a non-NixOS Fedora host.
+# the service can run under standalone Home Manager on a non-NixOS host.
 # Harness state (sessions, settings, credentials and profiles) lives separately
-# under ~/.local/share/deepseek-harness/home.
+# under this module's DSH_HOME.
+#
+# Everything that names a deployment — the Tailscale Service the browser opens,
+# the app capability Serve forwards for tagged clients, the OpenObserve streams
+# and the OTEL host attribute — is an option, so a second host reuses this
+# reviewed startup path instead of copying it. The defaults describe the
+# reference deployment (the NUC); users/longred/<host>.nix sets the rest.
 {
   config,
+  lib,
   pkgs,
+  hostname,
   ...
 }:
 let
+  cfg = config.hostServices.deepseekHarness;
+  inherit (cfg)
+    dshVersion
+    serviceHost
+    appCapability
+    runtimeDir
+    dshHome
+    openobserveEndpoint
+    ;
   node = pkgs.nodejs_22;
   npm = pkgs.nodejs-slim_22.npm;
-  dshVersion = "0.1.6-alpha.1";
-  serviceHost = "deepseek-harness.tail388af.ts.net";
-  runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
-  dshHome = "${config.home.homeDirectory}/.local/share/deepseek-harness/home";
   webProfileDir = "${dshHome}/profiles/web";
   webProfileManifest = "${webProfileDir}/package.json";
   sessionPluginName = "@longred/deepseek-harness-opencode-session";
@@ -46,11 +59,10 @@ let
   # imported together for this host, and OpenObserve ingestion tokens are
   # organization scoped, so a separate token would carry the same privilege.
   # Split them when per-service rotation is wanted.
-  openobserveEndpoint = "http://100.100.10.1:5080/api/default";
-  openobserveLedgerStream = "nuc_dsh_ledger";
-  openobserveOpsStream = "nuc_dsh_ops";
+  openobserveLedgerStream = cfg.ledgerStream;
+  openobserveOpsStream = cfg.opsStream;
   # GenAI traces and metrics emitted by the dsh-otel plugin over OTLP/HTTP.
-  openobserveOtlpStream = "nuc_dsh_llm";
+  openobserveOtlpStream = cfg.otlpStream;
   openobserveToken = config.age.secrets.openobserve-agent-token.path;
   dshEntry = "${runtimeDir}/node_modules/@deepseek-ai/dsh/lib/bin.js";
   settingsClient = "${runtimeDir}/node_modules/@deepseek-ai/dsh-client-ui-settings/lib/client.js";
@@ -194,10 +206,11 @@ let
     print(f"deepseek-harness: enabled trusted remote settings in {path}")
     PY
 
-    # Browser authentication: accept a Tailscale Serve identity assertion from
-    # the local HTTP proxy instead of requiring the launch-token URL, and keep
-    # the signed fallback cookie alive for a year. Version-sensitive and fail
-    # closed: an unrecognized bundle stops the service instead of losing auth.
+    # Browser authentication: accept either a Tailscale Serve identity
+    # assertion (user-owned devices) or a granted Tailscale app capability
+    # (tagged devices) forwarded by the local HTTP proxy, and keep the signed
+    # fallback cookie alive for a year. Version-sensitive and fail closed: an
+    # unrecognized bundle stops the service instead of losing auth.
     connection_client='${connectionClient}'
     '${pkgs.python3}/bin/python3' - "$connection_client" <<'PY'
     import pathlib
@@ -209,14 +222,21 @@ let
 
     source = path.read_text(encoding="utf-8")
 
-    # Option A: keep the signed browser cookie for a year so the launch-token
-    # URL is needed only for the rare fallback, not for routine access.
+    # Keep the signed browser cookie for a year so the launch-token URL is
+    # needed only for the rare fallback, not for routine access.
     old_default = "cookieMaxAgeDays: z.natural().min(1).default(30),"
     new_default = "cookieMaxAgeDays: z.natural().min(1).default(365),"
 
-    identity_marker = "Accept a Tailscale Serve identity assertion as browser authentication."
-    identity_anchor = "\t/**\n\t* Verify the authority-bound browser cookie on a Host request."
-    identity_block = (
+    # The marker and the injected block are versioned. Earlier revisions of this
+    # repository injected only the login-based block; recognize that exact text
+    # and upgrade it instead of leaving a released host on weaker authentication.
+    marker_v1 = "Accept a Tailscale Serve identity assertion as browser authentication."
+    marker_v2 = "Accept a Tailscale Serve identity assertion or app capability as browser authentication."
+    anchor = "\t/**\n\t* Verify the authority-bound browser cookie on a Host request."
+    auth_anchor = "isAuthenticated(request) {\n\t\tconst authority = requestAuthority(request.headers);"
+    auth_replacement = "isAuthenticated(request) {\n\t\tif (this.isTailscaleIdentity(request)) return true;\n\t\tconst authority = requestAuthority(request.headers);"
+
+    block_v1 = (
         "\t/**\n"
         "\t* Accept a Tailscale Serve identity assertion as browser authentication.\n"
         "\t* Serve strips any client-supplied copy and sets the header only for an\n"
@@ -237,14 +257,49 @@ let
         "\t/**\n"
         "\t* Verify the authority-bound browser cookie on a Host request."
     )
-    auth_anchor = "isAuthenticated(request) {\n\t\tconst authority = requestAuthority(request.headers);"
-    auth_replacement = "isAuthenticated(request) {\n\t\tif (this.isTailscaleIdentity(request)) return true;\n\t\tconst authority = requestAuthority(request.headers);"
+    block_v2 = (
+        "\t/**\n"
+        "\t* Accept a Tailscale Serve identity assertion or app capability as browser authentication.\n"
+        "\t* Serve strips any client-supplied copy and only sets these headers for\n"
+        "\t* requests that arrive through the deployment's Tailscale HTTP proxy. A\n"
+        "\t* user-owned peer supplies a login; a tagged peer never does, so this\n"
+        "\t* deployment grants tagged clients the app capability that Serve forwards\n"
+        "\t* in Tailscale-App-Capabilities. Both headers are trusted only on a\n"
+        "\t* loopback connection and never when Funnel marks the request.\n"
+        "\t* @param request - request headers plus optional socket facts.\n"
+        "\t* @returns true only for a loopback request carrying a trusted identity.\n"
+        "\t*/\n"
+        "\tisTailscaleIdentity(request) {\n"
+        "\t\tif (header(request.headers, \"tailscale-funnel-request\") !== void 0) return false;\n"
+        "\t\tconst address = request.socket?.remoteAddress;\n"
+        "\t\tif (typeof address === \"string\" && address !== \"::1\" && !address.startsWith(\"127.\") && !address.startsWith(\"::ffff:127.\")) return false;\n"
+        "\t\tconst login = header(request.headers, \"tailscale-user-login\");\n"
+        "\t\tif (login !== void 0 && login.trim() !== \"\") return true;\n"
+        "\t\tconst capabilities = header(request.headers, \"tailscale-app-capabilities\");\n"
+        "\t\treturn capabilities !== void 0 && capabilities.includes(\"${appCapability}\");\n"
+        "\t}\n"
+        "\t/**\n"
+        "\t* Verify the authority-bound browser cookie on a Host request."
+    )
 
-    if identity_marker in source:
+    def extend_cookie(text):
+        return text.replace(old_default, new_default)
+
+    if marker_v2 in source:
         if old_default in source:
-            source = source.replace(old_default, new_default)
-            path.write_text(source, encoding="utf-8")
+            path.write_text(extend_cookie(source), encoding="utf-8")
             print(f"deepseek-harness: extended browser-session lifetime in {path}")
+        raise SystemExit(0)
+
+    if marker_v1 in source:
+        if source.count(block_v1) != 1:
+            raise SystemExit(
+                "deepseek-harness: unsupported dsh connection client; "
+                f"expected one previous identity block in {path}"
+            )
+        source = extend_cookie(source.replace(block_v1, block_v2))
+        path.write_text(source, encoding="utf-8")
+        print(f"deepseek-harness: upgraded Tailscale app-capability authentication in {path}")
         raise SystemExit(0)
 
     if source.count(old_default) != 1:
@@ -252,7 +307,7 @@ let
             "deepseek-harness: unsupported dsh connection client; "
             f"expected one cookieMaxAgeDays default in {path}"
         )
-    if source.count(identity_anchor) != 1:
+    if source.count(anchor) != 1:
         raise SystemExit(
             "deepseek-harness: unsupported dsh connection client; "
             f"expected one browser-auth JSDoc anchor in {path}"
@@ -263,8 +318,8 @@ let
             f"expected one isAuthenticated implementation in {path}"
         )
 
-    source = source.replace(old_default, new_default)
-    source = source.replace(identity_anchor, identity_block)
+    source = extend_cookie(source)
+    source = source.replace(anchor, block_v2)
     source = source.replace(auth_anchor, auth_replacement)
     path.write_text(source, encoding="utf-8")
     print(f"deepseek-harness: enabled Tailscale identity authentication in {path}")
@@ -297,7 +352,7 @@ let
     export OTEL_EXPORTER_OTLP_ENDPOINT='${openobserveEndpoint}'
     export OTEL_EXPORTER_OTLP_HEADERS="Authorization=$otel_auth,stream-name=${openobserveOtlpStream}"
     export OTEL_SERVICE_NAME='deepseek-harness'
-    export OTEL_RESOURCE_ATTRIBUTES='service.namespace=longred,deployment.environment=home-lab,host.name=nuc'
+    export OTEL_RESOURCE_ATTRIBUTES='service.namespace=longred,deployment.environment=home-lab,host.name=${hostname}'
 
     # systemd attaches StandardOutput/StandardError before it creates any
     # managed directory, so an append: target below %L (or %S) fails with
@@ -324,7 +379,7 @@ let
       '${dshEntry}' \
       web \
       --host 127.0.0.1 \
-      --port 3080 \
+      --port ${toString cfg.port} \
       --trusted-host ${serviceHost} \
       --trusted-host ${serviceHost}:443 \
       --no-open \
@@ -334,53 +389,139 @@ in
 {
   imports = [ ./proxy.nix ];
 
-  home.packages = [ node ];
+  options.hostServices.deepseekHarness = {
+    enable = lib.mkEnableOption "the DeepSeek Harness Web UI user service";
 
-  # Same declaration as openobserve-agent.nix, and the same value, so the
-  # module merge keeps one definition. The harness exports session telemetry
-  # with this ingestion credential.
-  age.secrets.openobserve-agent-token.file = ../../secrets/openobserve-agent-token.age;
-  age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+    dshVersion = lib.mkOption {
+      type = lib.types.str;
+      default = "0.1.6-alpha.1";
+      description = "Pinned @deepseek-ai/dsh version installed into the user runtime.";
+    };
 
-  systemd.user.services.deepseek-harness = {
-    Unit = {
-      Description = "DeepSeek Harness Web UI (Tailscale ${serviceHost} identity-proxied to loopback 127.0.0.1:3080)";
-      After = [
-        "agenix.service"
-        "network-online.target"
-      ];
-      Requires = [ "agenix.service" ];
-      Wants = [ "network-online.target" ];
+    port = lib.mkOption {
+      type = lib.types.port;
+      default = 3080;
+      description = "Loopback port the web server binds; the Tailscale Service proxies to it.";
     };
-    Service = {
-      WorkingDirectory = config.home.homeDirectory;
-      ExecStartPre = ensureRuntime;
-      ExecStart = startHarness;
-      Environment = config.hostServices.proxyEnvironment ++ [
-        "DSH_HOME=${dshHome}"
-        # Keeps the shipped session-telemetry-otel row switched off: it only
-        # implements FEEDBACK_ONLY and would otherwise upload feedback to its
-        # default endpoint (https://harness-telemetry.deepseeksvc.com/v1/logs).
-        # @longred/deepseek-harness-observability replaces it.
-        "DSH_TELEMETRY_DISABLED=1"
-        "DSH_OBSERVABILITY_URL=${openobserveEndpoint}"
-        "DSH_OBSERVABILITY_LEDGER_STREAM=${openobserveLedgerStream}"
-        "DSH_OBSERVABILITY_OPS_STREAM=${openobserveOpsStream}"
-        "all_proxy="
-        "ALL_PROXY="
-        # A user-level service has the desktop environment available, but the
-        # native picker would open on the NUC display instead of in the Web UI.
-        "DISPLAY="
-        "WAYLAND_DISPLAY="
-      ];
-      # The harness prints its launch-token URL to stdout. startHarness creates
-      # the 0600 log file and redirects the Node process to it, so the token
-      # does not persist in journald (see the ordering note there).
-      Restart = "always";
-      RestartSec = "5s";
-      TimeoutStartSec = "15min";
-      UMask = "0077";
+
+    runtimeDir = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/.local/share/deepseek-harness/runtime";
+      description = ''
+        npm install root for the harness distribution.
+
+        Give a host that also runs hostServices.deepseekHarnessAcp its own
+        directory: both modules install the same package and patch the same
+        bundle files, and their provisioning steps do not share a lock, so one
+        tree can be written by two units at once.
+      '';
     };
-    Install.WantedBy = [ "default.target" ];
+
+    dshHome = lib.mkOption {
+      type = lib.types.str;
+      default = "${config.home.homeDirectory}/.local/share/deepseek-harness/home";
+      description = ''
+        Harness home holding this service's sessions, settings, credentials and
+        profiles. A host that also runs the ACP profile keeps the two homes
+        apart, because the storages backend has no cross-process write lock.
+      '';
+    };
+
+    serviceHost = lib.mkOption {
+      type = lib.types.str;
+      default = "deepseek-harness.tail388af.ts.net";
+      description = ''
+        Tailscale Service DNS name the browser opens. It is the trusted Host for
+        the settings mirror and the authority the browser session is bound to,
+        so it must match the `svc:` entry that proxies to this port.
+      '';
+    };
+
+    appCapability = lib.mkOption {
+      type = lib.types.str;
+      default = "example.com/cap/deepseek-harness";
+      description = ''
+        App capability granted to tagged clients, which Serve forwards in
+        Tailscale-App-Capabilities. The tailnet policy grant and the `appCaps`
+        entry of the same Tailscale Service must use this name; give each host
+        its own so one grant cannot authenticate another host's service.
+      '';
+    };
+
+    openobserveEndpoint = lib.mkOption {
+      type = lib.types.str;
+      default = "http://100.100.10.1:5080/api/default";
+      description = "OpenObserve base endpoint receiving this host's session telemetry and OTLP export.";
+    };
+
+    ledgerStream = lib.mkOption {
+      type = lib.types.str;
+      default = "${hostname}_dsh_ledger";
+      description = "OpenObserve stream receiving projected session events.";
+    };
+
+    opsStream = lib.mkOption {
+      type = lib.types.str;
+      default = "${hostname}_dsh_ops";
+      description = "OpenObserve stream receiving agent error signals.";
+    };
+
+    otlpStream = lib.mkOption {
+      type = lib.types.str;
+      default = "${hostname}_dsh_llm";
+      description = "OpenObserve stream receiving GenAI traces and metrics over OTLP/HTTP.";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    home.packages = [ node ];
+
+    # Same declaration as openobserve-agent.nix, and the same value, so the
+    # module merge keeps one definition. The harness exports session telemetry
+    # with this ingestion credential.
+    age.secrets.openobserve-agent-token.file = ../../secrets/openobserve-agent-token.age;
+    age.identityPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+
+    systemd.user.services.deepseek-harness = {
+      Unit = {
+        Description = "DeepSeek Harness Web UI (Tailscale ${serviceHost} identity-proxied to loopback 127.0.0.1:${toString cfg.port})";
+        After = [
+          "agenix.service"
+          "network-online.target"
+        ];
+        Requires = [ "agenix.service" ];
+        Wants = [ "network-online.target" ];
+      };
+      Service = {
+        WorkingDirectory = config.home.homeDirectory;
+        ExecStartPre = ensureRuntime;
+        ExecStart = startHarness;
+        Environment = config.hostServices.proxyEnvironment ++ [
+          "DSH_HOME=${dshHome}"
+          # Keeps the shipped session-telemetry-otel row switched off: it only
+          # implements FEEDBACK_ONLY and would otherwise upload feedback to its
+          # default endpoint (https://harness-telemetry.deepseeksvc.com/v1/logs).
+          # @longred/deepseek-harness-observability replaces it.
+          "DSH_TELEMETRY_DISABLED=1"
+          "DSH_OBSERVABILITY_URL=${openobserveEndpoint}"
+          "DSH_OBSERVABILITY_LEDGER_STREAM=${openobserveLedgerStream}"
+          "DSH_OBSERVABILITY_OPS_STREAM=${openobserveOpsStream}"
+          "all_proxy="
+          "ALL_PROXY="
+          # A user-level service has the desktop environment available, but the
+          # native picker would open on the NUC display instead of in the Web UI.
+          "DISPLAY="
+          "WAYLAND_DISPLAY="
+        ];
+        # The harness prints its launch-token URL to stdout. startHarness creates
+        # the 0600 log file and redirects the Node process to it, so the token
+        # does not persist in journald (see the ordering note there).
+        Restart = "always";
+        RestartSec = "5s";
+        TimeoutStartSec = "15min";
+        UMask = "0077";
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
   };
 }

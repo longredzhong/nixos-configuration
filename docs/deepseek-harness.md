@@ -4,17 +4,26 @@
 
 ## 作用范围
 
-`modules/host-services/deepseek-harness.nix` 在 standalone Home Manager 目标上创建用户级 `deepseek-harness.service`。服务从 npm 安装固定版本的 `@deepseek-ai/dsh`，运行时和 Harness 数据分别保存在用户目录；实际版本、端口和路径以 Nix 模块为准。
+`modules/host-services/deepseek-harness.nix` 在 standalone Home Manager 目标上创建用户级 `deepseek-harness.service`，由 `hostServices.deepseekHarness.enable` 按主机打开。服务从 npm 安装固定版本的 `@deepseek-ai/dsh`，运行时和 Harness 数据分别保存在用户目录；实际版本、端口和路径以 Nix 模块为准。
+
+所有与部署绑定的名字都是 `hostServices.deepseekHarness` 的选项，默认值描述参考部署（NUC），主机配置只覆盖差异：
+
+| 主机 | `serviceHost` / `appCapability` | web `runtimeDir` / `dshHome` |
+| --- | --- | --- |
+| NUC（`users/longred/nuc.nix`） | `deepseek-harness.<tailnet-domain>` / `example.com/cap/deepseek-harness`（模块默认值） | `~/.local/share/deepseek-harness/web-runtime` / `~/.local/share/deepseek-harness/home` |
+| ThinkBook（`users/longred/fedora-thinkbook.nix`） | `deepseek-harness-thinkbook.<tailnet-domain>` / `example.com/cap/deepseek-harness-thinkbook` | `~/.local/share/deepseek-harness/web-runtime` / `~/.local/share/deepseek-harness/home` |
+
+两台主机同时运行 ACP profile（`hostServices.deepseekHarnessAcp`），web 与 ACP 各自使用独立的运行时目录和 `$DSH_HOME`：两个模块安装并补丁同一批 bundle 文件，且 `storages/` 没有跨进程写锁。ACP 占用模块默认的 `~/.local/share/deepseek-harness/runtime`，其 `$DSH_HOME` 是 NUC 的 `.../acp-home` 和 ThinkBook 的 `~/.dsh`。遥测 stream 默认按主机名生成（`<hostname>_dsh_ledger`、`<hostname>_dsh_ops`、`<hostname>_dsh_llm`），OTEL 的 `host.name` 也取主机名。
 
 ## 访问
 
-服务端只监听 loopback，由受控的 Tailscale Service 以 **HTTP 反向代理**方式接入（`http://127.0.0.1:<dsh-port>` target）：
+服务端只监听 loopback，由受控的 Tailscale Service 以 **HTTP 反向代理**方式接入（`http://127.0.0.1:<dsh-port>` target）。每个主机用自己源文件里的 Service：
 
 ```text
 浏览器 ──HTTPS──> svc:<service-name> ──HTTP──> 127.0.0.1:<dsh-port>
 ```
 
-Tailscale 反代时注入 `Tailscale-User-Login` / `Tailscale-User-Name` 身份头，并先删除客户端自带的同名头；tagged 对端不会收到身份头。部署模块对固定的 connection bundle 应用版本敏感的运行时补丁：只在回环连接且没有 `Tailscale-Funnel-Request` 时接受该身份头。因此浏览器直接使用不带 token 的 HTTPS 域名：
+Tailscale 反代时注入 `Tailscale-User-Login` / `Tailscale-User-Name` 身份头，并先删除客户端自带的同名头；tagged 对端不会收到身份头，但会在管理端授予 capability 后收到 `Tailscale-App-Capabilities`。部署模块对固定的 connection bundle 应用版本敏感的运行时补丁：只在回环连接且没有 `Tailscale-Funnel-Request` 时接受登录身份头，或接受携带本主机 capability（模块选项 `appCapability`）的 capability 头。因此浏览器直接使用不带 token 的 HTTPS 域名：
 
 ```text
 https://<service-domain>/
@@ -22,13 +31,14 @@ https://<service-domain>/
 
 认证与授权边界：
 
-- 应用身份来自 Tailscale 用户身份，授权范围完全由 tailnet 策略决定。必须在管理端用 grants/ACL 把 `svc:<service-name>`（`tcp:443`）限制到指定用户或设备，否则同 tailnet 的任意用户设备都会被应用视为已认证。
+- 应用身份来自 Tailscale 用户身份，或用户设备之外的 tagged 设备被授予的 app capability。授权范围完全由 tailnet 策略决定。必须在管理端用 grants 把 `svc:<service-name>`（`tcp:443`）限制到指定用户或设备，否则同 tailnet 的任意用户设备都会被应用视为已认证。每台主机用自己的 `svc:` 名和 capability（NUC：`svc:deepseek-harness`；ThinkBook：`svc:deepseek-harness-thinkbook`，capability 同名加 `-thinkbook` 后缀）。
+- tagged 设备需要在管理端 grant 中授予该主机的 capability（NUC：`example.com/cap/deepseek-harness`；ThinkBook：`example.com/cap/deepseek-harness-thinkbook`）；对应源文件的 `appCaps` 让 Serve 转发该 capability。grant 的 `dst` 必须同时包含服务宿主机的 tag/IP，因为 Tailscale 用宿主机自身地址匹配 capability。
 - 不使用 Funnel；Funnel 流量没有身份头，补丁也会拒绝 `Tailscale-Funnel-Request`。
 - 服务单元不再保留额外的 TCP 转发器或尾部 IP 监听，避免绕过身份注入直连回环后端。
 
 ### 回退：启动 token
 
-DSH 每个进程仍生成一次性 launch token 并打印到标准输出。模块把服务 stdout/stderr 追加到 `${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log`（`0600`），因此 token 不再进入 journald。仅在身份头不可用的场景（SSH 隧道直连 loopback、tagged 设备等）使用；不要把结果写入文档或提交记录：
+DSH 每个进程仍生成一次性 launch token 并打印到标准输出。模块把服务 stdout/stderr 追加到 `${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log`（`0600`），因此 token 不再进入 journald。仅在身份头与 capability 都不可用的场景（SSH 隧道直连 loopback、未授予 capability 的 tagged 设备等）使用；不要把结果写入文档或提交记录：
 
 ```bash
 ssh <ssh-target> \
@@ -38,7 +48,7 @@ ssh <ssh-target> \
   | sed -E 's#http://127\.0\.0\.1:[0-9]+#https://<service-domain>#'
 ```
 
-首次打开 token URL 或直接打开已注入身份头的域名后，浏览器会得到签名 cookie，随后页面跳转到不带 token 的根路径。connection 补丁把 `cookieMaxAgeDays` 固定为 365 天，且 cookie 跨 DSH 重启有效；删除 `client-connection/browser-session` 凭据记录并重启可全局撤销。
+首次打开 token URL 或直接打开已注入身份头/capability 的域名后，浏览器会得到签名 cookie，随后页面跳转到不带 token 的根路径。connection 补丁把 `cookieMaxAgeDays` 固定为 365 天，且 cookie 跨 DSH 重启有效；删除 `client-connection/browser-session` 凭据记录并重启可全局撤销。
 
 ## Settings 和 Provider
 
@@ -240,11 +250,18 @@ curl -i https://<service-domain>/
 
 浏览器验证应直接打开不带 token 的 HTTPS 域名，并检查 Models 页面、`settings/describe` 和 provider directory 请求。tagged 设备或被 tailnet 策略拒绝的设备预期返回 `401`。
 
+新增一台主机（例如 ThinkBook）时，本地配置之外还需要管理端两步，未完成前服务只在 loopback 可用：
+
+1. 在管理端创建 `svc:<host-service>`、添加 `tcp:443` → `http://127.0.0.1:<dsh-port>` endpoint 并批准该主机。
+2. 为该 `svc:` 和它的 capability 增加 grants（用户设备给网络访问，tagged 设备另加 capability）。
+
+`tailscale-services.service` 在 advertise 未定义/未批准的 Service 时只打印警告并保持 active，所以 `systemctl --user status tailscale-services` 和 `tailscale serve status` 都要看。
+
 ## 状态和回滚
 
-- npm runtime：模块定义的用户运行时目录。
+- npm runtime：模块定义的用户运行时目录。同一主机也跑 ACP profile 时用独立目录（ThinkBook 是 `web-runtime`），两个模块不会互相重装或补丁同一棵 npm 树。
 - 服务日志：`${XDG_STATE_HOME:-$HOME/.local/state}/log/deepseek-harness/web.log`（`0600`），由启动脚本创建并重定向，不写入 journald（systemd 的 `LogsDirectory`/`%L` 重定向会在首次启动时因目录未创建而失败）。
-- Harness 数据：模块定义的 `DSH_HOME` 目录；其中包括会话、Settings 和 credentials。
+- Harness 数据：模块定义的 `DSH_HOME` 目录；其中包括会话、Settings 和 credentials。同一主机上的 ACP profile 用自己的 `dshHome`（ThinkBook 是 `~/.dsh`），两者不共享。
 - 会话遥测：写入 OpenObserve 的 ledger 和 ops 两个 stream。ingestion 凭据与
   `openobserve-agent` 共用同一份 agenix 机密：OpenObserve 的 ingestion token 是
   组织级作用域，单独签发不会带来额外权限差异。需要按服务轮换时再拆分，并把两个
