@@ -30,6 +30,17 @@
   hostServices.deepseekHarnessAcp = {
     enable = true;
 
+    # The shipped bridge is automation-only: it offers streaming, tool cards, a
+    # model selector and a thought-level selector, but no session mode and no
+    # permission option, so Zed renders no selector for either. The enhanced
+    # bridge adds permission_preset, agent_preset and plan_mode.
+    bridge = "enhanced";
+
+    # Sessions compose their tool and prompt set from this preset. `standard`
+    # restores the instruction row the enhanced bundle disables in the base
+    # layer, so the user-global AGENTS.md keeps working.
+    agentPreset = "standard";
+
     # This host already had a harness home in interactive use under the
     # harness's own default (`~/.dsh`), holding its own settings, provider
     # routes, credentials and sessions. Adopt it instead of the module's

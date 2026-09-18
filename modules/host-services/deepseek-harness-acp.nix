@@ -40,23 +40,51 @@ let
   sessionPluginName = "@longred/deepseek-harness-opencode-session";
   sessionPluginPath = "${pkgs.deepseek-harness-opencode-session}/lib/node_modules/${sessionPluginName}";
 
-  # Bundles this module contributes to the profile, in patch order. The
-  # opencode-session bundle is what registers the opencode-go-live-* provider
-  # routes from the live catalog; without it `llm-pi-ai` stays dormant and the
-  # only selectable provider is deepseek-official.
-  # The opencode-session bundle exists to register the opencode-go-live-* routes
-  # from the live provider catalog. Those routes — and the static opencode-go /
-  # opencode routes in the settings seed — authenticate through
-  # OPENCODE_GO_API_KEY / OPENCODE_API_KEY. On a host that does not have those
-  # credentials, every one of them fails its first turn with MISSING_CREDENTIAL,
-  # which is worse than not offering them at all: an ACP client remembers the
-  # last selected model, so one visit to a dead route keeps failing new threads.
+  # The opencode-session bundle registers the opencode-go-live-* routes from the
+  # live provider catalog. Those routes — and the static opencode-go route in the
+  # settings seed — authenticate through OPENCODE_GO_API_KEY. On a host without
+  # that credential every one of them fails its first turn, which is worse than
+  # not offering them: an ACP client remembers the last selected model, so one
+  # visit to a dead route keeps failing new threads. `openCodeRoutes.enable`
+  # therefore gates the bundle and the seed together.
   openCodePlugin = {
     name = sessionPluginName;
     path = sessionPluginPath;
   };
 
-  profilePlugins = lib.optionals cfg.openCodeRoutes.enable [ openCodePlugin ] ++ cfg.extraBundles;
+  # Which ACP transport answers the client.
+  #
+  # The shipped `dsh-acp-app` bridge is automation-only: it advertises no session
+  # modes and no permission config option, so an editor renders no selector for
+  # either. The enhanced bridge adds `permission_preset` (category `mode`),
+  # `agent_preset` (`model_config`) and `plan_mode`, plus `session/load` and
+  # image prompts.
+  #
+  # The enhanced bundle imports real runtime dependencies, and the profile loader
+  # installs import routes only for importers inside the profile directory — a
+  # symlinked plugin resolves from its store path and cannot find them. Hence
+  # `copy = true`: provisioning copies this bundle instead of linking it.
+  enhancedBridge = cfg.bridge == "enhanced";
+
+  bridgePlugin =
+    if enhancedBridge then
+      {
+        name = "dsh-acp-enhanced";
+        path = "${pkgs.dsh-acp-enhanced}/lib/node_modules/dsh-acp-enhanced";
+        copy = true;
+      }
+    else
+      null;
+
+  # The official bridge answers the client first, so an enhanced profile has to
+  # drop it from the bundle layers or the enhanced transport never sees the
+  # connection.
+  removeBundles = lib.optionals enhancedBridge [ "@deepseek-ai/dsh-acp-app" ];
+
+  profilePlugins =
+    lib.optional enhancedBridge bridgePlugin
+    ++ lib.optionals cfg.openCodeRoutes.enable [ openCodePlugin ]
+    ++ cfg.extraBundles;
 
   runtimeManifest = pkgs.writeText "deepseek-harness-package.json" ''
     {
@@ -67,16 +95,38 @@ let
     }
   '';
 
-  # The acp row ships pinned to deepseek-official/deepseek-v4-flash. A patch
-  # replaces the row's whole `config` (its name and inject list survive), which
-  # is the only way to change the route an ACP session starts on.
-  profilePatchFile = pkgs.writeText "deepseek-harness-acp-patch.yml" ''
-    # Generated from the Home Manager generation; edit the module, not this file.
-    - id: acp
-      config:
-        provider: ${cfg.provider}
-        model: ${cfg.model}
-  '';
+  # A patch replaces the targeted row's whole `config` (its name and inject list
+  # survive), which is how the starting route is chosen. The enhanced bridge also
+  # needs one host-scope row that dsh-web-app mounts but the bundle — written
+  # against an older harness — does not: without it the `standard` and `cordis`
+  # presets fail to mount with
+  # `tool-subagent: modelSelectionSettings requires ... in the Host scope`.
+  profilePatchFile = pkgs.writeText "deepseek-harness-acp-patch.yml" (
+    ''
+      # Generated from the Home Manager generation; edit the module, not this file.
+    ''
+    + (
+      if enhancedBridge then
+        ''
+          - insert:
+              - id: subagent-model-selection-settings
+                name: '@deepseek-ai/dsh-tool-subagent/model-selection-settings'
+
+          - id: acp-enhanced
+            config:
+              provider: ${cfg.provider}
+              model: ${cfg.model}
+              preset: ${cfg.agentPreset}
+        ''
+      else
+        ''
+          - id: acp
+            config:
+              provider: ${cfg.provider}
+              model: ${cfg.model}
+        ''
+    )
+  );
 
   # The home-level patch layer applies to EVERY profile on the machine. Keep it
   # to genuinely global rows: a patch naming an id a profile does not have only
@@ -196,20 +246,37 @@ let
     DSH_PROFILE='${profileDir}' \
       DSH_PROFILE_MANIFEST='${profileManifest}' \
       DSH_PROFILE_PLUGINS='${builtins.toJSON profilePlugins}' \
+      DSH_REMOVE_BUNDLES='${builtins.toJSON removeBundles}' \
       '${python}/bin/python3' - <<'PY'
     import json
     import os
     import pathlib
+    import shutil
     import sys
 
     profile_dir = pathlib.Path(os.environ["DSH_PROFILE"])
     manifest_path = pathlib.Path(os.environ["DSH_PROFILE_MANIFEST"])
     plugins = json.loads(os.environ["DSH_PROFILE_PLUGINS"])
+    remove_bundles = json.loads(os.environ["DSH_REMOVE_BUNDLES"])
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     dependencies = manifest.setdefault("dependencies", {})
     profile = manifest.setdefault("dsh", {}).setdefault("profile", {})
     bundles = profile.setdefault("bundles", [])
+
+    # Replace this bridge with another and the old one must go, or two
+    # transports race for the same connection.
+    for name in remove_bundles:
+        if name in bundles:
+            bundles.remove(name)
+            print(f"deepseek-harness: dropped bundle {name}", file=sys.stderr)
+
+    def force_rmtree(path):
+        """Remove a copied store tree; store permissions are read-only."""
+        for root, dirs, files in os.walk(path):
+            for entry in dirs + files:
+                os.chmod(os.path.join(root, entry), 0o700, follow_symlinks=False)
+        shutil.rmtree(path)
 
     # Reconcile rather than only append: a bundle this module added in an
     # earlier generation must disappear again when the option that pulled it in
@@ -223,6 +290,8 @@ let
         stale_link = profile_dir / "node_modules" / stale
         if stale_link.is_symlink():
             stale_link.unlink()
+        elif stale_link.exists():
+            force_rmtree(stale_link)
         print(f"deepseek-harness: removed plugin {stale} no longer in the profile", file=sys.stderr)
 
     profile["homeManagerPlugins"] = desired
@@ -236,6 +305,25 @@ let
             bundles.append(plugin_name)
 
         plugin_link = profile_dir / "node_modules" / plugin_name
+        if plugin.get("copy"):
+            # A bundle that imports packages the profile loader only resolves
+            # for importers inside the profile directory has to be a real copy:
+            # a symlink resolves from its store path and cannot find them.
+            if plugin_link.is_symlink():
+                plugin_link.unlink()
+            elif plugin_link.exists():
+                force_rmtree(plugin_link)
+            plugin_link.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(plugin_path, plugin_link)
+            # Store trees are read-only; a later generation has to be able to
+            # replace this copy.
+            for root, dirs, files in os.walk(plugin_link):
+                for entry in dirs:
+                    os.chmod(os.path.join(root, entry), 0o755)
+                for entry in files:
+                    os.chmod(os.path.join(root, entry), 0o644)
+            continue
+
         if plugin_link.is_symlink():
             if plugin_link.resolve() != plugin_path.resolve():
                 plugin_link.unlink()
@@ -452,6 +540,39 @@ in
       type = lib.types.str;
       default = "acp";
       description = "Profile under $DSH_HOME/profiles that the ACP client boots.";
+    };
+
+    bridge = lib.mkOption {
+      type = lib.types.enum [
+        "official"
+        "enhanced"
+      ];
+      default = "official";
+      description = ''
+        ACP transport that answers the client.
+
+        `official` is the shipped automation-only bridge: streaming, tool cards,
+        a model selector and a thought-level selector, plus a per-tool-call
+        allow/reject prompt. It advertises no session mode and no permission
+        option, so an editor shows no selector for either.
+
+        `enhanced` uses dsh-acp-enhanced, which adds `permission_preset`
+        (category `mode`), `agent_preset` (`model_config`) and `plan_mode`, plus
+        session/load and image prompts. It composes every session from an agent
+        preset instead of the base rows, so the tool and prompt set is chosen by
+        `agentPreset`.
+      '';
+    };
+
+    agentPreset = lib.mkOption {
+      type = lib.types.str;
+      default = "standard";
+      description = ''
+        Agent preset the enhanced bridge composes sessions from. The harness
+        ships `standard`, `minimal`, `ptc` and `cordis`; `standard` restores the
+        instruction, bash, filesystem and skill rows that the enhanced bundle
+        disables in the base layer, including the user-global AGENTS.md.
+      '';
     };
 
     provider = lib.mkOption {
