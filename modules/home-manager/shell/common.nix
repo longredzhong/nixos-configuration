@@ -22,7 +22,11 @@ let
 
   # -------- 代理配置 --------
   defaultProxy = "127.0.0.1:7890";
-  noProxyList = "localhost,127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,.local";
+  # Loopback/LAN/mDNS/tailnet names, from the single source in lib/tailnet.nix.
+  # The tailnet has to be excluded by name, not only by address range: NO_PROXY
+  # is matched against the host in the URL, so `100.64.0.0/10` alone lets a
+  # short name like `longred-vm` through to the proxy.
+  noProxyList = (import ../../../lib/tailnet.nix).noProxy;
 
   # -------- 共享别名 --------
   commonAliases = {

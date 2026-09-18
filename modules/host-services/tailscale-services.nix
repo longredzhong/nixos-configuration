@@ -194,7 +194,7 @@ in
 
     tailnetDomain = lib.mkOption {
       type = lib.types.str;
-      default = "tail388af.ts.net";
+      default = (import ../../lib/tailnet.nix).domain;
       description = "DNS suffix of the tailnet the service names resolve in.";
     };
 

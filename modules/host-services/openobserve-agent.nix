@@ -13,6 +13,22 @@
 let
   inherit (config.hostServices.openobserveAgent) endpoint journaldStream tracesStream;
 
+  # The collector only talks to tailnet and loopback endpoints. This unit sets
+  # no proxy variables at all, so the list below is documentation of that
+  # boundary rather than a routing decision -- but it is still derived from the
+  # single source in lib/tailnet.nix so a short host name cannot be missed here
+  # the way it was in the nix daemon's environment.
+  agentNoProxy = builtins.concatStringsSep "," (
+    [
+      "localhost"
+      "127.0.0.1"
+      "::1"
+      "100.64.0.0/10"
+      "172.16.100.10"
+    ]
+    ++ (import ../../lib/tailnet.nix).names
+  );
+
   collector = pkgs.opentelemetry-collector-contrib;
   collectorConfig = "${config.xdg.configHome}/opentelemetry-collector/config.yaml";
   authHeader =
@@ -333,8 +349,8 @@ in
         # variables unset so OTLP exports do not take an extra local-proxy hop,
         # which previously showed up as export timeouts and failed scrapes.
         Environment = [
-          "no_proxy=localhost,127.0.0.1,::1,100.64.0.0/10,172.16.100.10"
-          "NO_PROXY=localhost,127.0.0.1,::1,100.64.0.0/10,172.16.100.10"
+          "no_proxy=${agentNoProxy}"
+          "NO_PROXY=${agentNoProxy}"
         ];
         ExecStart = startCollector;
         Restart = "always";
