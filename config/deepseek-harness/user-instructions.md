@@ -1,6 +1,6 @@
 # 用户级全局指令
 
-本文件由 `config/deepseek-harness/AGENTS.md` 安装到 `$DSH_HOME/AGENTS.md`，是 DeepSeek
+本文件由 `config/deepseek-harness/user-instructions.md` 安装到 `$DSH_HOME/AGENTS.md`，是 DeepSeek
 Harness 的**用户级**指令：它在所有项目指令**之前**注入，因此优先级**最低**——项目自己的
 `AGENTS.md` 永远覆盖它，system/developer/用户直指令覆盖两者。
 
