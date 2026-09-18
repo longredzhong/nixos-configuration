@@ -432,7 +432,21 @@ printf '%s\n%s\n' \
   | dsh --profile acp
 ```
 
-要覆盖 `session/list`、`session/load`（预期 `-32601`）、`session/set_config_option` 和模型分组，需要一个真正的 ACP 客户端（任选 SDK 自带的示例客户端，或自己写一个数十行的 JSON-RPC 驱动）。**验证时用 `/bin/sh -c` 起进程**，与 Zed 的启动方式一致。
+要覆盖 `session/list`、`session/load`（预期 `-32601`）、`session/set_config_option` 和模型分组，用仓库里的
+`scripts/dsh-acp-probe.py`——一个只依赖标准库的 ACP 客户端，按 Zed 的方式（同样的 `initialize`
+capabilities）起进程，然后报告三件事：控件面（`modes` 与 `configOptions` 的分类）、**是否真的收到
+`agent_message_chunk`**、以及 stdout 是否始终是纯 JSON。只有拿到助手文本才退出 0，所以它能直接当
+冒烟测试用（这也是当初识破 `dsh-acp-enhanced` 静默无输出的工具）：
+
+```bash
+# 目标主机上，用模块安装的 wrapper（它会自己解析凭据）
+scripts/dsh-acp-probe.py --command "$(command -v dsh)" --prompt 'Reply with exactly: PROBE-OK'
+
+# 换一条 route / 模型验证选择器与凭据
+scripts/dsh-acp-probe.py --model '["<route>","<model>"]'
+```
+
+其它脚本和 Zed 都应按 **`/bin/sh -c`** 的方式起进程，与 Zed 的启动方式一致。
 
 Zed 侧：`dev: open acp logs` 看握手、capabilities 和 stderr；确认线程能创建、能流式输出、模型下拉里出现期望的 provider 分组。
 
