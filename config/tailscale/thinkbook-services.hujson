@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "services": {
+    "svc:deepseek-harness-thinkbook": {
+      "endpoints": {
+        "tcp:443": "http://127.0.0.1:3080"
+      },
+      "appCaps": ["example.com/cap/deepseek-harness-thinkbook"]
+    }
+  }
+}

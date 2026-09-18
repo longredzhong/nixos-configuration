@@ -9,7 +9,8 @@
     "svc:deepseek-harness": {
       "endpoints": {
         "tcp:443": "http://127.0.0.1:3080"
-      }
+      },
+      "appCaps": ["example.com/cap/deepseek-harness"]
     },
     "svc:openobserve": {
       "endpoints": {

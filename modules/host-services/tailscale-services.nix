@@ -1,24 +1,30 @@
-# Tailscale Services configuration for the Fedora NUC.
+# Tailscale Services host configuration for a Home Manager target.
 #
 # The huJSON file is the source of truth for service endpoints. The user-level
 # unit installs it into the Tailscale config directory, applies it with
 # `tailscale serve set-config`, and advertises each declared service. Service
 # definitions and host approval are intentionally managed in the Tailscale
 # admin console; the local client can only configure the service host.
+#
+# One huJSON file describes one host's services, so a second host points this
+# module at its own file; the installed file keeps the source file's name.
 {
   config,
   lib,
   pkgs,
+  hostname,
   ...
 }:
 let
-  serviceConfigFile = ../../config/tailscale/nuc-services.hujson;
-  serviceConfigPath = "${config.xdg.configHome}/tailscale/nuc-services.hujson";
+  cfg = config.hostServices.tailscaleServices;
+  serviceConfigFile = cfg.serviceConfigFile;
+  serviceConfigPath = "${config.xdg.configHome}/tailscale/${baseNameOf serviceConfigFile}";
   serviceConfig = builtins.fromJSON (builtins.readFile serviceConfigFile);
   serviceNames = lib.attrNames serviceConfig.services;
   tailscale = "/usr/bin/tailscale";
 
-  parseEndpointPort = endpoint:
+  parseEndpointPort =
+    endpoint:
     let
       match = builtins.match "tcp:([0-9]+)" endpoint;
     in
@@ -27,7 +33,8 @@ let
     else
       builtins.elemAt match 0;
 
-  parseTarget = target:
+  parseTarget =
+    target:
     let
       match = builtins.match "([a-z-]+)://([^:]+):([0-9]+)" target;
     in
@@ -46,13 +53,21 @@ let
   # forwarding; both keep the backend protocol opaque. `http://`/`https://`
   # instead make tailscaled terminate TLS and reverse-proxy the request, which
   # is what lets it inject its identity headers for the backend to consume.
-  rawEndpoint = service: endpoint: target:
+  #
+  # A service definition may add an `appCaps` list. The capability names are
+  # forwarded to web backends in `Tailscale-App-Capabilities`; unlike the
+  # identity headers, Serve populates this for both user-owned and tagged
+  # peers, so a tagged client can authenticate with a granted capability
+  # instead of a login. Only `http://`/`https://` endpoints can carry it.
+  rawEndpoint =
+    service: definition: endpoint: target:
     let
       targetSpec = parseTarget target;
       serviceName = lib.removePrefix "svc:" service;
-      tlsName = "${serviceName}.tail388af.ts.net";
+      tlsName = "${serviceName}.${cfg.tailnetDomain}";
       backend = "${targetSpec.host}:${targetSpec.port}";
       port = parseEndpointPort endpoint;
+      appCaps = definition.appCaps or [ ];
       tcpTarget = {
         TCPForward = backend;
       };
@@ -61,10 +76,16 @@ let
         "${tlsName}:${port}" = {
           Handlers."/" = {
             Proxy = "${targetSpec.protocol}://${backend}";
+          }
+          // lib.optionalAttrs (appCaps != [ ]) {
+            AcceptAppCaps = appCaps;
           };
         };
       };
     in
+    assert lib.assertMsg (
+      appCaps == [ ] || webTarget
+    ) "Tailscale Service ${service}: appCaps requires an http:// or https:// endpoint";
     {
       inherit port web webTarget;
       tcp =
@@ -78,18 +99,17 @@ let
           throw "Unsupported Tailscale Service target protocol for ${service}: ${targetSpec.protocol}";
     };
 
-  rawService = service: definition:
+  rawService =
+    service: definition:
     let
-      endpoints = lib.mapAttrsToList (rawEndpoint service) definition.endpoints;
+      endpoints = lib.mapAttrsToList (rawEndpoint service definition) definition.endpoints;
       tcp = builtins.listToAttrs (
         map (entry: {
           name = entry.port;
           value = entry.tcp;
         }) endpoints
       );
-      web = lib.foldl' (acc: entry: acc // entry.web) { } (
-        lib.filter (entry: entry.webTarget) endpoints
-      );
+      web = lib.foldl' (acc: entry: acc // entry.web) { } (lib.filter (entry: entry.webTarget) endpoints);
     in
     {
       TCP = tcp;
@@ -159,23 +179,51 @@ let
   '';
 in
 {
-  home.file."${serviceConfigPath}".source = serviceConfigFile;
+  options.hostServices.tailscaleServices = {
+    enable = lib.mkEnableOption "this host's Tailscale Services configuration";
 
-  systemd.user.services.tailscale-services = {
-    Unit = {
-      Description = "Tailscale Services host configuration for the NUC home lab";
-      After = [
-        "network-online.target"
-      ];
-      Wants = [ "network-online.target" ];
+    serviceConfigFile = lib.mkOption {
+      type = lib.types.path;
+      default = ../../config/tailscale/nuc-services.hujson;
+      description = ''
+        huJSON file declaring this host's `svc:` endpoints and optional
+        `appCaps`. It is installed under the Tailscale config directory with the
+        same file name.
+      '';
     };
-    Service = {
-      Type = "oneshot";
-      ExecStart = applyServices;
-      RemainAfterExit = true;
-      Restart = "on-failure";
-      RestartSec = "5min";
+
+    tailnetDomain = lib.mkOption {
+      type = lib.types.str;
+      default = "tail388af.ts.net";
+      description = "DNS suffix of the tailnet the service names resolve in.";
     };
-    Install.WantedBy = [ "default.target" ];
+
+    description = lib.mkOption {
+      type = lib.types.str;
+      default = "Tailscale Services host configuration for ${hostname}";
+      description = "Description of the generated systemd user unit.";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    home.file."${serviceConfigPath}".source = serviceConfigFile;
+
+    systemd.user.services.tailscale-services = {
+      Unit = {
+        Description = cfg.description;
+        After = [
+          "network-online.target"
+        ];
+        Wants = [ "network-online.target" ];
+      };
+      Service = {
+        Type = "oneshot";
+        ExecStart = applyServices;
+        RemainAfterExit = true;
+        Restart = "on-failure";
+        RestartSec = "5min";
+      };
+      Install.WantedBy = [ "default.target" ];
+    };
   };
 }
