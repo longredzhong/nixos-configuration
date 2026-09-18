@@ -5,9 +5,7 @@
     ./common.nix
     ../../modules/home-manager/desktop/default.nix
     ../../modules/host-services/openobserve-agent.nix
-    ../../modules/host-services/deepseek-harness.nix
     ../../modules/host-services/deepseek-harness-acp.nix
-    ../../modules/host-services/tailscale-services.nix
   ];
 
   # Harness API credentials, encrypted to this host and to the NUC. The values
@@ -83,39 +81,4 @@
     # a file-backed source; an unauthenticated MCP server only adds noise.
     openObserveMcp.enable = false;
   };
-
-  # DeepSeek Harness web profile as a Home Manager user service, so this host's
-  # harness is the repository-managed one: the browser gets the same reviewed
-  # startup path as the NUC (pinned npm runtime, Tailscale Service termination
-  # with identity authentication, session telemetry). It is independent of the
-  # ACP profile above and can be rolled back on its own.
-  hostServices.deepseekHarness = {
-    enable = true;
-
-    # Each exposed host names its own Service and capability. The tailnet grant
-    # for svc:deepseek-harness must not authenticate this service, and the
-    # capability below is granted to tagged devices per host in the policy file.
-    serviceHost = "deepseek-harness-thinkbook.tail388af.ts.net";
-    appCapability = "example.com/cap/deepseek-harness-thinkbook";
-
-    # The ACP profile installs into the module's default runtime directory and
-    # patches the same bundle files, so the web service gets its own npm tree.
-    # Its DSH_HOME also stays at the module default: sharing one home between
-    # the two profiles would need a cross-process lock the storages backend
-    # does not have.
-    runtimeDir = "${config.home.homeDirectory}/.local/share/deepseek-harness/web-runtime";
-  };
-
-  # Publish that loopback port on this host's own Tailscale Service. The NUC's
-  # svc:deepseek-harness is a different service with different grants.
-  hostServices.tailscaleServices = {
-    enable = true;
-    serviceConfigFile = ../../config/tailscale/thinkbook-services.hujson;
-  };
-
-  # The desktop proxy (mihomo-party) listens on the mixed port, and a user
-  # service does not inherit the session environment, so point the service at
-  # the same listener instead of the module default. Tailnet and loopback
-  # traffic stays direct through the module's no_proxy list.
-  hostServices.proxyUrl = "http://127.0.0.1:7890";
 }
