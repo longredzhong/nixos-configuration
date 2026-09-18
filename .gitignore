@@ -1,5 +1,6 @@
-# Flake build output symlink created by `nix build`.
-/result
+# Flake build output symlinks created by `nix build` / `nixos-rebuild build`
+# (`result`, plus `result-1` and friends when one invocation builds several).
+/result*
 
 # Scratch directory used while probing Nix and the harness (evaluation cache,
 # generated patches, ACP transcripts). Local only, never repository content.
@@ -7,3 +8,15 @@
 
 # Python bytecode from the scripts in scripts/.
 __pycache__/
+
+# Tool caches and transcripts. Each of these currently ships its own
+# `.gitignore` containing `*`, so the rules below are redundant today -- and
+# that is the point: an auto-created file that stops being written must not be
+# able to turn the directory into committable content.
+#
+# mypy type-check cache.
+.mypy_cache/
+# playwright CLI console/page dumps.
+.playwright-cli/
+# playwright MCP console dumps.
+.playwright-mcp/
