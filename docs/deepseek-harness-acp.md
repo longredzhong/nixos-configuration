@@ -376,7 +376,7 @@ provider 侧的取值：
 2. **不要用 `dsh plugin add` 联网动态安装。** 照抄仓库既有做法（`pkgs/deepseek-harness-opencode-session` 等）：固定 commit → Nix 构建 → profile `file:` 依赖软链。这样没有运行时联网安装，也没有供应链漂移。
 3. **先官方、后升级。** 官方 profile 足以跑通整条链路（进程、密钥、settings、记忆、Zed 接入）；等 plans/历史/slash 命令确实影响日常使用，再引桥接。
 
-### 实测结论（dsh 0.1.6-alpha.1）：`dsh-acp-enhanced` 不可用
+### 实测结论（dsh 0.1.6-alpha.1 与 alpha.2）：`dsh-acp-enhanced` 不可用
 
 本仓库把 `dsh-acp-enhanced@0.7.0` 打包成 `pkgs/dsh-acp-enhanced`（固定 tarball + sha256，自带嵌套
 `node_modules`，无需运行时 `npm install`），模块侧用 `bridge = "enhanced"` 切换。**评估结果是它在本
@@ -393,10 +393,20 @@ provider 侧的取值：
 `standard` / `minimal` 两种 preset、`ten-rings` 与 `deepseek-official` 两条 route 都试过，症状相同；
 同机同 settings 下官方桥接逐字返回，所以不是客户端、密钥或网关的问题。
 
-**结论有时效性**：它只约束 `dsh 0.1.6-alpha.1` + `dsh-acp-enhanced 0.7.0` 这个组合；仓库现已升到
-`0.1.6-alpha.2`，但这个增强桥接组合**尚未在 alpha.2 上重测**。dsh 升级后按
-「[验证](#验证)」一节跑一次真实 prompt，只要能看到 `agent_message_chunk`，把 `bridge` 改成
-`"enhanced"` 即可——模块会自动更换 bundle 清单并重新 provision。
+**根因（2026-09-18 在 alpha.2 上用 `ACP_DEBUG=1` 定位）：事件契约不匹配，不是配置问题。** 增强桥只
+在一条路径上把流式内容变成 ACP chunk：`ctx.on('session/event')` 里 `case 'assistant/chunk'` →
+`handleChunk()`，由 `block-start` / `text-delta` / `block-end` 累积并发出 `agent_message_chunk`；另一处
+`assistant/message` 分支只用于 `session/load` 的历史回放。alpha.2 上一轮真实 prompt 的事件流是
+`turn/start → step/start → user/message → assistant/message → step/end → turn/end(reason=completed)`——
+**`assistant/message` 到了，`assistant/chunk` 一条都没有**，于是文本永远不上线。佐证：在 alpha.2 的整个
+runtime 里，`assistant/chunk` 只出现在 `dsh-session-format-*` 的迁移器和 JSONL 持久化 worker 里，**已经
+没有实时 emit 方**——它是个遗留事件，新版事件模型不再发它。对照实验：同一 route、同一 harness、同一
+探针，官方桥接 `TEXT_LEN: 8` / `agent_message_chunk` 正常，切到增强桥即 `TEXT_LEN: 0`。
+
+**结论有时效性**：它约束 `dsh-acp-enhanced 0.7.0` 与 `0.1.6-alpha.1` / `alpha.2` 两个组合，alpha.2 上
+已重测且症状相同（原因已定位，不再是"原因不明"）。要重新评估，按「[验证](#验证)」一节跑一次真实
+prompt，并打开 `ACP_DEBUG=1` 看事件流：只要仍看不到 `assistant/chunk`，换 `bridge` 也没有意义；等到
+该 bundle 改成从当前事件模型发 chunk 之后再试。
 
 ## 最佳实践
 
@@ -491,3 +501,5 @@ Zed 侧：`dev: open acp logs` 看握手、capabilities 和 stderr；确认线�
 2026-09-18，目标主机 nuc（Fedora，standalone Home Manager），升级到 `@deepseek-ai/dsh@0.1.6-alpha.2`，两个 runtime 都用 `pkgs/nodejs-official`（官方 nodejs.org 22.23.2）重建。结果：`deepseek-harness.service` active、loopback `127.0.0.1:3080` 返回 401、launch-token URL 返回 303，`journalctl --user -u deepseek-harness` 无新错误；web profile 清单包含 `deepseek-harness-opencode-session`、`deepseek-harness-observability`、`dsh-otel` 三个 bundle；`dsh --profile acp --dump-config` 退出 0，说明 ACP composition、`file:` bundle 与插件解析在 alpha.2 上可加载。真实 prompt 的 `agent_message_chunk` 验证尚未在 alpha.2 上重跑。
 
 2026-09-18，目标主机 fedora-thinkbook（Fedora，standalone Home Manager）：Zed 以 `~/.nix-profile/bin/dsh --profile acp` 启动 agent，打开的项目工作目录里有一份为 direnv 准备的 `.env`，含 `https_proxy` / `no_proxy`。症状是 ACP server 立刻 `exit status 1`，stderr 为 `dsh: <项目目录>/.env sets "https_proxy", which only the launching environment may set ...; export https_proxy, or put it in <$DSH_HOME>/.env`；同一个目录里 `dsh --help` 正常退出 0。把两个代理变量移到 `.env.proxy`、`.envrc` 改为 `dotenv_if_exists .env` + `dotenv_if_exists .env.proxy` 并 `direnv allow` 后：`.env` 中不再有代理类名字，`direnv exec` 仍导出 `https_proxy`（项目侧行为不变），同目录 `dsh --profile acp` 以 EOF stdin 启动退出 0，`scripts/dsh-acp-probe.py --command "$(command -v dsh)"` 在项目工作目录内跑通握手并收到 `agent_message_chunk`（`TEXT: PROBE-OK`，`DIRTY_STDOUT_LINES: 0`，退出 0）。以上为方法可复现的结论，具体版本与命令输出以目标机当前状态为准。
+
+2026-09-18，目标主机 fedora-thinkbook：按上一节流程把 `bridge` 切到 `"enhanced"` 并在 `0.1.6-alpha.2` 上复测。切换本身干净：provision 把 bundle 栈换成 `[dsh-base, opencode-session, dsh-acp-enhanced]` 并写入 `- id: acp-enhanced` patch。`scripts/dsh-acp-probe.py` 结果：控件面齐全（`MODES` 三档 `read-only`/`workspace-write`/`danger-full-access`，`permission_preset` category=mode、`agent_preset` category=model_config、`plan_mode` category=plan，`loadSession: true`，图片 prompt 为真），但 `TEXT_LEN: 0`、`UPDATE_KINDS` 无 `agent_message_chunk`，探针 exit 1。A/B 对照（同 route `ten-rings`/`gpt-5.6-terra`、同 harness、同探针）：官方桥 `TEXT_LEN: 8` 且收到 `agent_message_chunk`，exit 0。`ACP_DEBUG=1` 事件流显示 `assistant/message` 到达而 `assistant/chunk` 一条未发（详见「桥接选型」一节的根因）。已回滚 `bridge = "official"` 并重新 switch，回滚后 bundle 栈恢复 `[dsh-base, opencode-session, dsh-acp-app]`，探针再次 exit 0。

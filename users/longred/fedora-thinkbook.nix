@@ -33,15 +33,18 @@
     enable = true;
 
     # Stay on the shipped bridge. `bridge = "enhanced"` does deliver the
-    # permission/agent-mode/plan selectors -- verified on the wire -- but
-    # dsh-acp-enhanced 0.7.0 emitted no assistant text against the then-pinned
-    # harness 0.1.6-alpha.1 (not yet re-tested on 0.1.6-alpha.2): a prompt
-    # settles with stopReason end_turn, usage_update
-    # reports output tokens, and no agent_message_chunk ever arrives. Tested
-    # with the standard and minimal presets, the ten-rings and deepseek-official
-    # routes, and Zed's exact client capabilities. That makes it unusable here,
-    # so the module keeps the option and the pinned package for when the bundle
-    # catches up.
+    # permission/agent-mode/plan selectors -- re-verified on the wire against
+    # 0.1.6-alpha.2 -- but the enhanced bridge still emits no assistant text,
+    # and the cause is an event-contract mismatch, not configuration: the
+    # bridge turns streaming into ACP chunks only from `assistant/chunk`
+    # events (handleChunk), plus `assistant/message` on history replay. On
+    # alpha.2 a live turn emits `assistant/message` but never `assistant/chunk`,
+    # so the reply never reaches the wire. ACP_DEBUG=1 on a real turn shows
+    # exactly that, while the shipped bridge under the same route and probe
+    # streams normally. `assistant/chunk` survives in the runtime only inside
+    # the session-format migrators and the JSONL persistence worker, i.e. it is
+    # a legacy event with no live emitter left. Revisit when dsh-acp-enhanced
+    # emits from the current event model.
     bridge = "official";
 
     # This host already had a harness home in interactive use under the
