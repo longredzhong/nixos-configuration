@@ -272,7 +272,13 @@ let
             print(f"deepseek-harness: dropped bundle {name}", file=sys.stderr)
 
     def force_rmtree(path):
-        """Remove a copied store tree; store permissions are read-only."""
+        """Remove a copied store tree; store permissions are read-only.
+
+        The root has to be made writable too: `shutil.rmtree` unlinks entries
+        from the directory it is removing, and a copied store directory keeps
+        mode 0555.
+        """
+        os.chmod(path, 0o700, follow_symlinks=False)
         for root, dirs, files in os.walk(path):
             for entry in dirs + files:
                 os.chmod(os.path.join(root, entry), 0o700, follow_symlinks=False)
@@ -316,7 +322,9 @@ let
             plugin_link.parent.mkdir(parents=True, exist_ok=True)
             shutil.copytree(plugin_path, plugin_link)
             # Store trees are read-only; a later generation has to be able to
-            # replace this copy.
+            # replace this copy, and the root is one of the directories whose
+            # mode a copy preserves.
+            os.chmod(plugin_link, 0o755)
             for root, dirs, files in os.walk(plugin_link):
                 for entry in dirs:
                     os.chmod(os.path.join(root, entry), 0o755)
