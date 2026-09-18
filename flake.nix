@@ -148,6 +148,7 @@
         in
         {
           inherit (pkgs) pixi;
+          inherit (pkgs) dsh-acp-enhanced;
         };
 
     };
