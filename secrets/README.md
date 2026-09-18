@@ -21,7 +21,7 @@ just secret-check
 
 `scripts/secret-check.py` 检查四件事：模块引用与 `secrets/*.age` 是否对齐（被引用但没有文件是错误，有文件但无人引用是警告）；每个密文是否是 age v1 且带 `ssh-ed25519` 接收者；`secrets/recipients.txt` 是否只含 SSH 公钥；以及**当前主机入口文件跟随 `imports` 后可达的机密能否用本机身份解密**。解密结果直接丢弃，不落盘、不打印。它是 `just switch-safe` 的前置检查。
 
-旧版 `scripts/secretctl.py` 的 `list`/`generate`/`edit` 等子命令仍然依赖已删除的清单文件，`just secret-list`、`just secret-generate`、`just secret-edit` 因此不可用。不要用示例公钥或虚构清单生成新机密：新增或轮换按下面的 `age -e -R` 流程处理，DeepSeek Harness 凭据走 `scripts/dsh-credentials.py`。
+新增或轮换机密按下面的 `age -e -R` 流程处理，DeepSeek Harness 凭据走 `scripts/dsh-credentials.py`。依赖清单文件的旧工具（`scripts/secretctl.py` 与 `just secret-list`、`just secret-generate`、`just secret-edit`）已删除：那份清单在 `059d0c2` 就不再存在，保留这些入口只会指向一个必然失败的工作流。不要用示例公钥或虚构清单生成新机密。
 
 DeepSeek Harness 的凭据走单独一条明确的路径：
 

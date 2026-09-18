@@ -139,18 +139,6 @@ show-homes:
 # Secrets (agenix)
 # ============================================================
 
-# List secrets/keys
-secret-list type="all" filter="all":
-    ./scripts/secretctl.py list {{type}} --filter {{filter}}
-
-# Generate new keypair
-secret-generate type name:
-    ./scripts/secretctl.py generate {{type}} {{name}}
-
-# Edit secret file
-secret-edit file identity="":
-    ./scripts/secretctl.py edit {{file}} {{if identity != "" { "--identity " + identity } else { "" } }}
-
 # Check secrets consistency (declarations vs secrets/*.age)
 secret-check:
     ./scripts/secret-check.py
