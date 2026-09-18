@@ -198,7 +198,7 @@ DSH 没有名为 "global memory" 的功能。用户级全局指令就是**唯一
 - **全局文件与项目链共享一个字节预算**（base 里是 `maxBytes: 65536`）。超预算时先整体丢弃较宽泛的文件，再截断最具体的那个。所以全局记忆要写短：适合放跨项目的个人偏好，不适合放项目规则。
 - 内容相同的兄弟文件（例如与 `AGENTS.md` 重复的 `CLAUDE.md`）只渲染一次。
 
-仓库放一份 `config/deepseek-harness/AGENTS.md`，用 `home.file` 链到 `$DSH_HOME/AGENTS.md`（DSH 只读它，软链安全）。
+仓库里的源文件叫 `config/deepseek-harness/user-instructions.md`，由模块用 `home.file` 软链到 `$DSH_HOME/AGENTS.md`（DSH 只读它，软链安全）。**源文件名不能叫 `AGENTS.md`**——那样 DSH 会把仓库里的源文件当成该目录的项目级指令，任何一次读写都会让这份"全局"内容以项目指令的身份重复注入；原因见「最佳实践」。
 
 ## 机密
 
