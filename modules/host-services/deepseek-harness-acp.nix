@@ -81,6 +81,15 @@ let
   # connection.
   removeBundles = lib.optionals enhancedBridge [ "@deepseek-ai/dsh-acp-app" ];
 
+  # ...and switching back has to put it there again: removing a bundle is a
+  # manifest edit, so the profile would otherwise keep whatever transport the
+  # previous generation left, including none at all.
+  ensureBundles =
+    if enhancedBridge then
+      [ "dsh-acp-enhanced" ]
+    else
+      [ "@deepseek-ai/dsh-acp-app" ];
+
   profilePlugins =
     lib.optional enhancedBridge bridgePlugin
     ++ lib.optionals cfg.openCodeRoutes.enable [ openCodePlugin ]
@@ -247,6 +256,7 @@ let
       DSH_PROFILE_MANIFEST='${profileManifest}' \
       DSH_PROFILE_PLUGINS='${builtins.toJSON profilePlugins}' \
       DSH_REMOVE_BUNDLES='${builtins.toJSON removeBundles}' \
+      DSH_ENSURE_BUNDLES='${builtins.toJSON ensureBundles}' \
       '${python}/bin/python3' - <<'PY'
     import json
     import os
@@ -258,6 +268,7 @@ let
     manifest_path = pathlib.Path(os.environ["DSH_PROFILE_MANIFEST"])
     plugins = json.loads(os.environ["DSH_PROFILE_PLUGINS"])
     remove_bundles = json.loads(os.environ["DSH_REMOVE_BUNDLES"])
+    ensure_bundles = json.loads(os.environ["DSH_ENSURE_BUNDLES"])
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     dependencies = manifest.setdefault("dependencies", {})
@@ -270,6 +281,11 @@ let
         if name in bundles:
             bundles.remove(name)
             print(f"deepseek-harness: dropped bundle {name}", file=sys.stderr)
+
+    for name in ensure_bundles:
+        if name not in bundles:
+            bundles.append(name)
+            print(f"deepseek-harness: restored bundle {name}", file=sys.stderr)
 
     def force_rmtree(path):
         """Remove a copied store tree; store permissions are read-only.
