@@ -255,6 +255,10 @@ DSH 没有名为 "global memory" 的功能。用户级全局指令就是**唯一
   非 JSON 行当作 transport 错误并静默丢弃，所以 stdout 一旦被污染，症状是"会话无声地失败"。
 - **`web` profile 需要 `--expose-internals`**（HMR loader 的原生回退）；`acp` 的 HMR 关闭，不需要，
   统一加上也无害。
+- **两个 profile 都必须用官方 nodejs.org 构建**（`pkgs/nodejs-official`）。dsh 0.1.6-alpha.2 起，
+  启动任何 profile 都会经过 `node-addon-require-builtin`，其原生预编译只识别官方 Node 的 V8 布局；
+  nixpkgs 的 `nodejs_22` 与 `nodejs_24` 都会以 `Unsupported/no-getter` 在 host preparation 阶段
+  失败。npm 仍来自 nixpkgs。
 - **`dsh` 不支持 `socks5://` 代理**（会静默跳过该 scheme）；需要代理时用 `http://<proxy-host>:<port>`。
 
 ### 待跟进的重构
@@ -372,7 +376,7 @@ provider 侧的取值：
 2. **不要用 `dsh plugin add` 联网动态安装。** 照抄仓库既有做法（`pkgs/deepseek-harness-opencode-session` 等）：固定 commit → Nix 构建 → profile `file:` 依赖软链。这样没有运行时联网安装，也没有供应链漂移。
 3. **先官方、后升级。** 官方 profile 足以跑通整条链路（进程、密钥、settings、记忆、Zed 接入）；等 plans/历史/slash 命令确实影响日常使用，再引桥接。
 
-### 实测结论：`dsh-acp-enhanced` 在 dsh 0.1.6-alpha.1 上不可用
+### 实测结论（dsh 0.1.6-alpha.1）：`dsh-acp-enhanced` 不可用
 
 本仓库把 `dsh-acp-enhanced@0.7.0` 打包成 `pkgs/dsh-acp-enhanced`（固定 tarball + sha256，自带嵌套
 `node_modules`，无需运行时 `npm install`），模块侧用 `bridge = "enhanced"` 切换。**评估结果是它在本
@@ -389,7 +393,8 @@ provider 侧的取值：
 `standard` / `minimal` 两种 preset、`ten-rings` 与 `deepseek-official` 两条 route 都试过，症状相同；
 同机同 settings 下官方桥接逐字返回，所以不是客户端、密钥或网关的问题。
 
-**结论有时效性**：它只约束 `dsh 0.1.6-alpha.1` + `dsh-acp-enhanced 0.7.0` 这个组合。dsh 升级后按
+**结论有时效性**：它只约束 `dsh 0.1.6-alpha.1` + `dsh-acp-enhanced 0.7.0` 这个组合；仓库现已升到
+`0.1.6-alpha.2`，但这个增强桥接组合**尚未在 alpha.2 上重测**。dsh 升级后按
 「[验证](#验证)」一节跑一次真实 prompt，只要能看到 `agent_message_chunk`，把 `bridge` 改成
 `"enhanced"` 即可——模块会自动更换 bundle 清单并重新 provision。
 
@@ -408,6 +413,7 @@ provider 侧的取值：
   provision：服务照样 `active`、握手照样成功，但 profile 的 `dsh.profile.bundles` 仍是上一代，控件面
   悄悄停在旧的那一层。诊断入口是 provision 的 stderr——它每次增删都会打印 `removed plugin …` /
   `restored bundle …`，一行都没有就说明根本没跑。
+- **`dsh.profile.bundles` 的顺序是语义，不是排版。** dsh 把这份清单折成有序的补丁层栈，落在 ACP bridge 之后的层会被丢掉。0.1.6-alpha.1 上实测：`[base, acp-app, <插件>]` 会让模型路由整体失效（`session/new` 返回 `no adapter registered for provider "<route>"`，而 `settings.yaml` 里的 route 文本完全正确，看起来像 key 或网关的问题），换成 `[base, <插件>, acp-app]` 立刻正常。profile 模板自带的顺序恰好是前者，而 provision 过去只会 append，于是**新建的 home 拿到坏顺序、旧 home 因为历史保留好顺序**——症状是"同一份配置，一台机器能用、另一台不能用"。模块现在声明 `desiredBundles`，并在 provision 的最后一步把所有 bundle 变更归一化成这个顺序。
 - **不要在仓库里放名为 `AGENTS.md` 的全局记忆源文件。**`$DSH_HOME/AGENTS.md` 是目标路径，但只要源文件在仓库里叫 `AGENTS.md`，DSH 就会把它当成该目录的**项目级**指令文件：任何对该目录的读写都会让这份"全局"内容以项目指令的身份注入当前会话。源文件必须用一个非magic 名字（本仓库用 `user-instructions.md`），由模块安装到目标路径。
 
 ## 验证
@@ -455,7 +461,8 @@ Zed 侧：`dev: open acp logs` 看握手、capabilities 和 stderr；确认线�
 - runtime：模块定义的用户运行时目录（版本固定，依赖树由 npm 决定）。
 - `$DSH_HOME`：`settings.yaml`（种子 + 运行时写入）、`cordis.patch.yml`（生成）、`profiles/`（生成）、`AGENTS.md`（生成）、`.credentials.yaml`（本方案下不需要）、`sessions/` `storages/`（本机运行态，不要删、不要同步）。
 - 回滚：Home Manager 回退到上一代即可恢复生成的配置层；**不要删除 `sessions/`**。
-- 升级：只改模块里的 `dshVersion`，先 dry-run，再重启 agent 进程观察。
+- 升级：改模块里的 `dshVersion`；如果新版 dsh 依赖的原生解析器与官方 Node 版本绑定，同步
+  `pkgs/nodejs-official` 的官方 Node 版本。先 dry-run，再重启 agent 进程观察。
 
 ## 风险
 
@@ -479,3 +486,5 @@ Zed 侧：`dev: open acp logs` 看握手、capabilities 和 stderr；确认线�
 ## 验证记录
 
 2026-09-17，目标主机 fedora-thinkbook（Fedora 44，standalone Home Manager）与 NUC（对照）。使用安装在 `~/.local/share/deepseek-harness/runtime` 的 `@deepseek-ai/dsh@0.1.6-alpha.1`，在**隔离的临时 `$DSH_HOME`** 下通过 `/bin/sh -c "<node> --expose-internals <dsh> --profile acp"`（与 Zed 启动路径一致）驱动 ACP。结果：`initialize` / `session/new` / `session/list` / `session/close` 成功，`session/load` 返回 `-32601`，`stdout` 无非 JSON 行；种子化 `settings.yaml` + `- id: acp` patch 后模型分组出现 `opencode-go-live-chat`；`cordis.patch.yml` 里的 `!!js process.env.<VAR>` 在环境变量存在/缺失两种情况下产生不同结果，确认求值生效。以上为方法可复现的结论，具体版本与命令输出以目标机当前状态为准。
+
+2026-09-18，目标主机 nuc（Fedora，standalone Home Manager），升级到 `@deepseek-ai/dsh@0.1.6-alpha.2`，两个 runtime 都用 `pkgs/nodejs-official`（官方 nodejs.org 22.23.2）重建。结果：`deepseek-harness.service` active、loopback `127.0.0.1:3080` 返回 401、launch-token URL 返回 303，`journalctl --user -u deepseek-harness` 无新错误；web profile 清单包含 `deepseek-harness-opencode-session`、`deepseek-harness-observability`、`dsh-otel` 三个 bundle；`dsh --profile acp --dump-config` 退出 0，说明 ACP composition、`file:` bundle 与插件解析在 alpha.2 上可加载。真实 prompt 的 `agent_message_chunk` 验证尚未在 alpha.2 上重跑。

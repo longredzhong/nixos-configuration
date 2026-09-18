@@ -27,7 +27,12 @@ let
   # Same runtime line as modules/host-services/deepseek-harness.nix; the two
   # modules intentionally agree on the layout so a host can adopt either
   # surface, or both, against one $DSH_HOME.
-  node = pkgs.nodejs_22;
+  #
+  # dsh 0.1.6-alpha.2 boots profiles through node-addon-require-builtin, whose
+  # native prebuild only recognizes the official nodejs.org V8 layout; nixpkgs'
+  # nodejs build fails closed (`Unsupported/no-getter`). See
+  # pkgs/nodejs-official. npm only drives `npm install`, so it stays on nixpkgs.
+  node = pkgs.nodejs-official;
   npm = pkgs.nodejs-slim_22.npm;
   python = pkgs.python3.withPackages (ps: [ ps.pyyaml ]);
 
@@ -89,6 +94,25 @@ let
       [ "dsh-acp-enhanced" ]
     else
       [ "@deepseek-ai/dsh-acp-app" ];
+
+  # The order of `dsh.profile.bundles` is load-bearing, not cosmetic: dsh folds
+  # the list into an ordered stack of patch layers, and a layer that lands after
+  # the ACP bridge is dropped from the composed profile. Measured on
+  # 0.1.6-alpha.1, `[base, acp-app, <plugin>]` leaves the model routes
+  # unregistered -- `session/new` fails with `no adapter registered for provider
+  # "<route>"` -- while `[base, <plugin>, acp-app]` works.
+  #
+  # Provisioning can only append, and the profile template ships `[base,
+  # acp-app]`, so a freshly created home gets exactly the broken order. That
+  # makes the working order an accident of history: a home created by an older
+  # generation keeps it, a new one does not. Declare the order here and let
+  # provisioning normalize the manifest to it.
+  desiredBundles =
+    [ "@deepseek-ai/dsh-base" ]
+    ++ lib.optional cfg.openCodeRoutes.enable sessionPluginName
+    ++ lib.optionals enhancedBridge [ "dsh-acp-enhanced" ]
+    ++ lib.optionals (!enhancedBridge) [ "@deepseek-ai/dsh-acp-app" ]
+    ++ cfg.extraBundles;
 
   profilePlugins =
     lib.optional enhancedBridge bridgePlugin
@@ -189,6 +213,7 @@ let
       builtins.toJSON profilePlugins
       + builtins.toJSON removeBundles
       + builtins.toJSON ensureBundles
+      + builtins.toJSON desiredBundles
       + builtins.readFile profilePatchFile
       + builtins.readFile globalPatchFile
       + lib.concatMapStrings builtins.readFile settingsSeeds
@@ -259,6 +284,7 @@ let
       DSH_PROFILE_PLUGINS='${builtins.toJSON profilePlugins}' \
       DSH_REMOVE_BUNDLES='${builtins.toJSON removeBundles}' \
       DSH_ENSURE_BUNDLES='${builtins.toJSON ensureBundles}' \
+      DSH_DESIRED_BUNDLES='${builtins.toJSON desiredBundles}' \
       '${python}/bin/python3' - <<'PY'
     import json
     import os
@@ -271,6 +297,7 @@ let
     plugins = json.loads(os.environ["DSH_PROFILE_PLUGINS"])
     remove_bundles = json.loads(os.environ["DSH_REMOVE_BUNDLES"])
     ensure_bundles = json.loads(os.environ["DSH_ENSURE_BUNDLES"])
+    desired_bundles = json.loads(os.environ["DSH_DESIRED_BUNDLES"])
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     dependencies = manifest.setdefault("dependencies", {})
@@ -362,6 +389,18 @@ let
         plugin_link.parent.mkdir(parents=True, exist_ok=True)
         if not plugin_link.exists():
             plugin_link.symlink_to(plugin_path, target_is_directory=True)
+
+    # Normalize the order last, after every step that can append: the declared
+    # stack is load-bearing (see `desiredBundles`). Names this module does not
+    # own keep whatever position they had, after the declared ones.
+    ordered = [name for name in desired_bundles if name in bundles]
+    ordered += [name for name in bundles if name not in ordered]
+    if ordered != bundles:
+        print(
+            "deepseek-harness: reordered bundles to " + ", ".join(ordered),
+            file=sys.stderr,
+        )
+        bundles[:] = ordered
 
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     PY
@@ -537,7 +576,7 @@ in
 
     dshVersion = lib.mkOption {
       type = lib.types.str;
-      default = "0.1.6-alpha.1";
+      default = "0.1.6-alpha.2";
       description = "Pinned @deepseek-ai/dsh version installed into the user runtime.";
     };
 
